@@ -141,12 +141,16 @@ export type NavigationData = {
   walking: { distance: number; duration: number } | null;
 };
 
-async function executeNavigationTool(input: {
-  destination: string;
-  chineseName?: string;
-  city?: string;
-}): Promise<{ result: NavigationData | null; error?: string }> {
+async function executeNavigationTool(
+  input: {
+    destination: string;
+    chineseName?: string;
+    city?: string;
+  },
+  origin?: string,
+): Promise<{ result: NavigationData | null; error?: string }> {
   const city = input.city || "上海";
+  const originCoords = origin || DEFAULT_ORIGIN;
 
   const place = await resolveLocation(input.destination, input.chineseName, city);
   if (!place) {
@@ -157,8 +161,8 @@ async function executeNavigationTool(input: {
   }
 
   const [transit, walking] = await Promise.all([
-    getTransitRoute(DEFAULT_ORIGIN, place.location, city),
-    getWalkingRoute(DEFAULT_ORIGIN, place.location),
+    getTransitRoute(originCoords, place.location, city),
+    getWalkingRoute(originCoords, place.location),
   ]);
 
   return {
@@ -175,13 +179,16 @@ async function executeNavigationTool(input: {
   };
 }
 
-async function executePlacesSearch(input: {
-  type: string;
-  keyword?: string;
-  location?: string;
-  radius?: number;
-}): Promise<{ results: POIResult[]; error?: string }> {
-  const center = input.location || DEFAULT_ORIGIN;
+async function executePlacesSearch(
+  input: {
+    type: string;
+    keyword?: string;
+    location?: string;
+    radius?: number;
+  },
+  origin?: string,
+): Promise<{ results: POIResult[]; error?: string }> {
+  const center = input.location || origin || DEFAULT_ORIGIN;
   const radius = input.radius || 1000;
 
   let results: POIResult[];
@@ -216,6 +223,7 @@ async function executePlacesSearch(input: {
 
 export async function getChatResponse(
   messages: Array<{ role: string; content: string }>,
+  origin?: string,
 ): Promise<ChatResponse> {
   try {
     const apiMessages = messages.map((m) => ({
@@ -259,7 +267,7 @@ export async function getChatResponse(
           chineseName?: string;
           city?: string;
         };
-        const navResult = await executeNavigationTool(toolInput);
+        const navResult = await executeNavigationTool(toolInput, origin);
         toolResultContent = navResult.result
           ? JSON.stringify(navResult.result)
           : JSON.stringify({ error: navResult.error });
@@ -271,7 +279,7 @@ export async function getChatResponse(
           location?: string;
           radius?: number;
         };
-        const placesResult = await executePlacesSearch(toolInput);
+        const placesResult = await executePlacesSearch(toolInput, origin);
         toolResultContent = JSON.stringify(placesResult);
         placesData = placesResult.results.length > 0
           ? placesResult.results

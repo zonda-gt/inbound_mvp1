@@ -23,7 +23,31 @@ function makeId() {
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([WELCOME_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
+  const [userLocation, setUserLocation] = useState<string | null>(null);
+  const [locationRequested, setLocationRequested] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Request geolocation on mount
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setLocationRequested(true);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Amap uses "lng,lat" format
+        const coords = `${position.coords.longitude},${position.coords.latitude}`;
+        setUserLocation(coords);
+        setLocationRequested(true);
+      },
+      () => {
+        // Permission denied or error — fall back to Shanghai default
+        setLocationRequested(true);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+    );
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -54,7 +78,10 @@ export default function ChatPage() {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: apiMessages }),
+          body: JSON.stringify({
+            messages: apiMessages,
+            origin: userLocation || undefined,
+          }),
         });
 
         const data = await res.json();
@@ -83,7 +110,7 @@ export default function ChatPage() {
         setIsTyping(false);
       }
     },
-    [messages],
+    [messages, userLocation],
   );
 
   const hasUserMessages = messages.some((m) => m.role === "user");
@@ -105,7 +132,14 @@ export default function ChatPage() {
       </header>
 
       {/* Preview banner */}
-      <PreviewBanner />
+      {locationRequested && <PreviewBanner hasLocation={!!userLocation} />}
+
+      {/* Location prompt (shown briefly while waiting) */}
+      {!locationRequested && (
+        <div className="flex items-center justify-center bg-amber-50 px-4 py-2 text-xs text-amber-700">
+          Enable location to get navigation and restaurant recommendations near you.
+        </div>
+      )}
 
       {/* Chat area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">

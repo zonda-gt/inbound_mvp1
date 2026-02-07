@@ -3,7 +3,7 @@ import { getChatResponse } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    const { messages, origin } = await request.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await getChatResponse(messages);
+    const result = await getChatResponse(messages, origin);
 
     return NextResponse.json({
       response: result.text,

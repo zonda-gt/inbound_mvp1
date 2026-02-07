@@ -107,16 +107,21 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
 
       {/* Action buttons */}
       <div className="border-t border-gray-100 px-4 py-3 space-y-2">
-        <a
-          href={taxiLinks.webLink}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => {
+            // Try the native Amap deep link first
+            window.location.href = taxiLinks.appLink;
+            // If the app doesn't open within 1.5s, fall back to web
+            setTimeout(() => {
+              window.open(taxiLinks.webLink, "_blank", "noopener,noreferrer");
+            }, 1500);
+          }}
           className="flex w-full items-center justify-center rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
         >
           🚕 Take a Taxi to {destination.name}
-        </a>
+        </button>
         <p className="text-center text-[11px] text-gray-400">
-          Opens Amap · Destination pre-filled in Chinese
+          Opens Amap app · Falls back to web if not installed
         </p>
 
         <button
