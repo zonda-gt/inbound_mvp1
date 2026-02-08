@@ -216,6 +216,9 @@ export type POIResult = {
   tel: string;
   openingHours: string;
   cost: string;
+  // AI-enriched fields (populated after initial render)
+  englishName?: string;
+  description?: string;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -358,16 +361,16 @@ export async function resolveLocation(
     return dist <= MAX_LOCAL_DISTANCE_KM;
   }
 
-  // 1. Geocode with Chinese name
-  if (chineseName) {
-    const geo = await geocode(chineseName, city);
-    if (geo && isValidResult(geo)) return geo;
-  }
-
-  // 2. POI text search with Chinese name
+  // 1. POI text search with Chinese name (best for landmarks — ranks by popularity)
   if (chineseName) {
     const poi = await searchPlace(chineseName, city);
     if (poi && isValidResult(poi)) return poi;
+  }
+
+  // 2. Geocode with Chinese name (better for street addresses)
+  if (chineseName) {
+    const geo = await geocode(chineseName, city);
+    if (geo && isValidResult(geo)) return geo;
   }
 
   // 3. POI text search with English name

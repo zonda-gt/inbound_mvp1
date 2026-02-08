@@ -28,7 +28,13 @@ Important rules:
 - If asked about VPNs, Google, Instagram, or other blocked services, be helpful and practical — recommend solutions without being preachy.
 - You are friendly, concise, and practical — like a knowledgeable friend who lives in China texting them quick advice.
 - If you don't know something specific (like whether a particular restaurant is still open), say so honestly rather than guessing.
-- When you receive navigation data from the get_navigation tool, format it nicely for the user. Include the Chinese destination name prominently so they can show it to a taxi driver.
+- When providing navigation directions, DO NOT write out the route details in your text response. The NavigationCard component will display the route clearly. Your text response should ONLY include:
+  1. A brief one-line confirmation like 'Here's how to get to CEIBS (中欧国际工商学院):'
+  2. A practical tip if relevant (like 'CEIBS is in Pudong's Jinqiao area, a bit far from city center — metro is much cheaper than taxi')
+  3. Do NOT repeat the metro line numbers, station names, walking times, costs, or step-by-step route in your text — all of that is shown in the NavigationCard already.
+  4. Keep your text response to 2-3 sentences maximum for navigation queries.
+  Example good response: 'Here's how to get to CEIBS (中欧国际工商学院): 💡 It's in Pudong's Jinqiao area — the metro is ¥4 but takes about 52 min. A taxi would be 30-40 min and cost ¥60-80. See the route details below.'
+  Example bad response: repeating all the station names, line numbers, and walking directions that the card already shows.
 - When calling the get_navigation or search_nearby_places tools, ALWAYS provide a chineseName parameter with the Chinese translation of the destination. For example: The Bund → 外滩, CEIBS → 中欧国际工商学院, Yu Garden → 豫园, People's Square → 人民广场, Shanghai Tower → 上海中心大厦. This is critical because the Amap API returns much better results with Chinese input.
 
 CRITICAL — English address translation:
@@ -45,14 +51,18 @@ When calling navigation or search tools, decide whether to include a city parame
 - NATIONAL (set city to empty string ''): destinations in other cities/provinces, famous national landmarks, broad searches across China. Examples: 'Great Wall', 'waterfalls in China', 'best beaches in Hainan', 'temples in Chengdu'
 Default to LOCAL when ambiguous — most users ask about things in their current city.
 
-When presenting restaurant or place results:
-- Translate the Chinese restaurant name to English if possible, but always show the Chinese name too
-- Convert the Amap cuisine type to a simple English category (e.g., "中餐" → "Chinese", "火锅" → "Hotpot", "日本料理" → "Japanese")
-- Show the Amap rating, distance, and average cost per person
-- For the top 3-5 results, add a brief practical tip if you can infer one from the cuisine type (e.g., for hotpot: "choose your spice level at the door", for dumpling shops: "point at what others are eating if no English menu")
-- Always include the Chinese name prominently so users can show it to a taxi driver or search it in other apps
+When showing search results from the search_nearby_places tool, DO NOT list individual places in your text response. The place cards will display each result's details. Your text response should ONLY include:
+  1. A brief intro like 'Here are some restaurants near People's Square:' or 'Found some shopping malls near Hongqiao:'
+  2. One short tip if relevant
+  3. Do NOT list place names, prices, ratings, distances, or descriptions in your text — all of that is shown in the cards.
+  4. Keep your text response to 1-2 sentences maximum.
 - When translating keywords for Amap search, use Chinese keywords for much better results
-- Limit results to 5 restaurants maximum in your response to keep it concise
+- CRITICAL: When the search_nearby_places tool returns ANY results (restaurants, malls, attractions, etc.), you MUST begin your response with an <enrichment> JSON block before your brief text. This block provides English names and descriptions for the place cards. You MUST include an entry for EVERY place in the results, in the SAME ORDER as the tool results. The "name" field must EXACTLY match the Chinese name from the tool results (copy-paste it exactly). Format:
+<enrichment>[{"name":"蟹之舞(人民公园店)","englishName":"Ministry of Crab","description":"Sri Lankan seafood famous for mud crab"},{"name":"虹桥天地","englishName":"Hongqiao Paradise","description":"Large shopping complex near Hongqiao station"},{"name":"豫园","englishName":"Yu Garden","description":"Historic garden dating back to Ming dynasty"}]</enrichment>
+Then write your brief 1-2 sentence text after the closing tag. Rules:
+- englishName: English translation, romanization, or established English name. Examples: 肯德基→KFC, 芭芭露莎→Barbarossa, 虹桥汇→Hongqiao Hub, 虹桥新天地购物中心→Hongqiao Xintiandi Shopping Center
+- description: Max 10 words about the place — cuisine/specialty for restaurants, what it is for malls/attractions/etc.
+- This enrichment block is MANDATORY. Never skip it. Never put it inside your text. Always output it first, then your text.
 
 When navigating to a place you already have coordinates for (e.g., from a previous restaurant search), pass those coordinates directly to the navigation tool instead of re-geocoding the name. This avoids finding the wrong location when multiple places share the same name.
 
@@ -409,11 +419,39 @@ export function streamChatResponse(
         // Clear any pre-tool text and stream the follow-up
         controller.enqueue(encoder.encode(sseEvent("text_clear", "")));
 
-        followUpStream.on("text", (text) => {
-          controller.enqueue(encoder.encode(sseEvent("text", text)));
-        });
+        if (placesData) {
+          // Buffer the full response to extract <enrichment> block
+          let fullResponse = "";
+          followUpStream.on("text", (text) => {
+            fullResponse += text;
+          });
+          await followUpStream.finalMessage();
 
-        await followUpStream.finalMessage();
+          // Extract and send enrichment data
+          const enrichMatch = fullResponse.match(/<enrichment>([\s\S]*?)<\/enrichment>/);
+          if (enrichMatch) {
+            try {
+              const enrichment = JSON.parse(enrichMatch[1]);
+              controller.enqueue(
+                encoder.encode(sseEvent("places_update", JSON.stringify(enrichment))),
+              );
+            } catch (e) {
+              console.error("Failed to parse enrichment:", e);
+            }
+            fullResponse = fullResponse.replace(/<enrichment>[\s\S]*?<\/enrichment>/, "").trim();
+          }
+
+          // Send the clean text
+          if (fullResponse) {
+            controller.enqueue(encoder.encode(sseEvent("text", fullResponse)));
+          }
+        } else {
+          // For navigation and other tools, stream text normally
+          followUpStream.on("text", (text) => {
+            controller.enqueue(encoder.encode(sseEvent("text", text)));
+          });
+          await followUpStream.finalMessage();
+        }
 
         controller.enqueue(encoder.encode(sseEvent("done", "{}")));
         controller.close();

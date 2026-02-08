@@ -235,6 +235,46 @@ export default function ChatPage() {
                 break;
               }
 
+              case "places_update": {
+                try {
+                  const enrichment = JSON.parse(ev.data) as Array<{
+                    name: string;
+                    englishName: string;
+                    description: string;
+                  }>;
+                  if (placesResult) {
+                    placesResult = placesResult.map((p, idx) => {
+                      // Try exact name match, then partial match, then index fallback
+                      const match =
+                        enrichment.find((r) => r.name === p.name) ||
+                        enrichment.find(
+                          (r) =>
+                            p.name.includes(r.name) ||
+                            r.name.includes(p.name),
+                        ) ||
+                        (idx < enrichment.length ? enrichment[idx] : null);
+                      return match
+                        ? {
+                            ...p,
+                            englishName: match.englishName,
+                            description: match.description,
+                          }
+                        : p;
+                    });
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === aiMsgId
+                          ? { ...m, placesData: placesResult }
+                          : m,
+                      ),
+                    );
+                  }
+                } catch {
+                  // Enrichment failed — cards still work with Chinese names
+                }
+                break;
+              }
+
               case "error": {
                 const errData = JSON.parse(ev.data);
                 setIsTyping(false);
