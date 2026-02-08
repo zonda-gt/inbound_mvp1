@@ -221,111 +221,164 @@ async function executePlacesSearch(
   return { results };
 }
 
-export async function getChatResponse(
+// SSE helper: format a server-sent event
+function sseEvent(event: string, data: string): string {
+  return `event: ${event}\ndata: ${data}\n\n`;
+}
+
+export function streamChatResponse(
   messages: Array<{ role: string; content: string }>,
   origin?: string,
-): Promise<ChatResponse> {
-  try {
-    const apiMessages = messages.map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
 
-    // First call — may return text or a tool_use request
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      tools: TOOLS,
-      messages: apiMessages,
-    });
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const apiMessages = messages.map((m) => ({
+          role: m.role as "user" | "assistant",
+          content: m.content,
+        }));
 
-    // If Claude just responds with text (no tool use)
-    if (response.stop_reason === "end_turn") {
-      const textBlock = response.content.find((b) => b.type === "text");
-      return { text: textBlock ? textBlock.text : "I couldn't generate a response." };
-    }
+        // First call — streaming
+        const stream = client.messages.stream({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1024,
+          system: SYSTEM_PROMPT,
+          tools: TOOLS,
+          messages: apiMessages,
+        });
 
-    // If Claude wants to use a tool
-    if (response.stop_reason === "tool_use") {
-      const toolBlock = response.content.find(
-        (b) => b.type === "tool_use",
-      ) as Anthropic.Messages.ToolUseBlock | undefined;
+        // Collect the full response for potential tool use follow-up
+        let hasToolUse = false;
+        let toolBlock: Anthropic.Messages.ToolUseBlock | null = null;
+        const contentBlocks: Anthropic.Messages.ContentBlock[] = [];
 
-      if (!toolBlock) {
-        const textBlock = response.content.find((b) => b.type === "text");
-        return { text: textBlock ? textBlock.text : "I couldn't process that request." };
+        // Stream text deltas as they arrive
+        stream.on("text", (text) => {
+          controller.enqueue(encoder.encode(sseEvent("text", text)));
+        });
+
+        stream.on("contentBlock", (block) => {
+          contentBlocks.push(block);
+          if (block.type === "tool_use") {
+            hasToolUse = true;
+            toolBlock = block;
+          }
+        });
+
+        // Wait for the stream to finish
+        const finalMessage = await stream.finalMessage();
+
+        if (!hasToolUse || !toolBlock) {
+          // Pure text response — already streamed, just close
+          controller.enqueue(encoder.encode(sseEvent("done", "{}")));
+          controller.close();
+          return;
+        }
+
+        // Tool use detected — notify client
+        const tb = toolBlock as Anthropic.Messages.ToolUseBlock;
+        const toolName = tb.name;
+
+        if (toolName === "get_navigation") {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "get_navigation", label: "Finding route..." }))),
+          );
+        } else if (toolName === "search_nearby_places") {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "search_nearby_places", label: "Searching nearby..." }))),
+          );
+        }
+
+        // Execute the tool
+        let toolResultContent: string;
+        let navigationData: NavigationData | undefined;
+        let placesData: POIResult[] | undefined;
+
+        if (toolName === "get_navigation") {
+          const toolInput = tb.input as {
+            destination: string;
+            chineseName?: string;
+            city?: string;
+          };
+          const navResult = await executeNavigationTool(toolInput, origin);
+          toolResultContent = navResult.result
+            ? JSON.stringify(navResult.result)
+            : JSON.stringify({ error: navResult.error });
+          navigationData = navResult.result || undefined;
+        } else if (toolName === "search_nearby_places") {
+          const toolInput = tb.input as {
+            type: string;
+            keyword?: string;
+            location?: string;
+            radius?: number;
+          };
+          const placesResult = await executePlacesSearch(toolInput, origin);
+          toolResultContent = JSON.stringify(placesResult);
+          placesData = placesResult.results.length > 0
+            ? placesResult.results
+            : undefined;
+        } else {
+          controller.enqueue(encoder.encode(sseEvent("done", "{}")));
+          controller.close();
+          return;
+        }
+
+        // Send tool data to client (navigation card / restaurant list)
+        if (navigationData) {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_data", JSON.stringify({ navigationData }))),
+          );
+        }
+        if (placesData) {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
+          );
+        }
+
+        // Follow-up call with tool result — also streamed
+        const followUpStream = client.messages.stream({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1024,
+          system: SYSTEM_PROMPT,
+          tools: TOOLS,
+          messages: [
+            ...apiMessages,
+            { role: "assistant", content: finalMessage.content },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "tool_result",
+                  tool_use_id: tb.id,
+                  content: toolResultContent,
+                },
+              ],
+            },
+          ],
+        });
+
+        // Clear any pre-tool text and stream the follow-up
+        controller.enqueue(encoder.encode(sseEvent("text_clear", "")));
+
+        followUpStream.on("text", (text) => {
+          controller.enqueue(encoder.encode(sseEvent("text", text)));
+        });
+
+        await followUpStream.finalMessage();
+
+        controller.enqueue(encoder.encode(sseEvent("done", "{}")));
+        controller.close();
+      } catch (error) {
+        console.error("Claude API streaming error:", error);
+        controller.enqueue(
+          encoder.encode(
+            sseEvent("error", JSON.stringify({ message: "Sorry, I'm having trouble connecting right now. Please try again in a moment." })),
+          ),
+        );
+        controller.close();
       }
-
-      let toolResultContent: string;
-      let navigationData: NavigationData | undefined;
-      let placesData: POIResult[] | undefined;
-
-      if (toolBlock.name === "get_navigation") {
-        const toolInput = toolBlock.input as {
-          destination: string;
-          chineseName?: string;
-          city?: string;
-        };
-        const navResult = await executeNavigationTool(toolInput, origin);
-        toolResultContent = navResult.result
-          ? JSON.stringify(navResult.result)
-          : JSON.stringify({ error: navResult.error });
-        navigationData = navResult.result || undefined;
-      } else if (toolBlock.name === "search_nearby_places") {
-        const toolInput = toolBlock.input as {
-          type: string;
-          keyword?: string;
-          location?: string;
-          radius?: number;
-        };
-        const placesResult = await executePlacesSearch(toolInput, origin);
-        toolResultContent = JSON.stringify(placesResult);
-        placesData = placesResult.results.length > 0
-          ? placesResult.results
-          : undefined;
-      } else {
-        const textBlock = response.content.find((b) => b.type === "text");
-        return { text: textBlock ? textBlock.text : "I couldn't process that request." };
-      }
-
-      // Send tool result back to Claude for final response
-      const followUp = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1024,
-        system: SYSTEM_PROMPT,
-        tools: TOOLS,
-        messages: [
-          ...apiMessages,
-          { role: "assistant", content: response.content },
-          {
-            role: "user",
-            content: [
-              {
-                type: "tool_result",
-                tool_use_id: toolBlock.id,
-                content: toolResultContent,
-              },
-            ],
-          },
-        ],
-      });
-
-      const finalText = followUp.content.find((b) => b.type === "text");
-      return {
-        text: finalText ? finalText.text : "Here are the results.",
-        navigationData,
-        placesData,
-      };
-    }
-
-    // Fallback
-    const textBlock = response.content.find((b) => b.type === "text");
-    return { text: textBlock ? textBlock.text : "I couldn't generate a response." };
-  } catch (error) {
-    console.error("Claude API error:", error);
-    return {
-      text: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
-    };
-  }
+    },
+  });
 }
