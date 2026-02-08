@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import ChatMessage, { Message } from "@/components/ChatMessage";
+import ChatMessage, { Message, NavContext } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import TypingIndicator from "@/components/TypingIndicator";
 import SuggestedPrompts from "@/components/SuggestedPrompts";
@@ -116,7 +116,7 @@ export default function ChatPage() {
   }, [messages, isTyping, toolStatus, scrollToBottom]);
 
   const handleSend = useCallback(
-    async (text: string) => {
+    async (text: string, navContext?: NavContext) => {
       const userMsg: Message = { id: makeId(), role: "user", content: text };
       const aiMsgId = makeId();
       const updatedMessages = [...messages, userMsg];
@@ -136,6 +136,7 @@ export default function ChatPage() {
           body: JSON.stringify({
             messages: apiMessages,
             origin: userLocation || undefined,
+            navContext: navContext || undefined,
           }),
         });
 

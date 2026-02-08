@@ -13,7 +13,7 @@ export default function RestaurantCard({
   onNavigate,
 }: {
   place: POIResult;
-  onNavigate: (name: string) => void;
+  onNavigate: (name: string, location: string, address: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -63,7 +63,7 @@ export default function RestaurantCard({
       {/* Action buttons */}
       <div className="mt-2 flex gap-2">
         <button
-          onClick={() => onNavigate(place.name)}
+          onClick={() => onNavigate(place.name, place.location, place.address)}
           className="flex-1 rounded-lg bg-[#2563EB] py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700"
         >
           🧭 Navigate

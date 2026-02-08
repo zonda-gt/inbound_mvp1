@@ -33,17 +33,32 @@ export type WalkingRoute = {
 
 // --------------- Geocode ---------------
 
+// Haversine distance in km between two "lng,lat" strings
+function distanceKm(loc1: string, loc2: string): number {
+  const [lng1, lat1] = loc1.split(",").map(Number);
+  const [lng2, lat2] = loc2.split(",").map(Number);
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function geocode(
   placeName: string,
-  city = "上海",
+  city?: string,
 ): Promise<GeoResult | null> {
   try {
     const params = new URLSearchParams({
       address: placeName,
-      city,
       key: AMAP_KEY,
       output: "JSON",
     });
+    if (city) params.set("city", city);
     const res = await fetch(`${BASE}/geocode/geo?${params}`);
     const data = await res.json();
 
@@ -65,16 +80,16 @@ export async function geocode(
 
 export async function searchPlace(
   keyword: string,
-  city = "上海",
+  city?: string,
 ): Promise<GeoResult | null> {
   try {
     const params = new URLSearchParams({
       keywords: keyword,
-      city,
       key: AMAP_KEY,
       extensions: "all",
       output: "JSON",
     });
+    if (city) params.set("city", city);
     const res = await fetch(`${BASE}/place/text?${params}`);
     const data = await res.json();
 
@@ -312,30 +327,56 @@ export async function searchNearbyPOI(
 
 // --------------- Resolve place name → coordinates ---------------
 
+// City center coordinates for distance validation
+const CITY_CENTERS: Record<string, string> = {
+  "上海": "121.4737,31.2304",
+  "北京": "116.4074,39.9042",
+  "广州": "113.2644,23.1291",
+  "深圳": "114.0579,22.5431",
+  "成都": "104.0665,30.5723",
+  "杭州": "120.1551,30.2741",
+  "南京": "118.7969,32.0603",
+  "西安": "108.9402,34.2583",
+  "重庆": "106.5516,29.5630",
+};
+
+const MAX_LOCAL_DISTANCE_KM = 200;
+
 export async function resolveLocation(
   englishName: string,
   chineseName?: string,
-  city = "上海",
+  city?: string,
+  referenceLocation?: string,
 ): Promise<GeoResult | null> {
+  // For LOCAL searches (city specified), validate that results are nearby
+  const isLocal = !!city;
+  const refPoint = referenceLocation || (city && CITY_CENTERS[city]) || undefined;
+
+  function isValidResult(result: GeoResult): boolean {
+    if (!isLocal || !refPoint || !result.location) return true;
+    const dist = distanceKm(result.location, refPoint);
+    return dist <= MAX_LOCAL_DISTANCE_KM;
+  }
+
   // 1. Geocode with Chinese name
   if (chineseName) {
     const geo = await geocode(chineseName, city);
-    if (geo) return geo;
+    if (geo && isValidResult(geo)) return geo;
   }
 
   // 2. POI text search with Chinese name
   if (chineseName) {
     const poi = await searchPlace(chineseName, city);
-    if (poi) return poi;
+    if (poi && isValidResult(poi)) return poi;
   }
 
   // 3. POI text search with English name
   const poiEn = await searchPlace(englishName, city);
-  if (poiEn) return poiEn;
+  if (poiEn && isValidResult(poiEn)) return poiEn;
 
   // 4. Geocode with English name
   const geoEn = await geocode(englishName, city);
-  if (geoEn) return geoEn;
+  if (geoEn && isValidResult(geoEn)) return geoEn;
 
   // 5. All failed
   return null;

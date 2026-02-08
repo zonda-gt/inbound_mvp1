@@ -5,6 +5,12 @@ import type { POIResult } from "@/lib/amap";
 import NavigationCard from "./NavigationCard";
 import RestaurantList from "./RestaurantList";
 
+export type NavContext = {
+  destinationLocation: string; // "lng,lat"
+  destinationName: string;
+  destinationAddress: string;
+};
+
 export type Message = {
   id: string;
   role: "user" | "assistant";
@@ -20,12 +26,16 @@ export default function ChatMessage({
 }: {
   message: Message;
   isFirstInGroup: boolean;
-  onSend?: (text: string) => void;
+  onSend?: (text: string, navContext?: NavContext) => void;
 }) {
   const isUser = message.role === "user";
 
-  const handleNavigate = (name: string) => {
-    onSend?.(`How do I get to ${name}?`);
+  const handleNavigate = (name: string, location: string, address: string) => {
+    onSend?.(`How do I get to ${name}?`, {
+      destinationLocation: location,
+      destinationName: name,
+      destinationAddress: address,
+    });
   };
 
   return (

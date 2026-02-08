@@ -10,7 +10,7 @@ export default function RestaurantList({
 }: {
   places: POIResult[];
   keyword?: string;
-  onNavigate: (name: string) => void;
+  onNavigate: (name: string, location: string, address: string) => void;
 }) {
   const display = places.slice(0, 5);
 

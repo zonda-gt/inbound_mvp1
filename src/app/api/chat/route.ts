@@ -3,7 +3,7 @@ import { streamChatResponse } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, origin } = await request.json();
+    const { messages, origin, navContext } = await request.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const stream = streamChatResponse(messages, origin);
+    const stream = streamChatResponse(messages, origin, navContext);
 
     return new Response(stream, {
       headers: {

@@ -31,6 +31,20 @@ Important rules:
 - When you receive navigation data from the get_navigation tool, format it nicely for the user. Include the Chinese destination name prominently so they can show it to a taxi driver.
 - When calling the get_navigation or search_nearby_places tools, ALWAYS provide a chineseName parameter with the Chinese translation of the destination. For example: The Bund → 外滩, CEIBS → 中欧国际工商学院, Yu Garden → 豫园, People's Square → 人民广场, Shanghai Tower → 上海中心大厦. This is critical because the Amap API returns much better results with Chinese input.
 
+CRITICAL — English address translation:
+When the user gives a street address in English, you MUST translate it to Chinese before calling any tool. English addresses do not work with the Chinese map API. Examples:
+- 'No.685 Dingxi Road' → '定西路685号'
+- 'Xinhua Business Building' → '新华商务大厦'
+- '123 Nanjing West Road' → '南京西路123号'
+- 'Huaihai Road' → '淮海路'
+The Chinese address format is: [路名][门牌号]号[建筑名]. Always provide the full Chinese translation in the chineseName parameter.
+
+LOCAL vs NATIONAL search — deciding when to constrain by city:
+When calling navigation or search tools, decide whether to include a city parameter:
+- LOCAL (include city like '上海'): specific street addresses, 'near me' queries, local businesses/restaurants/buildings, any place in the user's current city. Examples: 'take me to Dingxi Road', 'find food near me', 'navigate to CEIBS', 'restaurants in Changning'
+- NATIONAL (set city to empty string ''): destinations in other cities/provinces, famous national landmarks, broad searches across China. Examples: 'Great Wall', 'waterfalls in China', 'best beaches in Hainan', 'temples in Chengdu'
+Default to LOCAL when ambiguous — most users ask about things in their current city.
+
 When presenting restaurant or place results:
 - Translate the Chinese restaurant name to English if possible, but always show the Chinese name too
 - Convert the Amap cuisine type to a simple English category (e.g., "中餐" → "Chinese", "火锅" → "Hotpot", "日本料理" → "Japanese")
@@ -39,6 +53,8 @@ When presenting restaurant or place results:
 - Always include the Chinese name prominently so users can show it to a taxi driver or search it in other apps
 - When translating keywords for Amap search, use Chinese keywords for much better results
 - Limit results to 5 restaurants maximum in your response to keep it concise
+
+When navigating to a place you already have coordinates for (e.g., from a previous restaurant search), pass those coordinates directly to the navigation tool instead of re-geocoding the name. This avoids finding the wrong location when multiple places share the same name.
 
 You are currently in preview/demo mode. The user may or may not be physically in China. Be helpful regardless of their location.`;
 
@@ -63,7 +79,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         city: {
           type: "string",
           description:
-            "The city to search in. Default to Shanghai if not specified.",
+            "The Chinese city name to constrain the search. Use '上海' for LOCAL searches (default). Use '' (empty string) for NATIONAL searches when the destination is in another city or province.",
         },
       },
       required: ["destination"],
@@ -141,6 +157,12 @@ export type NavigationData = {
   walking: { distance: number; duration: number } | null;
 };
 
+export type NavContext = {
+  destinationLocation: string; // "lng,lat"
+  destinationName: string;
+  destinationAddress: string;
+};
+
 async function executeNavigationTool(
   input: {
     destination: string;
@@ -148,11 +170,35 @@ async function executeNavigationTool(
     city?: string;
   },
   origin?: string,
+  navContext?: NavContext,
 ): Promise<{ result: NavigationData | null; error?: string }> {
-  const city = input.city || "上海";
+  // Empty string means NATIONAL search (no city constraint)
+  const city = input.city === "" ? undefined : input.city || "上海";
+  const transitCity = city || "上海";
   const originCoords = origin || DEFAULT_ORIGIN;
 
-  const place = await resolveLocation(input.destination, input.chineseName, city);
+  // If we have pre-resolved coordinates (e.g. from a restaurant card), skip geocoding
+  if (navContext) {
+    const [transit, walking] = await Promise.all([
+      getTransitRoute(originCoords, navContext.destinationLocation, transitCity),
+      getWalkingRoute(originCoords, navContext.destinationLocation),
+    ]);
+
+    return {
+      result: {
+        destination: {
+          name: navContext.destinationName,
+          inputName: input.destination,
+          address: navContext.destinationAddress,
+          location: navContext.destinationLocation,
+        },
+        transit,
+        walking,
+      },
+    };
+  }
+
+  const place = await resolveLocation(input.destination, input.chineseName, city, originCoords);
   if (!place) {
     return {
       result: null,
@@ -161,7 +207,7 @@ async function executeNavigationTool(
   }
 
   const [transit, walking] = await Promise.all([
-    getTransitRoute(originCoords, place.location, city),
+    getTransitRoute(originCoords, place.location, transitCity),
     getWalkingRoute(originCoords, place.location),
   ]);
 
@@ -229,6 +275,7 @@ function sseEvent(event: string, data: string): string {
 export function streamChatResponse(
   messages: Array<{ role: string; content: string }>,
   origin?: string,
+  navContext?: NavContext,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
@@ -302,7 +349,7 @@ export function streamChatResponse(
             chineseName?: string;
             city?: string;
           };
-          const navResult = await executeNavigationTool(toolInput, origin);
+          const navResult = await executeNavigationTool(toolInput, origin, navContext);
           toolResultContent = navResult.result
             ? JSON.stringify(navResult.result)
             : JSON.stringify({ error: navResult.error });
