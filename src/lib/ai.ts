@@ -9,7 +9,12 @@ import {
 } from "@/lib/amap";
 import type { POIResult } from "@/lib/amap";
 
-const SYSTEM_PROMPT = `You are ChinaTravel AI, a helpful travel assistant for foreign travelers visiting China. You specialize in helping people who don't speak Chinese navigate daily life in China.
+function buildSystemPrompt(userCity?: string): string {
+  const cityContext = userCity
+    ? `The user is currently located in ${userCity}.`
+    : "The user's location is unknown.";
+
+  return `You are ChinaTravel AI, a helpful travel assistant for foreign travelers visiting China. You specialize in helping people who don't speak Chinese navigate daily life in China.
 
 Your core capabilities:
 1. NAVIGATION: Give specific metro routes, walking directions, and practical transit advice for Chinese cities. Always include the Chinese name (汉字) of destinations so users can show it to taxi drivers.
@@ -18,13 +23,15 @@ Your core capabilities:
 4. APP SETUP: Guide users through setting up Alipay, WeChat Pay, VPN, and other essential apps for foreigners in China.
 5. CULTURAL TIPS: Help with cultural norms, tipping (don't tip in China), etiquette, and avoiding common foreigner mistakes.
 
+CURRENT CONTEXT:
+${cityContext}
+
 Important rules:
 - Keep responses concise and practical. Travelers need quick answers, not essays.
 - Always include Chinese characters (汉字) AND pinyin for any Chinese words or phrases.
 - Use emoji sparingly to make responses scannable (🚇 for metro, 🚶 for walking, 🍜 for food, etc.)
 - When giving restaurant recommendations, format them clearly with name, rating, price, and distance.
 - When giving navigation directions, break them into clear numbered steps.
-- Default to Shanghai if the user doesn't specify a city.
 - If asked about VPNs, Google, Instagram, or other blocked services, be helpful and practical — recommend solutions without being preachy.
 - You are friendly, concise, and practical — like a knowledgeable friend who lives in China texting them quick advice.
 - If you don't know something specific (like whether a particular restaurant is still open), say so honestly rather than guessing.
@@ -45,11 +52,24 @@ When the user gives a street address in English, you MUST translate it to Chines
 - 'Huaihai Road' → '淮海路'
 The Chinese address format is: [路名][门牌号]号[建筑名]. Always provide the full Chinese translation in the chineseName parameter.
 
-LOCAL vs NATIONAL search — deciding when to constrain by city:
-When calling navigation or search tools, decide whether to include a city parameter:
-- LOCAL (include city like '上海'): specific street addresses, 'near me' queries, local businesses/restaurants/buildings, any place in the user's current city. Examples: 'take me to Dingxi Road', 'find food near me', 'navigate to CEIBS', 'restaurants in Changning'
-- NATIONAL (set city to empty string ''): destinations in other cities/provinces, famous national landmarks, broad searches across China. Examples: 'Great Wall', 'waterfalls in China', 'best beaches in Hainan', 'temples in Chengdu'
-Default to LOCAL when ambiguous — most users ask about things in their current city.
+CITY DETECTION — Priority for determining which city to use:
+When calling navigation or search tools, determine the city parameter using this priority:
+1. If the user explicitly mentions a city in their message (e.g., 'take me to Gaoyou Road in Shanghai', 'find restaurants in Beijing', 'navigate to the Great Wall in Beijing'), extract the city name and pass it as the city parameter, regardless of where the user's GPS says they are. The user might be planning ahead for a different city.
+2. If the user's GPS location is available and you know their current city, AND they don't mention a specific city, use the city from GPS for LOCAL searches.
+3. If neither is available, ask the user what city they're in.
+4. For NATIONAL searches (famous landmarks in other provinces, broad queries across China), set city to empty string '' to disable city filtering.
+
+Examples:
+- User is in 北京, asks 'take me to Gaoyou Road' → use 北京 (from GPS)
+- User is in 北京, asks 'take me to Gaoyou Road Shanghai' → use 上海 (user specified)
+- User is in 北京, asks 'find food near me' → use 北京 (from GPS)
+- User has no GPS, asks 'restaurants in Chengdu' → use 成都 (user specified)
+- User has no GPS, asks 'find food near me' → ask user what city they're in
+- User asks 'Great Wall' → use '' (NATIONAL search, famous landmark)
+
+LOCAL vs NATIONAL search:
+- LOCAL: specific street addresses, 'near me' queries, local businesses/restaurants/buildings, any place in the user's current city.
+- NATIONAL: destinations in other cities/provinces, famous national landmarks, broad searches across China.
 
 When showing search results from the search_nearby_places tool, DO NOT list individual places in your text response. The place cards will display each result's details. Your text response should ONLY include:
   1. A brief intro like 'Here are some restaurants near People's Square:' or 'Found some shopping malls near Hongqiao:'
@@ -95,6 +115,7 @@ If the image is NOT Chinese text (e.g., a photo of a place, a person, food witho
 IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.
 
 You are currently in preview/demo mode. The user may or may not be physically in China. Be helpful regardless of their location.`;
+}
 
 const TOOLS: Anthropic.Messages.Tool[] = [
   {
@@ -117,7 +138,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         city: {
           type: "string",
           description:
-            "The Chinese city name to constrain the search. Use '上海' for LOCAL searches (default). Use '' (empty string) for NATIONAL searches when the destination is in another city or province.",
+            "The Chinese city name to constrain the search. Use the city explicitly mentioned by the user if they specify one. Otherwise, use the user's current city from GPS. Use '' (empty string) for NATIONAL searches when the destination is in another city or province. DO NOT provide a city parameter if you don't know the city - omit it instead.",
         },
       },
       required: ["destination"],
@@ -143,7 +164,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         location: {
           type: "string",
           description:
-            "Search center as 'lng,lat'. If not available, omit and the default Shanghai center will be used.",
+            "Search center as 'lng,lat'. If not available, omit and a default center will be used.",
         },
         radius: {
           type: "number",
@@ -156,7 +177,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   },
 ];
 
-const DEFAULT_ORIGIN = "121.4737,31.2304"; // People's Square
+const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -210,11 +231,13 @@ async function executeNavigationTool(
     city?: string;
   },
   origin?: string,
+  userCity?: string,
   navContext?: NavContext,
 ): Promise<{ result: NavigationData | null; error?: string }> {
   // Empty string means NATIONAL search (no city constraint)
-  const city = input.city === "" ? undefined : input.city || "上海";
-  const transitCity = city || "上海";
+  // If tool provides city, use it. Otherwise use userCity. If neither, use undefined.
+  const city = input.city === "" ? undefined : input.city || userCity;
+  const transitCity = city || userCity || "上海"; // Transit routes require a city
   const originCoords = origin || DEFAULT_ORIGIN;
 
   // If we have pre-resolved coordinates (e.g. from a restaurant card), skip geocoding
@@ -317,6 +340,7 @@ function sseEvent(event: string, data: string): string {
 export function streamChatResponse(
   messages: Array<{ role: string; content: string }>,
   origin?: string,
+  userCity?: string,
   navContext?: NavContext,
   image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" },
 ): ReadableStream<Uint8Array> {
@@ -363,7 +387,7 @@ export function streamChatResponse(
         const stream = client.messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(userCity),
           tools: TOOLS,
           messages: apiMessages,
         });
@@ -421,7 +445,7 @@ export function streamChatResponse(
             chineseName?: string;
             city?: string;
           };
-          const navResult = await executeNavigationTool(toolInput, origin, navContext);
+          const navResult = await executeNavigationTool(toolInput, origin, userCity, navContext);
           toolResultContent = navResult.result
             ? JSON.stringify(navResult.result)
             : JSON.stringify({ error: navResult.error });
@@ -460,7 +484,7 @@ export function streamChatResponse(
         const followUpStream = client.messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: SYSTEM_PROMPT,
+          system: buildSystemPrompt(userCity),
           tools: TOOLS,
           messages: [
             ...apiMessages,

@@ -7,7 +7,7 @@ import {
   WalkingRoute,
 } from "@/lib/amap";
 
-const DEFAULT_ORIGIN = "121.4737,31.2304"; // People's Square
+const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
 
 export type NavigationResult = {
   destination: {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const place = await resolvePlace(destination, city || "上海");
+    const place = await resolvePlace(destination, city);
 
     if (!place) {
       return NextResponse.json(
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     const originCoords = origin || DEFAULT_ORIGIN;
 
     const [transit, walking] = await Promise.all([
-      getTransitRoute(originCoords, place.location, city || "上海"),
+      getTransitRoute(originCoords, place.location, city),
       getWalkingRoute(originCoords, place.location),
     ]);
 

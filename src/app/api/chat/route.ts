@@ -7,9 +7,10 @@ export async function POST(request: NextRequest) {
   try {
     requestBody = await request.json();
 
-    const { messages, origin, navContext, image }: {
+    const { messages, origin, city, navContext, image }: {
       messages: Array<{ role: string; content: string }>;
       origin?: string;
+      city?: string;
       navContext?: any;
       image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" };
     } = requestBody;
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const stream = streamChatResponse(messages, origin, navContext, image);
+    const stream = streamChatResponse(messages, origin, city, navContext, image);
 
     return new Response(stream, {
       headers: {
@@ -47,6 +48,7 @@ export async function POST(request: NextRequest) {
       body: requestBody ? {
         messageCount: requestBody.messages?.length,
         hasOrigin: !!requestBody.origin,
+        city: requestBody.city,
         hasNavContext: !!requestBody.navContext,
         hasImage: !!requestBody.image,
         // Don't log full image data (too large), just metadata

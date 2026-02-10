@@ -5,7 +5,7 @@ import {
   searchNearbyPOI,
 } from "@/lib/amap";
 
-const DEFAULT_LOCATION = "121.4737,31.2304"; // People's Square, Shanghai
+const DEFAULT_LOCATION = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable (People's Square)
 
 export async function POST(request: NextRequest) {
   try {

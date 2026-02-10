@@ -33,6 +33,42 @@ export type WalkingRoute = {
   polyline?: string; // "lng,lat;lng,lat;..." for map display
 };
 
+// --------------- Reverse Geocode (Get city from coordinates) ---------------
+
+export type ReverseGeoResult = {
+  city: string; // e.g., "上海市", "北京市", "吉林市"
+  district: string;
+  province: string;
+  formatted_address: string;
+};
+
+export async function reverseGeocode(
+  location: string, // "lng,lat"
+): Promise<ReverseGeoResult | null> {
+  try {
+    const params = new URLSearchParams({
+      location,
+      key: AMAP_KEY,
+      output: "JSON",
+    });
+    const res = await fetch(`${BASE}/geocode/regeo?${params}`);
+    const data = await res.json();
+
+    if (data.status !== "1" || !data.regeocode) return null;
+
+    const addressComponent = data.regeocode.addressComponent;
+    return {
+      city: addressComponent.city || addressComponent.province || "",
+      district: addressComponent.district || "",
+      province: addressComponent.province || "",
+      formatted_address: data.regeocode.formatted_address || "",
+    };
+  } catch (err) {
+    console.error("Amap reverse geocode error:", err);
+    return null;
+  }
+}
+
 // --------------- Geocode ---------------
 
 // Haversine distance in km between two "lng,lat" strings
@@ -114,17 +150,17 @@ export async function searchPlace(
 export async function getTransitRoute(
   origin: string,
   destination: string,
-  city = "上海",
+  city?: string,
 ): Promise<TransitRoute | null> {
   try {
     const params = new URLSearchParams({
       origin,
       destination,
-      city,
       key: AMAP_KEY,
       strategy: "0",
       output: "JSON",
     });
+    if (city) params.set("city", city);
     const res = await fetch(`${BASE}/direction/transit/integrated?${params}`);
     const data = await res.json();
 
@@ -400,7 +436,7 @@ export async function resolveLocation(
 
 export async function resolvePlace(
   placeName: string,
-  city = "上海",
+  city?: string,
 ): Promise<GeoResult | null> {
   return resolveLocation(placeName, undefined, city);
 }

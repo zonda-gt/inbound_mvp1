@@ -79,6 +79,7 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
+  const [userCity, setUserCity] = useState<string | null>(null);
   const [locationRequested, setLocationRequested] = useState(false);
   const [isReadingPhoto, setIsReadingPhoto] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -92,9 +93,25 @@ export default function ChatPage() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const coords = `${position.coords.longitude},${position.coords.latitude}`;
         setUserLocation(coords);
+
+        // Reverse geocode to get city name
+        try {
+          const response = await fetch('/api/reverse-geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ location: coords }),
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setUserCity(data.city);
+          }
+        } catch (error) {
+          console.error('Failed to get city from coordinates:', error);
+        }
+
         setLocationRequested(true);
       },
       () => {
@@ -148,6 +165,7 @@ export default function ChatPage() {
         const requestPayload = {
           messages: apiMessages,
           origin: userLocation || undefined,
+          city: userCity || undefined,
           navContext: navContext || undefined,
           image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
         };
@@ -372,7 +390,7 @@ export default function ChatPage() {
         setToolStatus(null);
       }
     },
-    [messages, userLocation],
+    [messages, userLocation, userCity],
   );
 
   const handleCameraCapture = useCallback(
