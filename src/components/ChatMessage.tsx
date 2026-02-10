@@ -47,35 +47,52 @@ export default function ChatMessage({
       )}
       {!isUser && !isFirstInGroup && <span className="mr-2 w-[1.125rem]" />}
       <div className="max-w-[80%]">
-        <div
-          className={`whitespace-pre-wrap px-4 py-2.5 text-[15px] leading-relaxed ${
-            isUser
-              ? "rounded-2xl rounded-br-md bg-[#2563EB] text-white"
-              : "rounded-2xl rounded-bl-md bg-[#F3F4F6] text-gray-900"
-          }`}
-        >
-          {message.imageUrl && (
-            <img
-              src={message.imageUrl}
-              alt="User uploaded"
-              className="mb-2 max-w-[240px] rounded-xl shadow-sm"
-            />
-          )}
-          {message.content}
-        </div>
-        {message.navigationData && (
-          <NavigationCard data={message.navigationData} />
+        {/* For user messages: show image + text together */}
+        {isUser && (
+          <div
+            className="whitespace-pre-wrap rounded-2xl rounded-br-md bg-[#2563EB] px-4 py-2.5 text-[15px] leading-relaxed text-white"
+          >
+            {message.imageUrl && (
+              <img
+                src={message.imageUrl}
+                alt="User uploaded"
+                className="mb-2 max-w-[240px] rounded-xl shadow-sm"
+              />
+            )}
+            {message.content}
+          </div>
         )}
-        {message.placesData && message.placesData.length > 0 && (
-          <RestaurantList
-            places={message.placesData}
-            onNavigate={handleNavigate}
-            userLocation={
-              message.userLocation
-                ? message.userLocation.split(",").map(Number) as [number, number]
-                : undefined
-            }
-          />
+
+        {/* For assistant messages: show tool results first, then text */}
+        {!isUser && (
+          <>
+            {/* Tool results appear first - instant structured data */}
+            {message.navigationData && (
+              <NavigationCard data={message.navigationData} />
+            )}
+            {message.placesData && message.placesData.length > 0 && (
+              <RestaurantList
+                places={message.placesData}
+                onNavigate={handleNavigate}
+                userLocation={
+                  message.userLocation
+                    ? message.userLocation.split(",").map(Number) as [number, number]
+                    : undefined
+                }
+              />
+            )}
+
+            {/* AI text appears last - streams in below structured data */}
+            {message.content && (
+              <div
+                className={`whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-900 ${
+                  message.navigationData || message.placesData ? "mt-2" : ""
+                }`}
+              >
+                {message.content}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

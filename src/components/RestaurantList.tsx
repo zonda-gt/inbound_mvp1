@@ -47,21 +47,8 @@ export default function RestaurantList({
 
   return (
     <div className="my-2">
-      {/* Map with numbered markers */}
-      {markers.length > 0 && (
-        <MapView
-          markers={markers}
-          activeMarker={activeIndex}
-          onMarkerClick={handleMarkerClick}
-          userLocation={userLocation}
-          isApproximateLocation={!userLocation}
-          height="200px"
-          className="mb-2.5"
-        />
-      )}
-
-      {/* Place cards */}
-      <div className="flex flex-col gap-2.5">
+      {/* Place cards - shown first for instant visibility */}
+      <div className="flex flex-col gap-2.5 mb-2.5">
         {display.map((place, i) => (
           <div
             key={i}
@@ -79,6 +66,18 @@ export default function RestaurantList({
           </div>
         ))}
       </div>
+
+      {/* Map with numbered markers - shown below cards */}
+      {markers.length > 0 && (
+        <MapView
+          markers={markers}
+          activeMarker={activeIndex}
+          onMarkerClick={handleMarkerClick}
+          userLocation={userLocation}
+          isApproximateLocation={!userLocation}
+          height="200px"
+        />
+      )}
     </div>
   );
 }
