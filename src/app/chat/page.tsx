@@ -202,7 +202,7 @@ export default function ChatPage() {
                   streamedText = ev.data;
                   setMessages((prev) => [
                     ...prev,
-                    { id: aiMsgId, role: "assistant", content: streamedText },
+                    { id: aiMsgId, role: "assistant", content: streamedText, userLocation: userLocation || undefined },
                   ]);
                 } else {
                   streamedText += ev.data;
@@ -221,7 +221,7 @@ export default function ChatPage() {
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === aiMsgId
-                        ? { ...m, content: "", navigationData: navData, placesData: placesResult }
+                        ? { ...m, content: "", userLocation: userLocation || undefined, navigationData: navData, placesData: placesResult }
                         : m,
                     ),
                   );
@@ -250,6 +250,7 @@ export default function ChatPage() {
                       id: aiMsgId,
                       role: "assistant",
                       content: "",
+                      userLocation: userLocation || undefined,
                       navigationData: navData,
                       placesData: placesResult,
                     },
@@ -258,7 +259,7 @@ export default function ChatPage() {
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === aiMsgId
-                        ? { ...m, navigationData: navData, placesData: placesResult }
+                        ? { ...m, userLocation: userLocation || undefined, navigationData: navData, placesData: placesResult }
                         : m,
                     ),
                   );
@@ -314,7 +315,7 @@ export default function ChatPage() {
                 if (!aiMsgCreated) {
                   setMessages((prev) => [
                     ...prev,
-                    { id: aiMsgId, role: "assistant", content: errData.message },
+                    { id: aiMsgId, role: "assistant", content: errData.message, userLocation: userLocation || undefined },
                   ]);
                 } else {
                   setMessages((prev) =>
@@ -334,7 +335,7 @@ export default function ChatPage() {
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === aiMsgId
-                        ? { ...m, navigationData: navData, placesData: placesResult }
+                        ? { ...m, userLocation: userLocation || undefined, navigationData: navData, placesData: placesResult }
                         : m,
                     ),
                   );

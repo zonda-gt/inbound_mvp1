@@ -8,9 +8,11 @@ import MapView, { type MapMarker } from "./MapView";
 export default function RestaurantList({
   places,
   onNavigate,
+  userLocation,
 }: {
   places: POIResult[];
   onNavigate: (name: string, location: string, address: string) => void;
+  userLocation?: [number, number]; // [lng, lat]
 }) {
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
@@ -51,6 +53,8 @@ export default function RestaurantList({
           markers={markers}
           activeMarker={activeIndex}
           onMarkerClick={handleMarkerClick}
+          userLocation={userLocation}
+          isApproximateLocation={!userLocation}
           height="200px"
           className="mb-2.5"
         />

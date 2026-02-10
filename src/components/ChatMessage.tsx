@@ -16,6 +16,7 @@ export type Message = {
   role: "user" | "assistant";
   content: string;
   imageUrl?: string; // preview URL for displaying the image
+  userLocation?: string; // "lng,lat" format
   navigationData?: NavigationData;
   placesData?: POIResult[];
 };
@@ -69,6 +70,11 @@ export default function ChatMessage({
           <RestaurantList
             places={message.placesData}
             onNavigate={handleNavigate}
+            userLocation={
+              message.userLocation
+                ? message.userLocation.split(",").map(Number) as [number, number]
+                : undefined
+            }
           />
         )}
       </div>

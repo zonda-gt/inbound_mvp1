@@ -139,7 +139,12 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
       {/* ── Map ── */}
       {hasPolylines && (
         <div className="px-4 pb-3">
-          <MapView route={routeData} height="180px" />
+          <MapView
+            route={routeData}
+            height="180px"
+            userLocation={routeData.origin}
+            isApproximateLocation={false}
+          />
         </div>
       )}
 
