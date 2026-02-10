@@ -518,7 +518,21 @@ export function streamChatResponse(
         controller.enqueue(encoder.encode(sseEvent("done", "{}")));
         controller.close();
       } catch (error) {
-        console.error("Claude API streaming error:", error);
+        // Log full error details
+        console.error("═══ Claude API Streaming Error ═══");
+        console.error("Error message:", error instanceof Error ? error.message : String(error));
+        console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+        console.error("Request context:", {
+          messageCount: messages.length,
+          lastMessageRole: messages[messages.length - 1]?.role,
+          lastMessageLength: messages[messages.length - 1]?.content?.length,
+          hasOrigin: !!origin,
+          hasNavContext: !!navContext,
+          hasImage: !!image,
+          imageType: image?.mediaType,
+        });
+        console.error("═══════════════════════════════════");
+
         controller.enqueue(
           encoder.encode(
             sseEvent("error", JSON.stringify({ message: "Sorry, I'm having trouble connecting right now. Please try again in a moment." })),

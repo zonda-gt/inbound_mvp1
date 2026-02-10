@@ -145,19 +145,32 @@ export default function ChatPage() {
           content: m.content,
         }));
 
+        const requestPayload = {
+          messages: apiMessages,
+          origin: userLocation || undefined,
+          navContext: navContext || undefined,
+          image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
+        };
+
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: apiMessages,
-            origin: userLocation || undefined,
-            navContext: navContext || undefined,
-            image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
-          }),
+          body: JSON.stringify(requestPayload),
         });
 
         if (!res.ok) {
-          throw new Error("Request failed");
+          const errorText = await res.text();
+          console.error("═══ Chat API Request Failed ═══");
+          console.error("Status:", res.status, res.statusText);
+          console.error("Response:", errorText);
+          console.error("Request payload:", {
+            messageCount: apiMessages.length,
+            hasOrigin: !!userLocation,
+            hasNavContext: !!navContext,
+            hasImage: !!imageData,
+          });
+          console.error("═══════════════════════════════════");
+          throw new Error(`Request failed: ${res.status} ${res.statusText}`);
         }
 
         const reader = res.body?.getReader();
@@ -331,7 +344,19 @@ export default function ChatPage() {
             }
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("═══ Chat Message Send Error ═══");
+        console.error("Error message:", error instanceof Error ? error.message : String(error));
+        console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+        console.error("Context:", {
+          messageText: text.slice(0, 100), // First 100 chars
+          hasNavContext: !!navContext,
+          hasImageData: !!imageData,
+          userLocation,
+          messageCount: messages.length,
+        });
+        console.error("═══════════════════════════════════");
+
         setMessages((prev) => [
           ...prev,
           {
