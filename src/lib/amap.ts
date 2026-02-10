@@ -8,7 +8,7 @@ export type GeoResult = {
 };
 
 export type TransitSegment =
-  | { type: "walking"; distance: number; duration: number }
+  | { type: "walking"; distance: number; duration: number; polyline?: string }
   | {
       type: "transit";
       lineName: string;
@@ -16,6 +16,7 @@ export type TransitSegment =
       arrivalStop: string;
       stopCount: number;
       direction: string;
+      polyline?: string;
     };
 
 export type TransitRoute = {
@@ -29,6 +30,7 @@ export type TransitRoute = {
 export type WalkingRoute = {
   distance: number; // meters
   duration: number; // minutes
+  polyline?: string; // "lng,lat;lng,lat;..." for map display
 };
 
 // --------------- Geocode ---------------
@@ -139,10 +141,15 @@ export async function getTransitRoute(
     for (const seg of transit.segments || []) {
       // Walking part
       if (seg.walking && Number(seg.walking.distance) > 0) {
+        const walkPolyline = (seg.walking.steps || [])
+          .map((s: Record<string, string>) => s.polyline)
+          .filter(Boolean)
+          .join(";");
         segments.push({
           type: "walking",
           distance: Number(seg.walking.distance),
           duration: Math.round(Number(seg.walking.duration) / 60),
+          polyline: walkPolyline || undefined,
         });
       }
       // Bus / metro part
@@ -155,6 +162,7 @@ export async function getTransitRoute(
           arrivalStop: line.arrival_stop?.name || "",
           stopCount: Number(line.via_num || 0) + 1,
           direction: line.direction || "",
+          polyline: line.polyline || undefined,
         });
         if (segments.filter((s) => s.type === "transit").length > 1) {
           transferCount++;
@@ -194,9 +202,14 @@ export async function getWalkingRoute(
     if (data.status !== "1" || !data.route?.paths?.length) return null;
 
     const path = data.route.paths[0];
+    const walkPolyline = (path.steps || [])
+      .map((s: Record<string, string>) => s.polyline)
+      .filter(Boolean)
+      .join(";");
     return {
       distance: Number(path.distance),
       duration: Math.round(Number(path.duration) / 60),
+      polyline: walkPolyline || undefined,
     };
   } catch (err) {
     console.error("Amap walking error:", err);

@@ -32,8 +32,8 @@ const ACTION_BUTTONS = [
   },
   {
     label: "Translate",
-    icon: "🗣️",
-    message: "🗣️ Translate something for me",
+    icon: "📷",
+    action: "camera", // Special action to trigger camera
     bg: "bg-green-50",
     border: "border-green-200",
     text: "text-green-700",
@@ -80,7 +80,9 @@ export default function ChatPage() {
   const [toolStatus, setToolStatus] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
   const [locationRequested, setLocationRequested] = useState(false);
+  const [isReadingPhoto, setIsReadingPhoto] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Request geolocation on mount
   useEffect(() => {
@@ -116,12 +118,25 @@ export default function ChatPage() {
   }, [messages, isTyping, toolStatus, scrollToBottom]);
 
   const handleSend = useCallback(
-    async (text: string, navContext?: NavContext) => {
-      const userMsg: Message = { id: makeId(), role: "user", content: text };
+    async (text: string, navContext?: NavContext, imageData?: { base64: string; mediaType: string; previewUrl: string }) => {
+      const userMsg: Message = {
+        id: makeId(),
+        role: "user",
+        content: text,
+        imageUrl: imageData?.previewUrl,
+      };
       const aiMsgId = makeId();
       const updatedMessages = [...messages, userMsg];
       setMessages(updatedMessages);
-      setIsTyping(true);
+
+      // Set appropriate loading state
+      if (imageData) {
+        setIsReadingPhoto(true);
+        setIsTyping(false);
+      } else {
+        setIsTyping(true);
+        setIsReadingPhoto(false);
+      }
       setToolStatus(null);
 
       try {
@@ -137,6 +152,7 @@ export default function ChatPage() {
             messages: apiMessages,
             origin: userLocation || undefined,
             navContext: navContext || undefined,
+            image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
           }),
         });
 
@@ -168,6 +184,7 @@ export default function ChatPage() {
                 if (!aiMsgCreated) {
                   aiMsgCreated = true;
                   setIsTyping(false);
+                  setIsReadingPhoto(false);
                   setToolStatus(null);
                   streamedText = ev.data;
                   setMessages((prev) => [
@@ -203,6 +220,7 @@ export default function ChatPage() {
                 const info = JSON.parse(ev.data);
                 setToolStatus(info.label);
                 setIsTyping(false);
+                setIsReadingPhoto(false);
                 break;
               }
 
@@ -278,6 +296,7 @@ export default function ChatPage() {
               case "error": {
                 const errData = JSON.parse(ev.data);
                 setIsTyping(false);
+                setIsReadingPhoto(false);
                 setToolStatus(null);
                 if (!aiMsgCreated) {
                   setMessages((prev) => [
@@ -296,6 +315,7 @@ export default function ChatPage() {
 
               case "done": {
                 setIsTyping(false);
+                setIsReadingPhoto(false);
                 setToolStatus(null);
                 if (aiMsgCreated) {
                   setMessages((prev) =>
@@ -322,11 +342,27 @@ export default function ChatPage() {
         ]);
       } finally {
         setIsTyping(false);
+        setIsReadingPhoto(false);
         setToolStatus(null);
       }
     },
     [messages, userLocation],
   );
+
+  const handleCameraCapture = useCallback(
+    (image: { base64: string; mediaType: string; previewUrl: string }) => {
+      handleSend("What does this say? Translate and help me understand it.", undefined, {
+        base64: image.base64,
+        mediaType: image.mediaType,
+        previewUrl: image.previewUrl,
+      });
+    },
+    [handleSend],
+  );
+
+  const handleCameraClick = useCallback(() => {
+    cameraInputRef.current?.click();
+  }, []);
 
   const hasUserMessages = messages.some((m) => m.role === "user");
 
@@ -390,7 +426,13 @@ export default function ChatPage() {
                 ) : (
                   <button
                     key={btn.label}
-                    onClick={() => handleSend(btn.message!)}
+                    onClick={() => {
+                      if ((btn as any).action === "camera") {
+                        handleCameraClick();
+                      } else {
+                        handleSend((btn as any).message!);
+                      }
+                    }}
                     className={`flex flex-col items-center justify-center rounded-2xl border ${btn.border} ${btn.bg} px-3 py-8 transition-colors hover:opacity-80`}
                   >
                     <span className="text-3xl">{btn.icon}</span>
@@ -426,6 +468,15 @@ export default function ChatPage() {
                 </div>
               )}
 
+              {isReadingPhoto && (
+                <div className="flex items-start gap-2">
+                  <span className="text-lg leading-none">🤖</span>
+                  <div className="rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-500 italic">
+                    📷 Reading your photo...
+                  </div>
+                </div>
+              )}
+
               {isTyping && <TypingIndicator />}
             </div>
           </div>
@@ -433,7 +484,73 @@ export default function ChatPage() {
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} disabled={isTyping || !!toolStatus} />
+      <ChatInput
+        onSend={handleSend}
+        disabled={isTyping || isReadingPhoto || !!toolStatus}
+        onCameraClick={handleCameraClick}
+      />
+
+      {/* Hidden camera input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            try {
+              // Quick inline processing
+              const reader = new FileReader();
+              reader.onload = async () => {
+                const img = new Image();
+                img.onload = () => {
+                  const maxSize = 1200;
+                  let { width, height } = img;
+
+                  if (width > maxSize || height > maxSize) {
+                    if (width > height) {
+                      height = (height * maxSize) / width;
+                      width = maxSize;
+                    } else {
+                      width = (width * maxSize) / height;
+                      height = maxSize;
+                    }
+                  }
+
+                  const canvas = document.createElement('canvas');
+                  canvas.width = width;
+                  canvas.height = height;
+                  const ctx = canvas.getContext('2d');
+                  ctx?.drawImage(img, 0, 0, width, height);
+
+                  canvas.toBlob((blob) => {
+                    if (blob) {
+                      const blobReader = new FileReader();
+                      blobReader.onloadend = () => {
+                        const base64 = (blobReader.result as string).split(',')[1];
+                        const previewUrl = URL.createObjectURL(blob);
+                        handleCameraCapture({
+                          base64,
+                          mediaType: 'image/jpeg',
+                          previewUrl,
+                        });
+                      };
+                      blobReader.readAsDataURL(blob);
+                    }
+                  }, 'image/jpeg', 0.8);
+                };
+                img.src = reader.result as string;
+              };
+              reader.readAsDataURL(file);
+            } catch (error) {
+              console.error('Error processing image:', error);
+            }
+          }
+          e.target.value = '';
+        }}
+        className="hidden"
+      />
     </div>
   );
 }

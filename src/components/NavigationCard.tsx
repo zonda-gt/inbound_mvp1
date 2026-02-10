@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { NavigationData } from "@/lib/ai";
 import { generateAmapTaxiLink } from "@/lib/taxi";
+import MapView, { type RoutePolyline } from "./MapView";
 
 // Shanghai Metro official line colors
 const LINE_COLORS: Record<string, string> = {
@@ -41,6 +42,16 @@ function parseLineName(name: string) {
 
 function fmtDist(m: number) {
   return m >= 1000 ? `${(m / 1000).toFixed(1)}km` : `${m}m`;
+}
+
+function parsePolylineStr(str: string): Array<[number, number]> {
+  return str
+    .split(";")
+    .map((p) => {
+      const [lng, lat] = p.split(",").map(Number);
+      return [lng, lat] as [number, number];
+    })
+    .filter(([lng, lat]) => !isNaN(lng) && !isNaN(lat));
 }
 
 export default function NavigationCard({ data }: { data: NavigationData }) {
@@ -86,6 +97,30 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
 
   const segments = transit?.segments || [];
 
+  // Build route polylines for the map
+  const routeData = useMemo(() => {
+    const originCoords = data.origin.split(",").map(Number) as [number, number];
+    const destCoords = destination.location.split(",").map(Number) as [number, number];
+
+    const polylines: RoutePolyline[] = [];
+    for (const seg of segments) {
+      if (!seg.polyline) continue;
+      const path = parsePolylineStr(seg.polyline);
+      if (path.length < 2) continue;
+
+      if (seg.type === "walking") {
+        polylines.push({ path, color: "#9CA3AF", dashed: true });
+      } else {
+        const line = parseLineName(seg.lineName);
+        polylines.push({ path, color: line.color });
+      }
+    }
+
+    return { origin: originCoords, destination: destCoords, polylines };
+  }, [data.origin, destination.location, segments]);
+
+  const hasPolylines = routeData.polylines.length > 0;
+
   return (
     <div className="my-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       {/* ── Section A: Header ── */}
@@ -100,6 +135,13 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
         )}
         <p className="mt-0.5 text-sm text-gray-400">{destination.address}</p>
       </div>
+
+      {/* ── Map ── */}
+      {hasPolylines && (
+        <div className="px-4 pb-3">
+          <MapView route={routeData} height="180px" />
+        </div>
+      )}
 
       {/* ── Section B: Key stats badges ── */}
       {transit && (

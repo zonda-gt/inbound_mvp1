@@ -84,9 +84,15 @@ function walkMins(meters: number) {
 export default function RestaurantCard({
   place,
   onNavigate,
+  index,
+  active,
+  onCardClick,
 }: {
   place: POIResult;
   onNavigate: (name: string, location: string, address: string) => void;
+  index?: number;
+  active?: boolean;
+  onCardClick?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
   const placeInfo = getPlaceInfo(place.type);
@@ -102,9 +108,21 @@ export default function RestaurantCard({
   const hasHours = !!place.openingHours;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div
+      className={`overflow-hidden rounded-xl border bg-white shadow-sm transition-all ${
+        active
+          ? "border-blue-400 ring-2 ring-blue-100"
+          : "border-gray-200"
+      }`}
+      onClick={onCardClick}
+    >
       {/* ── Type banner ── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 ${placeInfo.bg}`}>
+        {index != null && (
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2563EB] text-[10px] font-bold text-white">
+            {index}
+          </span>
+        )}
         <span className="text-lg">{placeInfo.icon}</span>
         <span className={`text-xs font-semibold uppercase tracking-wide ${placeInfo.text}`}>
           {placeInfo.label}

@@ -3,7 +3,12 @@ import { streamChatResponse } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, origin, navContext } = await request.json();
+    const { messages, origin, navContext, image }: {
+      messages: Array<{ role: string; content: string }>;
+      origin?: string;
+      navContext?: any;
+      image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" };
+    } = await request.json();
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "Messages array is required" }), {
@@ -12,7 +17,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const stream = streamChatResponse(messages, origin, navContext);
+    const stream = streamChatResponse(messages, origin, navContext, image);
 
     return new Response(stream, {
       headers: {

@@ -66,6 +66,34 @@ Then write your brief 1-2 sentence text after the closing tag. Rules:
 
 When navigating to a place you already have coordinates for (e.g., from a previous restaurant search), pass those coordinates directly to the navigation tool instead of re-geocoding the name. This avoids finding the wrong location when multiple places share the same name.
 
+PHOTO TRANSLATION INSTRUCTIONS:
+When the user sends you a photo, follow this exact response structure:
+
+FIRST — Start your response with the direct translation. Format it clearly:
+
+📝 Translation:
+[Clean English translation of all visible text in the image]
+
+If there are multiple text elements (like a menu with many items), organize them clearly — use the same layout/grouping as the original image where possible.
+
+THEN — After the translation, add the concierge context under a divider:
+
+💡 Context:
+[Explain what this is, why it matters, and what the user should do]
+
+Examples of good context:
+- For a menu: recommend specific dishes, flag allergens or unusual ingredients, explain how to order, suggest what to say to the waiter
+- For a sign/notice: explain what it means for the user — is this their metro stop? Is this a warning? Do they need to do anything?
+- For an app screen or error message: explain what went wrong and how to fix it step by step
+- For a receipt: break down what they paid for and whether the price seems normal
+- For a medicine box or product: explain what it is, dosage if relevant, and whether it's what they might be looking for
+
+Keep the translation section factual and complete. Put all opinions, recommendations, and cultural context in the Context section.
+
+If the image is NOT Chinese text (e.g., a photo of a place, a person, food without text), still be helpful — describe what you see and offer relevant assistance. For example, a photo of a dish could trigger: 'This looks like 红烧肉 (hóngshāo ròu) — braised pork belly. It's one of the most popular dishes in Shanghai. If you want to order more, tell the waiter: 再来一份红烧肉 (zài lái yī fèn hóngshāo ròu).'
+
+IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.
+
 You are currently in preview/demo mode. The user may or may not be physically in China. Be helpful regardless of their location.`;
 
 const TOOLS: Anthropic.Messages.Tool[] = [
@@ -141,6 +169,7 @@ export type ChatResponse = {
 };
 
 export type NavigationData = {
+  origin: string; // "lng,lat"
   destination: {
     name: string;
     inputName: string;
@@ -152,7 +181,7 @@ export type NavigationData = {
     totalWalkingDistance: number;
     transferCount: number;
     segments: Array<
-      | { type: "walking"; distance: number; duration: number }
+      | { type: "walking"; distance: number; duration: number; polyline?: string }
       | {
           type: "transit";
           lineName: string;
@@ -160,11 +189,12 @@ export type NavigationData = {
           arrivalStop: string;
           stopCount: number;
           direction: string;
+          polyline?: string;
         }
     >;
     cost: string;
   } | null;
-  walking: { distance: number; duration: number } | null;
+  walking: { distance: number; duration: number; polyline?: string } | null;
 };
 
 export type NavContext = {
@@ -196,6 +226,7 @@ async function executeNavigationTool(
 
     return {
       result: {
+        origin: originCoords,
         destination: {
           name: navContext.destinationName,
           inputName: input.destination,
@@ -223,6 +254,7 @@ async function executeNavigationTool(
 
   return {
     result: {
+      origin: originCoords,
       destination: {
         name: place.name,
         inputName: input.destination,
@@ -286,16 +318,46 @@ export function streamChatResponse(
   messages: Array<{ role: string; content: string }>,
   origin?: string,
   navContext?: NavContext,
+  image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" },
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
       try {
-        const apiMessages = messages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        }));
+        // Build API messages
+        const apiMessages: Anthropic.Messages.MessageParam[] = messages.map((m, idx) => {
+          // Only include the image in the last user message
+          const isLastMessage = idx === messages.length - 1;
+          const shouldIncludeImage = isLastMessage && m.role === "user" && image;
+
+          if (shouldIncludeImage) {
+            // Multi-part content with image
+            return {
+              role: m.role as "user" | "assistant",
+              content: [
+                {
+                  type: "image" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: image!.mediaType,
+                    data: image!.base64,
+                  },
+                },
+                {
+                  type: "text" as const,
+                  text: m.content || "What does this say? Translate and help me understand it.",
+                },
+              ],
+            };
+          } else {
+            // Regular text message
+            return {
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            };
+          }
+        });
 
         // First call — streaming
         const stream = client.messages.stream({

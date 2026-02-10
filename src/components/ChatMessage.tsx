@@ -15,6 +15,7 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  imageUrl?: string; // preview URL for displaying the image
   navigationData?: NavigationData;
   placesData?: POIResult[];
 };
@@ -52,6 +53,13 @@ export default function ChatMessage({
               : "rounded-2xl rounded-bl-md bg-[#F3F4F6] text-gray-900"
           }`}
         >
+          {message.imageUrl && (
+            <img
+              src={message.imageUrl}
+              alt="User uploaded"
+              className="mb-2 max-w-[240px] rounded-xl shadow-sm"
+            />
+          )}
           {message.content}
         </div>
         {message.navigationData && (
