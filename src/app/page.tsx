@@ -5,22 +5,22 @@ const valueProps = [
     emoji: "🧭",
     title: "Navigation",
     description:
-      "Get metro routes, walking directions, and one-tap taxi — in English",
+      "Get train routes, walking directions, and practical transit tips — in English",
     href: "/chat",
   },
   {
     emoji: "🍜",
     title: "Restaurant Discovery",
     description:
-      "Find great food nearby with English menus and ordering tips",
+      "Find great food nearby with English names and ordering tips",
     href: "/chat",
   },
   {
-    emoji: "💳",
-    title: "Setup Guides",
+    emoji: "🗣️",
+    title: "Translation & Tips",
     description:
-      "Step-by-step Alipay, WeChat Pay, and VPN setup for foreigners",
-    href: "/guides",
+      "Translate signs, menus, and get practical tips for daily life",
+    href: "/chat",
   },
 ];
 
@@ -32,10 +32,10 @@ export default function Home() {
         <div className="mx-auto max-w-5xl flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              ChinaTravel <span className="text-[#2563EB]">AI</span>
+              JK Travel <span className="text-[#2563EB]">AI</span>
             </h1>
             <p className="text-sm text-gray-500">
-              Your AI guide for navigating China
+              Your AI guide for Japan & Korea
             </p>
           </div>
           <Link
@@ -51,7 +51,7 @@ export default function Home() {
       <section className="px-6 py-16 md:py-24">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Navigate China with confidence
+            Navigate Japan & Korea with confidence
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
             AI-powered navigation, restaurant discovery, and travel help —
@@ -87,14 +87,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Not in China yet */}
+      {/* Not there yet */}
       <section className="px-6 py-16">
         <div className="mx-auto max-w-xl text-center">
           <h3 className="text-2xl font-bold text-gray-900">
-            Not in China yet?
+            Planning your trip?
           </h3>
           <p className="mt-2 text-gray-600">
-            Explore what Shanghai has to offer and prepare for your trip
+            Explore what Tokyo, Osaka, Seoul, and more have to offer
           </p>
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <input
@@ -112,7 +112,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-gray-100 px-6 py-8">
         <div className="mx-auto max-w-5xl flex flex-col items-center gap-2 text-sm text-gray-500">
-          <p>Built for foreigners navigating China</p>
+          <p>Built for foreigners navigating Japan & Korea</p>
           <Link href="/chat" className="text-[#2563EB] hover:underline">
             Send feedback
           </Link>

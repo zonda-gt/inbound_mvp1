@@ -5,9 +5,9 @@ import {
   getWalkingRoute,
   TransitRoute,
   WalkingRoute,
-} from "@/lib/amap";
+} from "@/lib/google-maps";
 
-const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
+const DEFAULT_ORIGIN = "139.6917,35.6895"; // Fallback coordinates (Tokyo) when GPS unavailable
 
 export type NavigationResult = {
   destination: {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         {
           error: "Could not find that location",
           suggestion:
-            "Try a more specific name, or provide the Chinese name.",
+            "Try a more specific name, or provide the local name.",
         },
         { status: 404 },
       );

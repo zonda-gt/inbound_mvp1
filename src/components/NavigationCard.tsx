@@ -2,42 +2,63 @@
 
 import { useState, useMemo } from "react";
 import type { NavigationData } from "@/lib/ai";
-import { generateAmapTaxiLink } from "@/lib/taxi";
 import MapView, { type RoutePolyline } from "./MapView";
 
-// Shanghai Metro official line colors
+// Common transit line colors for Japan/Korea systems
 const LINE_COLORS: Record<string, string> = {
-  "1": "#E4002B",
-  "2": "#97D700",
-  "3": "#FFD100",
-  "4": "#5C2D91",
-  "5": "#A855F7",
-  "6": "#E60073",
-  "7": "#FF6900",
-  "8": "#009DDC",
-  "9": "#71C5E8",
-  "10": "#C6A4CF",
-  "11": "#872232",
-  "12": "#007A61",
-  "13": "#EF95CF",
-  "14": "#827717",
-  "15": "#BCA886",
-  "16": "#32B16C",
-  "17": "#BB8C3C",
-  "18": "#D4A843",
+  // Tokyo Metro
+  "Ginza": "#FF9500",
+  "Marunouchi": "#F62E36",
+  "Hibiya": "#B5B5AC",
+  "Tozai": "#009BBF",
+  "Chiyoda": "#00BB85",
+  "Yurakucho": "#C1A470",
+  "Hanzomon": "#8F76D6",
+  "Namboku": "#00AC9B",
+  "Fukutoshin": "#9C5E31",
+  // JR / Yamanote
+  "Yamanote": "#9ACD32",
+  "Chuo": "#FF4500",
+  "Sobu": "#FFD700",
+  // Seoul Metro
+  "1": "#0052A4",
+  "2": "#00A84D",
+  "3": "#EF7C1C",
+  "4": "#00A5DE",
+  "5": "#996CAC",
+  "6": "#CD7C2F",
+  "7": "#747F00",
+  "8": "#E6186C",
+  "9": "#BDB092",
 };
 
-function parseLineName(name: string) {
-  const match = name.match(/地铁(\d+)号线/);
-  if (match) {
-    return {
-      number: match[1],
-      isMetro: true,
-      display: `Line ${match[1]}`,
-      color: LINE_COLORS[match[1]] || "#6B7280",
-    };
+function getLineColor(lineName: string): string {
+  // Check for exact matches first
+  for (const [key, color] of Object.entries(LINE_COLORS)) {
+    if (lineName.includes(key)) return color;
   }
-  return { number: null, isMetro: false, display: name, color: "#6B7280" };
+  // Extract number for Seoul-style numbered lines
+  const numMatch = lineName.match(/\b(\d+)\b/);
+  if (numMatch && LINE_COLORS[numMatch[1]]) {
+    return LINE_COLORS[numMatch[1]];
+  }
+  return "#6B7280";
+}
+
+function parseLineName(name: string) {
+  const color = getLineColor(name);
+  // Check if it looks like a metro/subway line
+  const isMetro = /metro|subway|line|号線|호선/i.test(name) ||
+    /^[A-Z]\d*$/.test(name) || // Single letter + optional number (e.g. "G" for Ginza)
+    /^\d+$/.test(name); // Just a number
+  const numMatch = name.match(/(\d+)/);
+
+  return {
+    number: numMatch ? numMatch[1] : null,
+    isMetro,
+    display: name,
+    color,
+  };
 }
 
 function fmtDist(m: number) {
@@ -59,14 +80,6 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
   const [copied, setCopied] = useState(false);
   const [showDriver, setShowDriver] = useState(false);
 
-  const [lng, lat] = destination.location.split(",");
-  const taxiLinks = generateAmapTaxiLink({
-    name: destination.inputName,
-    lat,
-    lng,
-    chineseName: destination.name,
-  });
-
   const handleCopy = async () => {
     await navigator.clipboard.writeText(
       `${destination.name}\n${destination.address}`
@@ -78,20 +91,21 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
   // Rough taxi estimate from walking-route distance
   const taxiEst = walking
     ? (() => {
-        const km = (walking.distance / 1000) * 0.8; // driving ≈ 80% of walking path
+        const km = (walking.distance / 1000) * 0.8;
         const mins = Math.max(5, Math.round((km / 25) * 60));
-        const cost = Math.max(14, Math.round(14 + Math.max(0, km - 3) * 2.5));
+        // Use a generic cost range (currency varies by country)
+        const baseCost = Math.max(500, Math.round(500 + Math.max(0, km - 2) * 300));
         return {
           timeLow: mins,
           timeHigh: Math.round(mins * 1.4),
-          costLow: cost,
-          costHigh: Math.round(cost * 1.3),
+          costLow: baseCost,
+          costHigh: Math.round(baseCost * 1.3),
         };
       })()
     : null;
 
-  // Only show Chinese name if it differs from the English input name
-  const showChineseName =
+  // Only show local name if it differs from the English input name
+  const showLocalName =
     destination.name !== destination.inputName &&
     destination.name !== destination.address;
 
@@ -128,7 +142,7 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
         <h3 className="text-xl font-bold text-gray-900 leading-tight">
           {destination.inputName}
         </h3>
-        {showChineseName && (
+        {showLocalName && (
           <p className="mt-0.5 text-[15px] text-gray-500">
             {destination.name}
           </p>
@@ -240,7 +254,7 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
               );
             }
 
-            // ── Transit (metro/bus) segment ──
+            // ── Transit (metro/train/bus) segment ──
             const line = parseLineName(seg.lineName);
             return (
               <div key={i} className="flex gap-3">
@@ -249,7 +263,7 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
                     className="flex h-7 w-7 items-center justify-center rounded-full text-white text-[10px] font-bold"
                     style={{ backgroundColor: line.color }}
                   >
-                    {line.isMetro ? line.number : "🚌"}
+                    {line.number || "🚃"}
                   </div>
                   {!isLast && (
                     <div
@@ -294,7 +308,7 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
         {taxiEst && (
           <p className="text-sm text-gray-500">
             🚕 Taxi alternative: ~{taxiEst.timeLow}-{taxiEst.timeHigh} min,
-            ¥{taxiEst.costLow}-{taxiEst.costHigh}
+            ~¥{taxiEst.costLow}-{taxiEst.costHigh}
           </p>
         )}
         {walking && (
@@ -306,18 +320,6 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
 
       {/* ── Section E: Action buttons ── */}
       <div className="border-t border-gray-100 px-4 py-3 space-y-2">
-        <button
-          onClick={() => {
-            window.location.href = taxiLinks.appLink;
-            setTimeout(() => {
-              window.open(taxiLinks.webLink, "_blank", "noopener,noreferrer");
-            }, 1500);
-          }}
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
-        >
-          🚕 Take a Taxi
-        </button>
-
         <div className="flex gap-2">
           <button
             onClick={handleCopy}

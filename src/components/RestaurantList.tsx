@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback } from "react";
-import type { POIResult } from "@/lib/amap";
+import type { POIResult } from "@/lib/google-maps";
 import RestaurantCard from "./RestaurantCard";
 import MapView, { type MapMarker } from "./MapView";
 

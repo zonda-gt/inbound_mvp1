@@ -12,7 +12,7 @@ export default function PreviewBanner({ hasLocation }: { hasLocation: boolean })
       <span>
         {hasLocation
           ? "📍 Using your current location"
-          : "📍 Preview mode — showing results for Shanghai. Enable location for personalized results."}
+          : "📍 Preview mode — showing results for Tokyo. Enable location for personalized results."}
       </span>
       <button
         onClick={() => setDismissed(true)}

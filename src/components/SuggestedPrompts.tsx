@@ -1,10 +1,10 @@
 "use client";
 
 const prompts = [
-  "🧭 How do I get to The Bund?",
-  "🍜 Find food near me",
-  "💳 Help me set up Alipay",
-  "🗣️ Translate something for me",
+  "🧭 How do I get to Shibuya?",
+  "🍜 Find ramen near me",
+  "🚇 How does the Tokyo metro work?",
+  "🍽️ Recommend restaurants in Seoul",
 ];
 
 export default function SuggestedPrompts({

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { POIResult } from "@/lib/amap";
+import type { POIResult } from "@/lib/google-maps";
 
-// ── Place type mapping (Amap Chinese → English label + icon + colors) ──
+// ── Place type mapping (Google Places types → English label + icon + colors) ──
 
 type PlaceInfo = {
   label: string;
@@ -12,60 +12,32 @@ type PlaceInfo = {
   text: string;
 };
 
-function getPlaceInfo(amapType: string): PlaceInfo {
-  const t = amapType.replace(/;/g, "");
+function getPlaceInfo(placeTypes: string): PlaceInfo {
+  const t = placeTypes.toLowerCase();
 
   // ── Non-food place types (check first) ──
-  if (t.includes("购物") || t.includes("商场") || t.includes("百货") || t.includes("商业"))
-    return { label: "Shopping Mall", icon: "🛍️", bg: "bg-fuchsia-50", text: "text-fuchsia-700" };
-  if (t.includes("景点") || t.includes("风景") || t.includes("公园") || t.includes("博物") || t.includes("纪念") || t.includes("旅游"))
+  if (t.includes("shopping") || t.includes("store") || t.includes("mall") || t.includes("department"))
+    return { label: "Shopping", icon: "🛍️", bg: "bg-fuchsia-50", text: "text-fuchsia-700" };
+  if (t.includes("tourist_attraction") || t.includes("museum") || t.includes("park") || t.includes("monument") || t.includes("temple") || t.includes("shrine"))
     return { label: "Attraction", icon: "🏛️", bg: "bg-indigo-50", text: "text-indigo-700" };
-  if (t.includes("酒店") || t.includes("宾馆") || t.includes("旅馆") || t.includes("民宿"))
+  if (t.includes("lodging") || t.includes("hotel") || t.includes("ryokan"))
     return { label: "Hotel", icon: "🏨", bg: "bg-sky-50", text: "text-sky-700" };
-  if (t.includes("酒吧") || t.includes("夜店") || t.includes("KTV"))
+  if (t.includes("bar") || t.includes("night_club"))
     return { label: "Bar & Nightlife", icon: "🍸", bg: "bg-purple-50", text: "text-purple-700" };
-  if (t.includes("医院") || t.includes("药店") || t.includes("诊所"))
+  if (t.includes("hospital") || t.includes("pharmacy") || t.includes("doctor") || t.includes("health"))
     return { label: "Medical", icon: "🏥", bg: "bg-rose-50", text: "text-rose-700" };
-  if (t.includes("便利店") || t.includes("超市"))
+  if (t.includes("convenience") || t.includes("supermarket") || t.includes("grocery"))
     return { label: "Convenience Store", icon: "🏪", bg: "bg-lime-50", text: "text-lime-700" };
 
-  // ── Tea house (before general food) ──
-  if (t.includes("茶艺") || t.includes("茶室") || t.includes("茶馆") || t.includes("茶餐厅"))
-    return { label: "Tea House", icon: "🍵", bg: "bg-green-50", text: "text-green-700" };
-
   // ── Food & restaurant types ──
-  if (t.includes("火锅"))
-    return { label: "Hotpot", icon: "🫕", bg: "bg-red-100", text: "text-red-700" };
-  if (t.includes("咖啡"))
-    return { label: "Café", icon: "☕", bg: "bg-amber-50", text: "text-amber-700" };
-  if (t.includes("日本") || t.includes("日式") || t.includes("寿司") || t.includes("拉面"))
-    return { label: "Japanese", icon: "🍣", bg: "bg-pink-50", text: "text-pink-700" };
-  if (t.includes("韩国") || t.includes("韩式"))
-    return { label: "Korean", icon: "🥘", bg: "bg-orange-50", text: "text-orange-700" };
-  if (t.includes("西餐") || t.includes("法国") || t.includes("意大利") || t.includes("牛排"))
-    return { label: "Western", icon: "🍽️", bg: "bg-blue-50", text: "text-blue-700" };
-  if (t.includes("快餐"))
+  if (t.includes("cafe") || t.includes("coffee"))
+    return { label: "Cafe", icon: "☕", bg: "bg-amber-50", text: "text-amber-700" };
+  if (t.includes("bakery"))
+    return { label: "Bakery", icon: "🧁", bg: "bg-pink-50", text: "text-pink-600" };
+  if (t.includes("meal_takeaway") || t.includes("fast_food"))
     return { label: "Fast Food", icon: "🍔", bg: "bg-yellow-50", text: "text-yellow-700" };
-  if (t.includes("面包") || t.includes("甜点") || t.includes("蛋糕") || t.includes("烘焙"))
-    return { label: "Bakery & Dessert", icon: "🧁", bg: "bg-pink-50", text: "text-pink-600" };
-  if (t.includes("烧烤"))
-    return { label: "BBQ & Grill", icon: "🍖", bg: "bg-orange-50", text: "text-orange-700" };
-  if (t.includes("海鲜"))
-    return { label: "Seafood", icon: "🦐", bg: "bg-cyan-50", text: "text-cyan-700" };
-  if (t.includes("川菜") || t.includes("湘菜"))
-    return { label: "Sichuan / Hunan", icon: "🌶️", bg: "bg-red-50", text: "text-red-700" };
-  if (t.includes("粤菜") || t.includes("广东") || t.includes("早茶"))
-    return { label: "Cantonese", icon: "🥡", bg: "bg-amber-50", text: "text-amber-700" };
-  if (t.includes("东南亚") || t.includes("泰国") || t.includes("越南") || t.includes("印度"))
-    return { label: "Southeast Asian", icon: "🍜", bg: "bg-emerald-50", text: "text-emerald-700" };
-  if (t.includes("素食") || t.includes("素菜"))
-    return { label: "Vegetarian", icon: "🥬", bg: "bg-green-50", text: "text-green-700" };
-  if (t.includes("小吃") || t.includes("面馆") || t.includes("粉") || t.includes("饺"))
-    return { label: "Noodles & Snacks", icon: "🍜", bg: "bg-orange-50", text: "text-orange-600" };
-  if (t.includes("中餐") || t.includes("中式"))
-    return { label: "Chinese", icon: "🍜", bg: "bg-red-50", text: "text-red-700" };
-  if (t.includes("餐饮"))
-    return { label: "Restaurant", icon: "🍴", bg: "bg-gray-50", text: "text-gray-600" };
+  if (t.includes("restaurant") || t.includes("food"))
+    return { label: "Restaurant", icon: "🍴", bg: "bg-orange-50", text: "text-orange-700" };
 
   return { label: "Place", icon: "📍", bg: "bg-gray-50", text: "text-gray-600" };
 }
@@ -104,7 +76,7 @@ export default function RestaurantCard({
   };
 
   const hasRating = place.rating && place.rating !== "0";
-  const hasCost = place.cost && place.cost !== "0";
+  const hasCost = !!place.cost;
   const hasHours = !!place.openingHours;
 
   return (
@@ -155,7 +127,7 @@ export default function RestaurantCard({
         {place.distance > 0 && (
           <span>🚶 {walkMins(place.distance)} min walk</span>
         )}
-        {hasCost && <span>💰 ~¥{place.cost}/person</span>}
+        {hasCost && <span>💰 {place.cost}</span>}
         {hasHours && <span>🕐 {place.openingHours}</span>}
       </div>
 

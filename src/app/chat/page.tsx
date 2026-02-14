@@ -7,6 +7,15 @@ import ChatInput from "@/components/ChatInput";
 import TypingIndicator from "@/components/TypingIndicator";
 import SuggestedPrompts from "@/components/SuggestedPrompts";
 import PreviewBanner from "@/components/PreviewBanner";
+import {
+  getAnonymousUserId,
+  captureReferralSource,
+  getDeviceType,
+  getEntryPage,
+  getCurrentSessionId,
+  setCurrentSessionId,
+  getCurrentLocation,
+} from "@/lib/tracking";
 
 let nextId = 1;
 function makeId() {
@@ -17,7 +26,7 @@ const ACTION_BUTTONS = [
   {
     label: "Navigate",
     icon: "🧭",
-    message: "🧭 How do I get to The Bund?",
+    message: "🧭 How do I get to Shibuya?",
     bg: "bg-indigo-50",
     border: "border-indigo-200",
     text: "text-indigo-700",
@@ -25,7 +34,7 @@ const ACTION_BUTTONS = [
   {
     label: "Find Food",
     icon: "🍴",
-    message: "🍜 Find food near me",
+    message: "🍜 Find ramen near me",
     bg: "bg-yellow-50",
     border: "border-yellow-200",
     text: "text-amber-700",
@@ -39,9 +48,9 @@ const ACTION_BUTTONS = [
     text: "text-green-700",
   },
   {
-    label: "Setup Guide",
+    label: "Travel Tips",
     icon: "📱",
-    href: "/guides",
+    message: "🚇 How do I use the train system?",
     bg: "bg-blue-50",
     border: "border-blue-200",
     text: "text-blue-700",
@@ -85,10 +94,34 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Session tracking state
+  const [anonymousUserId, setAnonymousUserId] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gpsPermissionStatus, setGpsPermissionStatus] = useState<
+    "granted" | "denied" | "dismissed" | null
+  >(null);
+
+  // Initialize tracking on mount
+  useEffect(() => {
+    // Get or create anonymous user ID
+    const userId = getAnonymousUserId();
+    setAnonymousUserId(userId);
+
+    // Capture referral source if present
+    captureReferralSource();
+
+    // Check if we have an existing session
+    const existingSessionId = getCurrentSessionId();
+    if (existingSessionId) {
+      setSessionId(existingSessionId);
+    }
+  }, []);
+
   // Request geolocation on mount
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationRequested(true);
+      setGpsPermissionStatus("denied");
       return;
     }
 
@@ -96,6 +129,7 @@ export default function ChatPage() {
       async (position) => {
         const coords = `${position.coords.longitude},${position.coords.latitude}`;
         setUserLocation(coords);
+        setGpsPermissionStatus("granted");
 
         // Reverse geocode to get city name
         try {
@@ -114,7 +148,11 @@ export default function ChatPage() {
 
         setLocationRequested(true);
       },
-      () => {
+      (error) => {
+        // User denied or dismissed the permission
+        setGpsPermissionStatus(
+          error.code === 1 ? "denied" : "dismissed"
+        );
         setLocationRequested(true);
       },
       { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
@@ -162,13 +200,31 @@ export default function ChatPage() {
           content: m.content,
         }));
 
+        // Get current GPS location for this message (non-blocking)
+        const currentLocation = await getCurrentLocation();
+
         const requestPayload = {
           messages: apiMessages,
           origin: userLocation || undefined,
           city: userCity || undefined,
           navContext: navContext || undefined,
           image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
+          // Session tracking data
+          sessionId: sessionId || undefined,
+          anonymousUserId: anonymousUserId || undefined,
+          referralSource: captureReferralSource() || undefined,
+          deviceType: getDeviceType(),
+          entryPage: getEntryPage(),
+          gpsPermissionStatus: gpsPermissionStatus || undefined,
+          userLat: currentLocation?.lat,
+          userLng: currentLocation?.lng,
         };
+
+        console.log('📤 Sending message with session tracking:', {
+          sessionId: sessionId || 'NEW SESSION',
+          anonymousUserId,
+          messageCount: apiMessages.length,
+        });
 
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -325,6 +381,19 @@ export default function ChatPage() {
                 break;
               }
 
+              case "session_created": {
+                // Backend created a new session, store the ID
+                const data = JSON.parse(ev.data);
+                if (data.sessionId && !sessionId) {
+                  console.log('✅ Session created:', data.sessionId);
+                  setSessionId(data.sessionId);
+                  setCurrentSessionId(data.sessionId); // Persist to sessionStorage
+                } else if (sessionId) {
+                  console.log('ℹ️ Session already exists:', sessionId);
+                }
+                break;
+              }
+
               case "error": {
                 const errData = JSON.parse(ev.data);
                 setIsTyping(false);
@@ -422,7 +491,7 @@ export default function ChatPage() {
           ←
         </Link>
         <h1 className="text-base font-semibold text-gray-900">
-          ChinaTravel <span className="text-[#2563EB]">AI</span>
+          JK Travel <span className="text-[#2563EB]">AI</span>
         </h1>
       </header>
 
@@ -446,7 +515,7 @@ export default function ChatPage() {
                 Welcome to Inbound
               </h2>
               <p className="mt-2 text-base text-gray-500">
-                Your AI guide to navigating China
+                Your AI guide to Japan & Korea
               </p>
             </div>
 
@@ -455,19 +524,7 @@ export default function ChatPage() {
             </div>
 
             <div className="grid w-full max-w-sm grid-cols-2 gap-3">
-              {ACTION_BUTTONS.map((btn) =>
-                btn.href ? (
-                  <Link
-                    key={btn.label}
-                    href={btn.href}
-                    className={`flex flex-col items-center justify-center rounded-2xl border ${btn.border} ${btn.bg} px-3 py-8 transition-colors hover:opacity-80`}
-                  >
-                    <span className="text-3xl">{btn.icon}</span>
-                    <span className={`mt-3 text-sm font-bold ${btn.text}`}>
-                      {btn.label}
-                    </span>
-                  </Link>
-                ) : (
+              {ACTION_BUTTONS.map((btn) => (
                   <button
                     key={btn.label}
                     onClick={() => {
@@ -484,8 +541,7 @@ export default function ChatPage() {
                       {btn.label}
                     </span>
                   </button>
-                ),
-              )}
+              ))}
             </div>
           </div>
         ) : (

@@ -3,9 +3,9 @@ import {
   searchNearbyRestaurants,
   searchNearbyAttractions,
   searchNearbyPOI,
-} from "@/lib/amap";
+} from "@/lib/google-maps";
 
-const DEFAULT_LOCATION = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable (People's Square)
+const DEFAULT_LOCATION = "139.6917,35.6895"; // Fallback coordinates (Tokyo) when GPS unavailable
 
 export async function POST(request: NextRequest) {
   try {

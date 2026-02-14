@@ -1,7 +1,7 @@
 "use client";
 
 import type { NavigationData } from "@/lib/ai";
-import type { POIResult } from "@/lib/amap";
+import type { POIResult } from "@/lib/google-maps";
 import NavigationCard from "./NavigationCard";
 import RestaurantList from "./RestaurantList";
 

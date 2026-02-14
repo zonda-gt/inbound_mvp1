@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { reverseGeocode } from "@/lib/amap";
+import { reverseGeocode } from "@/lib/google-maps";
 
 export async function POST(request: NextRequest) {
   try {
