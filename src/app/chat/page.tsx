@@ -496,7 +496,7 @@ export default function ChatPage() {
       </header>
 
       {/* Preview banner */}
-      {locationRequested && <PreviewBanner hasLocation={!!userLocation} />}
+      {locationRequested && <PreviewBanner hasLocation={!!userLocation} city={userCity} />}
 
       {/* Location prompt (shown briefly while waiting) */}
       {!locationRequested && (
