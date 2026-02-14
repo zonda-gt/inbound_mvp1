@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function PreviewBanner({ hasLocation }: { hasLocation: boolean }) {
+export default function PreviewBanner({ hasLocation, city }: { hasLocation: boolean; city?: string | null }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
@@ -11,7 +11,7 @@ export default function PreviewBanner({ hasLocation }: { hasLocation: boolean })
     <div className="flex items-center justify-between bg-blue-50 px-4 py-2 text-xs text-blue-700">
       <span>
         {hasLocation
-          ? "📍 Using your current location"
+          ? `📍 Using your current location${city ? ` - ${city}` : ""}`
           : "📍 Preview mode — showing results for Shanghai. Enable location for personalized results."}
       </span>
       <button
