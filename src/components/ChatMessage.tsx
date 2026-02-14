@@ -1,5 +1,6 @@
 "use client";
 
+import ReactMarkdown from "react-markdown";
 import type { NavigationData } from "@/lib/ai";
 import type { POIResult } from "@/lib/amap";
 import NavigationCard from "./NavigationCard";
@@ -85,11 +86,31 @@ export default function ChatMessage({
             {/* AI text appears last - streams in below structured data */}
             {message.content && (
               <div
-                className={`whitespace-pre-wrap rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-900 ${
+                className={`rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-900 ${
                   message.navigationData || message.placesData ? "mt-2" : ""
                 }`}
               >
-                {message.content}
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                    ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
+                    li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                    h3: ({ children }) => <h3 className="mb-1 font-semibold">{children}</h3>,
+                    h4: ({ children }) => <h4 className="mb-1 font-semibold">{children}</h4>,
+                    a: ({ href, children }) => (
+                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                        {children}
+                      </a>
+                    ),
+                    code: ({ children }) => (
+                      <code className="rounded bg-gray-200 px-1 py-0.5 text-sm">{children}</code>
+                    ),
+                  }}
+                >
+                  {message.content}
+                </ReactMarkdown>
               </div>
             )}
           </>
