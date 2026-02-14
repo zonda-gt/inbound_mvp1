@@ -268,18 +268,25 @@ export default function ChatPage() {
           for (const ev of events) {
             switch (ev.event) {
               case "text": {
+                // Text chunks are JSON-encoded to preserve whitespace
+                let chunk: string;
+                try {
+                  chunk = JSON.parse(ev.data);
+                } catch {
+                  chunk = ev.data;
+                }
                 if (!aiMsgCreated) {
                   aiMsgCreated = true;
                   setIsTyping(false);
                   setIsReadingPhoto(false);
                   setToolStatus(null);
-                  streamedText = ev.data;
+                  streamedText = chunk;
                   setMessages((prev) => [
                     ...prev,
                     { id: aiMsgId, role: "assistant", content: streamedText, userLocation: userLocation || undefined },
                   ]);
                 } else {
-                  streamedText += ev.data;
+                  streamedText += chunk;
                   setMessages((prev) =>
                     prev.map((m) =>
                       m.id === aiMsgId ? { ...m, content: streamedText } : m,

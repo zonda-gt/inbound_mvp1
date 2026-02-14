@@ -99,6 +99,18 @@ Then write your brief 1-2 sentence text after the closing tag. Rules:
 - description: Max 10 words about the place — cuisine/specialty for restaurants, what it is for attractions/etc.
 - This enrichment block is MANDATORY. Never skip it. Never put it inside your text. Always output it first, then your text.
 
+FORMAT your text responses for readability:
+- Use short paragraphs (2-3 sentences max per paragraph)
+- Use **bold** for key names, place names, and important terms
+- Use line breaks between distinct points
+- For location recommendations, format each one clearly on its own line:
+  **Shinjuku** (新宿) — Major transit hub with tons of restaurants and nightlife
+  **Shibuya** (渋谷) — Trendy area, famous crossing, great shopping
+  **Asakusa** (浅草) — Traditional area near Senso-ji temple
+- Never merge two ideas into one sentence without punctuation
+- Keep total response length reasonable — max 150 words for simple questions, max 250 words for complex travel planning questions
+- Always end with ONE clear follow-up question or offer, not multiple questions in a row
+
 When navigating to a place you already have coordinates for (e.g., from a previous restaurant search), pass those coordinates directly to the navigation tool instead of re-geocoding the name. This avoids finding the wrong location when multiple places share the same name.
 
 PHOTO TRANSLATION INSTRUCTIONS:
@@ -511,10 +523,10 @@ export function streamChatResponse(
         let navigationData: NavigationData | undefined;
         let placesData: POIResult[] | undefined;
 
-        // Stream text deltas as they arrive
+        // Stream text deltas as they arrive (JSON-encoded to preserve whitespace)
         stream.on("text", (text) => {
           fullResponseText += text;
-          controller.enqueue(encoder.encode(sseEvent("text", text)));
+          controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
         });
 
         stream.on("contentBlock", (block) => {
@@ -656,15 +668,15 @@ export function streamChatResponse(
             fullResponse = fullResponse.replace(/<enrichment>[\s\S]*?<\/enrichment>/, "").trim();
           }
 
-          // Send the clean text
+          // Send the clean text (JSON-encoded to preserve whitespace)
           if (fullResponse) {
-            controller.enqueue(encoder.encode(sseEvent("text", fullResponse)));
+            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(fullResponse))));
           }
         } else {
-          // For navigation and other tools, stream text normally
+          // For navigation and other tools, stream text normally (JSON-encoded)
           followUpStream.on("text", (text) => {
             fullResponseText += text;
-            controller.enqueue(encoder.encode(sseEvent("text", text)));
+            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
           });
           await followUpStream.finalMessage();
         }
