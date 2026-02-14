@@ -377,6 +377,98 @@ export async function searchNearbyPOI(
   }
 }
 
+// --------------- City-based POI Search (uses /place/text instead of /place/around) ---------------
+
+export async function searchCityRestaurants(
+  city: string,
+  keyword?: string,
+): Promise<POIResult[]> {
+  try {
+    const params: Record<string, string> = {
+      types: "050000",
+      city,
+      citylimit: "true",
+      sortrule: "weight",
+      extensions: "all",
+      offset: "10",
+      key: AMAP_KEY,
+      output: "JSON",
+    };
+    if (keyword) params.keywords = keyword;
+    else params.keywords = "餐厅";
+
+    const res = await fetch(
+      `${BASE}/place/text?${new URLSearchParams(params)}`,
+    );
+    const data = await res.json();
+    if (data.status !== "1" || !data.pois?.length) return [];
+    return parsePOIResults(data.pois);
+  } catch (err) {
+    console.error("Amap city restaurant search error:", err);
+    return [];
+  }
+}
+
+export async function searchCityAttractions(
+  city: string,
+  keyword?: string,
+): Promise<POIResult[]> {
+  try {
+    const params: Record<string, string> = {
+      types: "110000",
+      city,
+      citylimit: "true",
+      sortrule: "weight",
+      extensions: "all",
+      offset: "10",
+      key: AMAP_KEY,
+      output: "JSON",
+    };
+    if (keyword) params.keywords = keyword;
+    else params.keywords = "景点";
+
+    const res = await fetch(
+      `${BASE}/place/text?${new URLSearchParams(params)}`,
+    );
+    const data = await res.json();
+    if (data.status !== "1" || !data.pois?.length) return [];
+    return parsePOIResults(data.pois);
+  } catch (err) {
+    console.error("Amap city attraction search error:", err);
+    return [];
+  }
+}
+
+export async function searchCityPOI(
+  city: string,
+  keyword: string,
+  types?: string,
+): Promise<POIResult[]> {
+  try {
+    const params: Record<string, string> = {
+      keywords: keyword,
+      city,
+      citylimit: "true",
+      sortrule: "weight",
+      extensions: "all",
+      offset: "10",
+      key: AMAP_KEY,
+      output: "JSON",
+    };
+    if (types) params.types = types;
+
+    const res = await fetch(
+      `${BASE}/place/text?${new URLSearchParams(params)}`,
+    );
+    const data = await res.json();
+    if (data.status !== "1" || !data.pois?.length) return [];
+    return parsePOIResults(data.pois);
+  } catch (err) {
+    console.error("Amap city POI search error:", err);
+    return [];
+  }
+}
+
 // --------------- Resolve place name → coordinates ---------------
 
 // City center coordinates for distance validation
