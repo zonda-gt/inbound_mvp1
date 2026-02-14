@@ -471,6 +471,107 @@ export async function searchNearbyPOI(
   }
 }
 
+// --------------- City-based POI Search (uses Text Search instead of Nearby Search) ---------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseGoogleTextSearchResults(results: any[]): POIResult[] {
+  return results.slice(0, 10).map((p: Record<string, any>) => {
+    const loc = p.geometry?.location;
+    const lng = loc?.lng || 0;
+    const lat = loc?.lat || 0;
+
+    return {
+      name: (p.name as string) || "",
+      address: (p.formatted_address as string) || "",
+      location: `${lng},${lat}`,
+      distance: 0, // No distance for city-wide text search
+      type: ((p.types as string[]) || []).join(";"),
+      rating: p.rating ? String(p.rating) : "",
+      tel: "",
+      openingHours: p.opening_hours?.open_now != null
+        ? (p.opening_hours.open_now ? "Open now" : "Closed")
+        : "",
+      cost: p.price_level != null
+        ? ["Budget", "Moderate", "Pricey", "Luxury"][Math.min(p.price_level, 3)] || ""
+        : "",
+    };
+  });
+}
+
+export async function searchCityRestaurants(
+  city: string,
+  keyword?: string,
+): Promise<POIResult[]> {
+  try {
+    const query = keyword ? `${keyword} restaurants in ${city}` : `restaurants in ${city}`;
+    const params = new URLSearchParams({
+      query,
+      type: "restaurant",
+      key: GOOGLE_KEY,
+      language: "en",
+    });
+
+    const res = await fetch(
+      `${BASE}/place/textsearch/json?${params}`,
+    );
+    const data = await res.json();
+    if (data.status !== "OK" || !data.results?.length) return [];
+    return parseGoogleTextSearchResults(data.results);
+  } catch (err) {
+    console.error("Google city restaurant search error:", err);
+    return [];
+  }
+}
+
+export async function searchCityAttractions(
+  city: string,
+  keyword?: string,
+): Promise<POIResult[]> {
+  try {
+    const query = keyword ? `${keyword} in ${city}` : `tourist attractions in ${city}`;
+    const params = new URLSearchParams({
+      query,
+      type: "tourist_attraction",
+      key: GOOGLE_KEY,
+      language: "en",
+    });
+
+    const res = await fetch(
+      `${BASE}/place/textsearch/json?${params}`,
+    );
+    const data = await res.json();
+    if (data.status !== "OK" || !data.results?.length) return [];
+    return parseGoogleTextSearchResults(data.results);
+  } catch (err) {
+    console.error("Google city attraction search error:", err);
+    return [];
+  }
+}
+
+export async function searchCityPOI(
+  city: string,
+  keyword: string,
+): Promise<POIResult[]> {
+  try {
+    const query = `${keyword} in ${city}`;
+    const params = new URLSearchParams({
+      query,
+      key: GOOGLE_KEY,
+      language: "en",
+    });
+
+    const res = await fetch(
+      `${BASE}/place/textsearch/json?${params}`,
+    );
+    const data = await res.json();
+    if (data.status !== "OK" || !data.results?.length) return [];
+    return parseGoogleTextSearchResults(data.results);
+  } catch (err) {
+    console.error("Google city POI search error:", err);
+    return [];
+  }
+}
+
 // --------------- Resolve place name → coordinates ---------------
 
 // City center coordinates for distance validation

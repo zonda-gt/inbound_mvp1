@@ -6,6 +6,9 @@ import {
   searchNearbyRestaurants,
   searchNearbyAttractions,
   searchNearbyPOI,
+  searchCityRestaurants,
+  searchCityAttractions,
+  searchCityPOI,
 } from "@/lib/google-maps";
 import type { POIResult } from "@/lib/google-maps";
 import {
@@ -63,6 +66,26 @@ Examples:
 - User has no GPS, asks 'restaurants in Kyoto' → use Kyoto (user specified)
 - User has no GPS, asks 'find food near me' → ask user what city they're in
 - User asks 'Mount Fuji' → use '' (broad search, famous landmark)
+
+SEARCH MODE — Nearby vs City:
+When calling the search_nearby_places tool, choose the correct searchMode based on the user's intent:
+
+NEARBY mode (searchMode: "nearby") — uses GPS coordinates + radius search:
+- "Find food near me"
+- "What's around here?"
+- "Restaurants nearby"
+- "Coffee shops close by"
+- Any query without a specific location that implies "where I am right now"
+
+CITY mode (searchMode: "city") — searches within a specific city by name, ignores GPS:
+- "Things to do in Osaka" → searchMode: "city", city: "Osaka", type: "attraction"
+- "Restaurants in Seoul" → searchMode: "city", city: "Seoul"
+- "What to see in Kyoto" → searchMode: "city", city: "Kyoto", type: "attraction"
+- "I'm going to Busan next week, what should I visit?" → searchMode: "city", city: "Busan", type: "attraction"
+- Any query where the user mentions a specific city or area that is NOT where they currently are
+- Any query where the user says "I'm going there later", "planning to visit", "when I arrive", etc.
+
+KEY RULE: If the user mentions a specific city or says they are planning to go somewhere, use searchMode "city" and pass the city name in the city parameter — do NOT use their current GPS coordinates. The user is planning ahead, not looking for what's next to them right now.
 
 When showing search results from the search_nearby_places tool, DO NOT list individual places in your text response. The place cards will display each result's details. Your text response should ONLY include:
   1. A brief intro like 'Here are some ramen spots near Shinjuku:' or 'Found some restaurants near Myeongdong:'
@@ -136,7 +159,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
   {
     name: "search_nearby_places",
     description:
-      "Search for nearby restaurants, food, attractions, or other places in Japan or Korea. Use this when the user asks for food recommendations, restaurant suggestions, things to do, or wants to find any type of place near them.",
+      "Search for restaurants, food, attractions, or other places. Supports two modes: 'nearby' (GPS-based radius search) and 'city' (search within a specific city by name). Use 'nearby' when the user wants places near their current location. Use 'city' when the user asks about a specific city or is planning to visit somewhere.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -145,20 +168,31 @@ const TOOLS: Anthropic.Messages.Tool[] = [
           enum: ["restaurant", "attraction", "general"],
           description: "Type of place to search for",
         },
+        searchMode: {
+          type: "string",
+          enum: ["nearby", "city"],
+          description:
+            "Search strategy. 'nearby': search around user's GPS coordinates (for 'near me' queries). 'city': search within a specific city using city name (for 'restaurants in Osaka', 'things to do in Seoul', etc.). Default: 'nearby'.",
+        },
         keyword: {
           type: "string",
           description:
             "Optional search keyword to filter results. Use English keywords — Google Maps handles them well in Japan/Korea. For example: 'ramen', 'sushi', 'Korean BBQ', 'convenience store', 'pharmacy', 'cafe', 'bubble tea'.",
         },
+        city: {
+          type: "string",
+          description:
+            "City name for 'city' mode searches. Required when searchMode is 'city'. Examples: 'Tokyo', 'Osaka', 'Kyoto', 'Seoul', 'Busan'. Use the English name of the city the user is asking about.",
+        },
         location: {
           type: "string",
           description:
-            "Search center as 'lng,lat'. If not available, omit and a default center will be used.",
+            "Search center as 'lng,lat'. Only used in 'nearby' mode. If not available, omit and a default center will be used.",
         },
         radius: {
           type: "number",
           description:
-            "Search radius in meters. Default 1000. Use larger (2000-3000) if user says 'nearby' vaguely, smaller (500) if they want very close options.",
+            "Search radius in meters. Only used in 'nearby' mode. Default 1000. Use larger (2000-3000) if user says 'nearby' vaguely, smaller (500) if they want very close options.",
         },
       },
       required: ["type"],
@@ -279,40 +313,73 @@ async function executeNavigationTool(
 async function executePlacesSearch(
   input: {
     type: string;
+    searchMode?: string;
     keyword?: string;
+    city?: string;
     location?: string;
     radius?: number;
   },
   origin?: string,
 ): Promise<{ results: POIResult[]; error?: string }> {
-  const center = input.location || origin || DEFAULT_ORIGIN;
-  const radius = input.radius || 1000;
+  const mode = input.searchMode || "nearby";
 
   let results: POIResult[];
-  switch (input.type) {
-    case "restaurant":
-      results = await searchNearbyRestaurants(center, input.keyword, radius);
-      break;
-    case "attraction":
-      results = await searchNearbyAttractions(center, input.keyword, radius);
-      break;
-    case "general":
-      results = await searchNearbyPOI(
-        center,
-        input.keyword || "",
-        undefined,
-        radius,
-      );
-      break;
-    default:
-      return { results: [], error: "Invalid place type" };
-  }
 
-  if (results.length === 0) {
-    return {
-      results: [],
-      error: `No ${input.type}s found nearby${input.keyword ? ` for "${input.keyword}"` : ""}. Try a broader search or different keyword.`,
-    };
+  if (mode === "city" && input.city) {
+    // City-based search: uses Text Search API with city name, ignores GPS
+    switch (input.type) {
+      case "restaurant":
+        results = await searchCityRestaurants(input.city, input.keyword);
+        break;
+      case "attraction":
+        results = await searchCityAttractions(input.city, input.keyword);
+        break;
+      case "general":
+        results = await searchCityPOI(
+          input.city,
+          input.keyword || "recommended",
+        );
+        break;
+      default:
+        return { results: [], error: "Invalid place type" };
+    }
+
+    if (results.length === 0) {
+      return {
+        results: [],
+        error: `No ${input.type}s found in ${input.city}${input.keyword ? ` for "${input.keyword}"` : ""}. Try different keywords.`,
+      };
+    }
+  } else {
+    // Nearby search: uses Nearby Search API with GPS coordinates
+    const center = input.location || origin || DEFAULT_ORIGIN;
+    const radius = input.radius || 1000;
+
+    switch (input.type) {
+      case "restaurant":
+        results = await searchNearbyRestaurants(center, input.keyword, radius);
+        break;
+      case "attraction":
+        results = await searchNearbyAttractions(center, input.keyword, radius);
+        break;
+      case "general":
+        results = await searchNearbyPOI(
+          center,
+          input.keyword || "",
+          undefined,
+          radius,
+        );
+        break;
+      default:
+        return { results: [], error: "Invalid place type" };
+    }
+
+    if (results.length === 0) {
+      return {
+        results: [],
+        error: `No ${input.type}s found nearby${input.keyword ? ` for "${input.keyword}"` : ""}. Try a broader search or different keyword.`,
+      };
+    }
   }
 
   return { results };
@@ -512,7 +579,9 @@ export function streamChatResponse(
         } else if (toolName === "search_nearby_places") {
           const toolInput = tb.input as {
             type: string;
+            searchMode?: string;
             keyword?: string;
+            city?: string;
             location?: string;
             radius?: number;
           };
