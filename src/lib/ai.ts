@@ -424,16 +424,20 @@ export function streamChatResponse(
   return new ReadableStream({
     async start(controller) {
       try {
+        // Collect DB write promises so we can await them before closing the stream
+        const dbWrites: Promise<void>[] = [];
+
         // Track request start time for response_time_ms
         const startTime = Date.now();
 
         // Get the user's latest message
         const userMessage = messages[messages.length - 1]?.content || "";
 
-        // Create or update session (non-blocking)
+        // Create or update session
         let activeSessionId = sessionId;
         if (anonymousUserId && !sessionId) {
-          // First message - create new session
+          // First message - create new session (awaited so we get the ID)
+          console.log("[Supabase] Creating new session for user:", anonymousUserId);
           const newSessionId = await createChatSession({
             anonymous_user_id: anonymousUserId,
             referral_source: referralSource,
@@ -447,29 +451,36 @@ export function streamChatResponse(
 
           if (newSessionId) {
             activeSessionId = newSessionId;
+            console.log("[Supabase] Session created, sending session_created event:", newSessionId);
             // Send session_created event to frontend
             controller.enqueue(
               encoder.encode(sseEvent("session_created", JSON.stringify({ sessionId: newSessionId }))),
             );
+          } else {
+            console.warn("[Supabase] Failed to create session — logging will be skipped");
           }
         } else if (activeSessionId) {
-          // Existing session - increment message count (fire-and-forget)
-          updateChatSession(activeSessionId, {
-            message_count: messages.length,
-            last_active_at: new Date().toISOString(),
-          }).catch((err) => console.error("Failed to update session:", err));
+          // Existing session - increment message count (collected for await)
+          dbWrites.push(
+            updateChatSession(activeSessionId, {
+              message_count: messages.length,
+              last_active_at: new Date().toISOString(),
+            }),
+          );
         }
 
-        // Log user message (fire-and-forget)
+        // Log user message (collected for await)
         if (activeSessionId) {
-          logChatMessage({
-            session_id: activeSessionId,
-            role: "user",
-            content: userMessage,
-            user_lat: userLat,
-            user_lng: userLng,
-            user_language: detectLanguage(userMessage),
-          }).catch((err) => console.error("Failed to log user message:", err));
+          dbWrites.push(
+            logChatMessage({
+              session_id: activeSessionId,
+              role: "user",
+              content: userMessage,
+              user_lat: userLat,
+              user_lng: userLng,
+              user_language: detectLanguage(userMessage),
+            }),
+          );
         }
         // Build API messages
         const apiMessages: Anthropic.Messages.MessageParam[] = messages.map((m, idx) => {
@@ -546,15 +557,19 @@ export function streamChatResponse(
             const responseTime = Date.now() - startTime;
             const isFallback = hasToolIntent(userMessage);
 
-            logChatMessage({
-              session_id: activeSessionId,
-              role: "assistant",
-              content: fullResponseText,
-              is_fallback: isFallback,
-              response_time_ms: responseTime,
-            }).catch((err) => console.error("Failed to log assistant message:", err));
+            dbWrites.push(
+              logChatMessage({
+                session_id: activeSessionId,
+                role: "assistant",
+                content: fullResponseText,
+                is_fallback: isFallback,
+                response_time_ms: responseTime,
+              }),
+            );
           }
 
+          // Await all DB writes before closing the stream
+          await Promise.allSettled(dbWrites);
           controller.enqueue(encoder.encode(sseEvent("done", "{}")));
           controller.close();
           return;
@@ -681,7 +696,7 @@ export function streamChatResponse(
           await followUpStream.finalMessage();
         }
 
-        // Log assistant response (fire-and-forget)
+        // Log assistant response (collected for await)
         if (activeSessionId) {
           const responseTime = Date.now() - startTime;
           const toolsCalled = toolName ? [toolName] : undefined;
@@ -691,17 +706,21 @@ export function streamChatResponse(
           const isFallback =
             !toolName && hasToolIntent(userMessage);
 
-          logChatMessage({
-            session_id: activeSessionId,
-            role: "assistant",
-            content: fullResponseText,
-            tools_called: toolsCalled,
-            tool_success: toolSuccess,
-            is_fallback: isFallback,
-            response_time_ms: responseTime,
-          }).catch((err) => console.error("Failed to log assistant message:", err));
+          dbWrites.push(
+            logChatMessage({
+              session_id: activeSessionId,
+              role: "assistant",
+              content: fullResponseText,
+              tools_called: toolsCalled,
+              tool_success: toolSuccess,
+              is_fallback: isFallback,
+              response_time_ms: responseTime,
+            }),
+          );
         }
 
+        // Await all DB writes before closing the stream
+        await Promise.allSettled(dbWrites);
         controller.enqueue(encoder.encode(sseEvent("done", "{}")));
         controller.close();
       } catch (error) {

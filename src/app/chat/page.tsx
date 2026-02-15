@@ -12,7 +12,7 @@ import {
   captureReferralSource,
   getDeviceType,
   getEntryPage,
-  getCurrentSessionId,
+  clearCurrentSession,
   setCurrentSessionId,
   getCurrentLocation,
 } from "@/lib/tracking";
@@ -110,11 +110,8 @@ export default function ChatPage() {
     // Capture referral source if present
     captureReferralSource();
 
-    // Check if we have an existing session
-    const existingSessionId = getCurrentSessionId();
-    if (existingSessionId) {
-      setSessionId(existingSessionId);
-    }
+    // Clear any stale session from previous page visit — force new session per visit
+    clearCurrentSession();
   }, []);
 
   // Request geolocation on mount
@@ -155,7 +152,7 @@ export default function ChatPage() {
         );
         setLocationRequested(true);
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   }, []);
 
@@ -200,12 +197,15 @@ export default function ChatPage() {
           content: m.content,
         }));
 
-        // Get current GPS location for this message (non-blocking)
-        const currentLocation = await getCurrentLocation();
+        // Get fresh GPS location for this message (non-blocking, 3s timeout)
+        const currentLocation = await getCurrentLocation(3000);
+        const freshOrigin = currentLocation
+          ? `${currentLocation.lng},${currentLocation.lat}`
+          : userLocation || undefined;
 
         const requestPayload = {
           messages: apiMessages,
-          origin: userLocation || undefined,
+          origin: freshOrigin,
           city: userCity || undefined,
           navContext: navContext || undefined,
           image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
@@ -466,7 +466,7 @@ export default function ChatPage() {
         setToolStatus(null);
       }
     },
-    [messages, userLocation, userCity],
+    [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus],
   );
 
   const handleCameraCapture = useCallback(

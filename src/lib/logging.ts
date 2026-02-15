@@ -55,7 +55,10 @@ export async function createChatSession(
 ): Promise<string | null> {
   try {
     const supabase = getSupabaseServerClient();
-    if (!supabase) return null;
+    if (!supabase) {
+      console.warn("[Supabase] No server client — createChatSession skipped");
+      return null;
+    }
 
     const { data, error } = await supabase
       .from("chat_sessions")
@@ -64,13 +67,14 @@ export async function createChatSession(
       .single();
 
     if (error) {
-      console.error("Error creating chat session:", error);
+      console.error("[Supabase] Error creating chat session:", error.message, error.details, error.hint);
       return null;
     }
 
+    console.log("[Supabase] Chat session created:", data.id);
     return data.id;
   } catch (error) {
-    console.error("Exception creating chat session:", error);
+    console.error("[Supabase] Exception creating chat session:", error);
     return null;
   }
 }
@@ -84,7 +88,10 @@ export async function updateChatSession(
 ): Promise<void> {
   try {
     const supabase = getSupabaseServerClient();
-    if (!supabase) return;
+    if (!supabase) {
+      console.warn("[Supabase] No server client — updateChatSession skipped");
+      return;
+    }
 
     const { error } = await supabase
       .from("chat_sessions")
@@ -92,10 +99,12 @@ export async function updateChatSession(
       .eq("id", sessionId);
 
     if (error) {
-      console.error("Error updating chat session:", error);
+      console.error("[Supabase] Error updating chat session:", sessionId, error.message, error.details);
+    } else {
+      console.log("[Supabase] Session updated:", sessionId, "updates:", JSON.stringify(updates));
     }
   } catch (error) {
-    console.error("Exception updating chat session:", error);
+    console.error("[Supabase] Exception updating chat session:", error);
   }
 }
 
@@ -105,15 +114,20 @@ export async function updateChatSession(
 export async function logChatMessage(message: ChatMessage): Promise<void> {
   try {
     const supabase = getSupabaseServerClient();
-    if (!supabase) return;
+    if (!supabase) {
+      console.warn("[Supabase] No server client — logChatMessage skipped");
+      return;
+    }
 
     const { error } = await supabase.from("chat_messages").insert(message);
 
     if (error) {
-      console.error("Error logging chat message:", error);
+      console.error("[Supabase] Error logging chat message:", error.message, error.details, "role:", message.role, "session:", message.session_id);
+    } else {
+      console.log("[Supabase] Message logged:", message.role, "session:", message.session_id, message.tools_called ? `tools: ${message.tools_called.join(",")}` : "");
     }
   } catch (error) {
-    console.error("Exception logging chat message:", error);
+    console.error("[Supabase] Exception logging chat message:", error);
   }
 }
 
