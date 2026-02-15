@@ -11,6 +11,13 @@ import {
   searchCityPOI,
 } from "@/lib/amap";
 import type { POIResult } from "@/lib/amap";
+import {
+  createChatSession,
+  updateChatSession,
+  logChatMessage,
+  detectLanguage,
+  hasToolIntent,
+} from "@/lib/logging";
 
 function buildSystemPrompt(userCity?: string): string {
   const cityContext = userCity
@@ -422,12 +429,80 @@ export function streamChatResponse(
   userCity?: string,
   navContext?: NavContext,
   image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" },
+  // Session tracking
+  sessionId?: string,
+  anonymousUserId?: string,
+  referralSource?: string,
+  deviceType?: "mobile" | "desktop",
+  entryPage?: string,
+  gpsPermissionStatus?: "granted" | "denied" | "dismissed",
+  detectedCity?: string,
+  userLat?: number,
+  userLng?: number,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
   return new ReadableStream({
     async start(controller) {
       try {
+        // Collect DB write promises so we can await them before closing the stream
+        const dbWrites: Promise<void>[] = [];
+
+        // Track request start time for response_time_ms
+        const startTime = Date.now();
+
+        // Get the user's latest message
+        const userMessage = messages[messages.length - 1]?.content || "";
+
+        // Create or update session
+        let activeSessionId = sessionId;
+        if (anonymousUserId && !sessionId) {
+          // First message - create new session (awaited so we get the ID)
+          console.log("[Supabase] Creating new session for user:", anonymousUserId);
+          const newSessionId = await createChatSession({
+            anonymous_user_id: anonymousUserId,
+            referral_source: referralSource,
+            device_type: deviceType || "desktop",
+            user_city: detectedCity || null,
+            gps_permission_status: gpsPermissionStatus,
+            entry_page: entryPage || "/chat",
+            first_message: userMessage,
+            message_count: 1,
+          });
+
+          if (newSessionId) {
+            activeSessionId = newSessionId;
+            console.log("[Supabase] Session created, sending session_created event:", newSessionId);
+            controller.enqueue(
+              encoder.encode(sseEvent("session_created", JSON.stringify({ sessionId: newSessionId }))),
+            );
+          } else {
+            console.warn("[Supabase] Failed to create session — logging will be skipped");
+          }
+        } else if (activeSessionId) {
+          // Existing session - increment message count (collected for await)
+          dbWrites.push(
+            updateChatSession(activeSessionId, {
+              message_count: messages.length,
+              last_active_at: new Date().toISOString(),
+            }),
+          );
+        }
+
+        // Log user message (collected for await)
+        if (activeSessionId) {
+          dbWrites.push(
+            logChatMessage({
+              session_id: activeSessionId,
+              role: "user",
+              content: userMessage,
+              user_lat: userLat,
+              user_lng: userLng,
+              user_language: detectLanguage(userMessage),
+            }),
+          );
+        }
+
         // Build API messages
         const apiMessages: Anthropic.Messages.MessageParam[] = messages.map((m, idx) => {
           // Only include the image in the last user message
@@ -475,9 +550,14 @@ export function streamChatResponse(
         let hasToolUse = false;
         let toolBlock: Anthropic.Messages.ToolUseBlock | null = null;
         const contentBlocks: Anthropic.Messages.ContentBlock[] = [];
+        let fullResponseText = "";
+        let toolName: string | undefined;
+        let navigationData: NavigationData | undefined;
+        let placesData: POIResult[] | undefined;
 
         // Stream text deltas as they arrive (JSON-encoded to preserve whitespace)
         stream.on("text", (text) => {
+          fullResponseText += text;
           controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
         });
 
@@ -493,7 +573,24 @@ export function streamChatResponse(
         const finalMessage = await stream.finalMessage();
 
         if (!hasToolUse || !toolBlock) {
-          // Pure text response — already streamed, just close
+          // Pure text response — already streamed, log and close
+          if (activeSessionId) {
+            const responseTime = Date.now() - startTime;
+            const isFallback = hasToolIntent(userMessage);
+
+            dbWrites.push(
+              logChatMessage({
+                session_id: activeSessionId,
+                role: "assistant",
+                content: fullResponseText,
+                is_fallback: isFallback,
+                response_time_ms: responseTime,
+              }),
+            );
+          }
+
+          // Await all DB writes before closing the stream
+          await Promise.allSettled(dbWrites);
           controller.enqueue(encoder.encode(sseEvent("done", "{}")));
           controller.close();
           return;
@@ -501,7 +598,7 @@ export function streamChatResponse(
 
         // Tool use detected — notify client
         const tb = toolBlock as Anthropic.Messages.ToolUseBlock;
-        const toolName = tb.name;
+        toolName = tb.name;
 
         if (toolName === "get_navigation") {
           controller.enqueue(
@@ -515,8 +612,6 @@ export function streamChatResponse(
 
         // Execute the tool
         let toolResultContent: string;
-        let navigationData: NavigationData | undefined;
-        let placesData: POIResult[] | undefined;
 
         if (toolName === "get_navigation") {
           const toolInput = tb.input as {
@@ -591,6 +686,7 @@ export function streamChatResponse(
           let fullResponse = "";
           followUpStream.on("text", (text) => {
             fullResponse += text;
+            fullResponseText += text;
           });
           await followUpStream.finalMessage();
 
@@ -615,11 +711,37 @@ export function streamChatResponse(
         } else {
           // For navigation and other tools, stream text normally (JSON-encoded)
           followUpStream.on("text", (text) => {
+            fullResponseText += text;
             controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
           });
           await followUpStream.finalMessage();
         }
 
+        // Log assistant response (collected for await)
+        if (activeSessionId) {
+          const responseTime = Date.now() - startTime;
+          const toolsCalled = toolName ? [toolName] : undefined;
+          const toolSuccess = toolName
+            ? (navigationData !== undefined || placesData !== undefined)
+            : undefined;
+          const isFallback =
+            !toolName && hasToolIntent(userMessage);
+
+          dbWrites.push(
+            logChatMessage({
+              session_id: activeSessionId,
+              role: "assistant",
+              content: fullResponseText,
+              tools_called: toolsCalled,
+              tool_success: toolSuccess,
+              is_fallback: isFallback,
+              response_time_ms: responseTime,
+            }),
+          );
+        }
+
+        // Await all DB writes before closing the stream
+        await Promise.allSettled(dbWrites);
         controller.enqueue(encoder.encode(sseEvent("done", "{}")));
         controller.close();
       } catch (error) {

@@ -7,12 +7,36 @@ export async function POST(request: NextRequest) {
   try {
     requestBody = await request.json();
 
-    const { messages, origin, city, navContext, image }: {
+    const {
+      messages,
+      origin,
+      city,
+      navContext,
+      image,
+      // Session tracking data
+      sessionId,
+      anonymousUserId,
+      referralSource,
+      deviceType,
+      entryPage,
+      gpsPermissionStatus,
+      userLat,
+      userLng,
+    }: {
       messages: Array<{ role: string; content: string }>;
       origin?: string;
       city?: string;
       navContext?: any;
       image?: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" };
+      // Session tracking
+      sessionId?: string;
+      anonymousUserId?: string;
+      referralSource?: string;
+      deviceType?: "mobile" | "desktop";
+      entryPage?: string;
+      gpsPermissionStatus?: "granted" | "denied" | "dismissed";
+      userLat?: number;
+      userLng?: number;
     } = requestBody;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -27,7 +51,23 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const stream = streamChatResponse(messages, origin, city, navContext, image);
+    const stream = streamChatResponse(
+      messages,
+      origin,
+      city,
+      navContext,
+      image,
+      // Session tracking
+      sessionId,
+      anonymousUserId,
+      referralSource,
+      deviceType,
+      entryPage,
+      gpsPermissionStatus,
+      city, // Pass city as detectedCity
+      userLat,
+      userLng,
+    );
 
     return new Response(stream, {
       headers: {

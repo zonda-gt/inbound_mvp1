@@ -7,6 +7,15 @@ import ChatInput from "@/components/ChatInput";
 import TypingIndicator from "@/components/TypingIndicator";
 import SuggestedPrompts from "@/components/SuggestedPrompts";
 import PreviewBanner from "@/components/PreviewBanner";
+import {
+  getAnonymousUserId,
+  captureReferralSource,
+  getDeviceType,
+  getEntryPage,
+  clearCurrentSession,
+  setCurrentSessionId,
+  getCurrentLocation,
+} from "@/lib/tracking";
 
 let nextId = 1;
 function makeId() {
@@ -85,10 +94,27 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  // Session tracking state
+  const [anonymousUserId, setAnonymousUserId] = useState<string>("");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gpsPermissionStatus, setGpsPermissionStatus] = useState<
+    "granted" | "denied" | "dismissed" | null
+  >(null);
+
+  // Initialize tracking on mount
+  useEffect(() => {
+    const userId = getAnonymousUserId();
+    setAnonymousUserId(userId);
+    captureReferralSource();
+    // Clear any stale session from previous page visit — force new session per visit
+    clearCurrentSession();
+  }, []);
+
   // Request geolocation on mount
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationRequested(true);
+      setGpsPermissionStatus("denied");
       return;
     }
 
@@ -96,6 +122,7 @@ export default function ChatPage() {
       async (position) => {
         const coords = `${position.coords.longitude},${position.coords.latitude}`;
         setUserLocation(coords);
+        setGpsPermissionStatus("granted");
 
         // Reverse geocode to get city name
         try {
@@ -114,10 +141,13 @@ export default function ChatPage() {
 
         setLocationRequested(true);
       },
-      () => {
+      (error) => {
+        setGpsPermissionStatus(
+          error.code === 1 ? "denied" : "dismissed"
+        );
         setLocationRequested(true);
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
   }, []);
 
@@ -162,13 +192,34 @@ export default function ChatPage() {
           content: m.content,
         }));
 
+        // Get fresh GPS location for this message (non-blocking, 3s timeout)
+        const currentLocation = await getCurrentLocation(3000);
+        const freshOrigin = currentLocation
+          ? `${currentLocation.lng},${currentLocation.lat}`
+          : userLocation || undefined;
+
         const requestPayload = {
           messages: apiMessages,
-          origin: userLocation || undefined,
+          origin: freshOrigin,
           city: userCity || undefined,
           navContext: navContext || undefined,
           image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
+          // Session tracking data
+          sessionId: sessionId || undefined,
+          anonymousUserId: anonymousUserId || undefined,
+          referralSource: captureReferralSource() || undefined,
+          deviceType: getDeviceType(),
+          entryPage: getEntryPage(),
+          gpsPermissionStatus: gpsPermissionStatus || undefined,
+          userLat: currentLocation?.lat,
+          userLng: currentLocation?.lng,
         };
+
+        console.log('📤 Sending message with session tracking:', {
+          sessionId: sessionId || 'NEW SESSION',
+          anonymousUserId,
+          messageCount: apiMessages.length,
+        });
 
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -332,6 +383,17 @@ export default function ChatPage() {
                 break;
               }
 
+              case "session_created": {
+                // Backend created a new session, store the ID
+                const sessionData = JSON.parse(ev.data);
+                if (sessionData.sessionId && !sessionId) {
+                  console.log('✅ Session created:', sessionData.sessionId);
+                  setSessionId(sessionData.sessionId);
+                  setCurrentSessionId(sessionData.sessionId);
+                }
+                break;
+              }
+
               case "error": {
                 const errData = JSON.parse(ev.data);
                 setIsTyping(false);
@@ -397,7 +459,7 @@ export default function ChatPage() {
         setToolStatus(null);
       }
     },
-    [messages, userLocation, userCity],
+    [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus],
   );
 
   const handleCameraCapture = useCallback(
