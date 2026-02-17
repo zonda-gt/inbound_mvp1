@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       gpsPermissionStatus,
       userLat,
       userLng,
+      isDemoMode,
     }: {
       messages: Array<{ role: string; content: string }>;
       origin?: string;
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
       gpsPermissionStatus?: "granted" | "denied" | "dismissed";
       userLat?: number;
       userLng?: number;
+      isDemoMode?: boolean;
     } = requestBody;
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
       city, // Pass city as detectedCity
       userLat,
       userLng,
+      isDemoMode,
     );
 
     return new Response(stream, {

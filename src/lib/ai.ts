@@ -19,12 +19,17 @@ import {
   hasToolIntent,
 } from "@/lib/logging";
 
-function buildSystemPrompt(userCity?: string): string {
-  const cityContext = userCity
-    ? `The user is currently located in ${userCity}.`
-    : "The user's location is unknown.";
+function buildSystemPrompt(userCity?: string, isDemoMode?: boolean): string {
+  let cityContext: string;
+  if (isDemoMode) {
+    cityContext = `The user is currently in DEMO MODE, exploring Shanghai (上海) as a preview. You DO have their GPS coordinates — they are set to central Shanghai (People's Square, 121.4737,31.2304). Treat these coordinates as real GPS for all tool calls. Use searchMode "nearby" for "near me" queries. NEVER say you don't have their location or ask what city they're in — you always know they are in 上海. On your FIRST reply only, briefly mention they're seeing Shanghai as a demo and the app will use their real location when they're in China (one short sentence). After that, respond normally as if they're in Shanghai.`;
+  } else if (userCity) {
+    cityContext = `The user is currently located in ${userCity}.`;
+  } else {
+    cityContext = "The user's location is unknown.";
+  }
 
-  return `You are ChinaTravel AI, a helpful travel assistant for foreign travelers visiting China. You specialize in helping people who don't speak Chinese navigate daily life in China.
+  return `You are HelloChina, a helpful travel assistant for foreign travelers visiting China. You specialize in helping people who don't speak Chinese navigate daily life in China.
 
 Your core capabilities:
 1. NAVIGATION: Give specific metro routes, walking directions, and practical transit advice for Chinese cities. Always include the Chinese name (汉字) of destinations so users can show it to taxi drivers.
@@ -66,7 +71,7 @@ CITY DETECTION — Priority for determining which city to use:
 When calling navigation or search tools, determine the city parameter using this priority:
 1. If the user explicitly mentions a city in their message (e.g., 'take me to Gaoyou Road in Shanghai', 'find restaurants in Beijing', 'navigate to the Great Wall in Beijing'), extract the city name and pass it as the city parameter, regardless of where the user's GPS says they are. The user might be planning ahead for a different city.
 2. If the user's GPS location is available and you know their current city, AND they don't mention a specific city, use the city from GPS for LOCAL searches.
-3. If neither is available, ask the user what city they're in.
+3. If neither is available and the user hasn't specified a city, use 上海 (Shanghai) as the default city.
 4. For NATIONAL searches (famous landmarks in other provinces, broad queries across China), set city to empty string '' to disable city filtering.
 
 Examples:
@@ -74,7 +79,7 @@ Examples:
 - User is in 北京, asks 'take me to Gaoyou Road Shanghai' → use 上海 (user specified)
 - User is in 北京, asks 'find food near me' → use 北京 (from GPS)
 - User has no GPS, asks 'restaurants in Chengdu' → use 成都 (user specified)
-- User has no GPS, asks 'find food near me' → ask user what city they're in
+- User has no GPS, asks 'find food near me' → use 上海 (Shanghai) as default
 - User asks 'Great Wall' → use '' (NATIONAL search, famous landmark)
 
 LOCAL vs NATIONAL search:
@@ -154,9 +159,7 @@ Keep the translation section factual and complete. Put all opinions, recommendat
 
 If the image is NOT Chinese text (e.g., a photo of a place, a person, food without text), still be helpful — describe what you see and offer relevant assistance. For example, a photo of a dish could trigger: 'This looks like 红烧肉 (hóngshāo ròu) — braised pork belly. It's one of the most popular dishes in Shanghai. If you want to order more, tell the waiter: 再来一份红烧肉 (zài lái yī fèn hóngshāo ròu).'
 
-IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.
-
-You are currently in preview/demo mode. The user may or may not be physically in China. Be helpful regardless of their location.`;
+IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.`;
 }
 
 const TOOLS: Anthropic.Messages.Tool[] = [
@@ -439,6 +442,7 @@ export function streamChatResponse(
   detectedCity?: string,
   userLat?: number,
   userLng?: number,
+  isDemoMode?: boolean,
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
@@ -541,7 +545,7 @@ export function streamChatResponse(
         const stream = client.messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: buildSystemPrompt(userCity),
+          system: buildSystemPrompt(userCity, isDemoMode),
           tools: TOOLS,
           messages: apiMessages,
         });
@@ -660,7 +664,7 @@ export function streamChatResponse(
         const followUpStream = client.messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: buildSystemPrompt(userCity),
+          system: buildSystemPrompt(userCity, isDemoMode),
           tools: TOOLS,
           messages: [
             ...apiMessages,

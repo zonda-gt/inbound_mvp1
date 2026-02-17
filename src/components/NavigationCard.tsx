@@ -54,10 +54,11 @@ function parsePolylineStr(str: string): Array<[number, number]> {
     .filter(([lng, lat]) => !isNaN(lng) && !isNaN(lat));
 }
 
-export default function NavigationCard({ data }: { data: NavigationData }) {
+export default function NavigationCard({ data, isDemoMode }: { data: NavigationData; isDemoMode?: boolean }) {
   const { destination, transit, walking } = data;
   const [copied, setCopied] = useState(false);
   const [showDriver, setShowDriver] = useState(false);
+  const [showTaxiTooltip, setShowTaxiTooltip] = useState(false);
 
   const [lng, lat] = destination.location.split(",");
   const taxiLinks = generateAmapTaxiLink({
@@ -308,15 +309,29 @@ export default function NavigationCard({ data }: { data: NavigationData }) {
       <div className="border-t border-gray-100 px-4 py-3 space-y-2">
         <button
           onClick={() => {
-            window.location.href = taxiLinks.appLink;
-            setTimeout(() => {
-              window.open(taxiLinks.webLink, "_blank", "noopener,noreferrer");
-            }, 1500);
+            if (isDemoMode) {
+              setShowTaxiTooltip(true);
+              setTimeout(() => setShowTaxiTooltip(false), 3000);
+            } else {
+              window.location.href = taxiLinks.appLink;
+              setTimeout(() => {
+                window.open(taxiLinks.webLink, "_blank", "noopener,noreferrer");
+              }, 1500);
+            }
           }}
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-green-700"
+          className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-semibold text-white transition-colors ${
+            isDemoMode
+              ? "bg-green-400 cursor-default"
+              : "bg-green-600 hover:bg-green-700"
+          }`}
         >
           🚕 Take a Taxi
         </button>
+        {showTaxiTooltip && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-center text-xs text-amber-700">
+            Taxi feature works when you&apos;re in China
+          </div>
+        )}
 
         <div className="flex gap-2">
           <button

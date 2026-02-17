@@ -10,14 +10,14 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "ChinaTravel AI — Your AI Guide for Navigating China",
+  title: "HelloChina — Your AI Guide for Navigating China",
   description:
     "AI-powered navigation, restaurant discovery, and travel help — designed for foreigners visiting China.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "ChinaTravel AI",
+    title: "HelloChina",
   },
 };
 

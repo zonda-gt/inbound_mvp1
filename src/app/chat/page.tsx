@@ -22,6 +22,13 @@ function makeId() {
   return String(nextId++);
 }
 
+const DEMO_ORIGIN = "121.4737,31.2304";
+const DEMO_CITY = "\u4e0a\u6d77"; // 上海
+
+function isInChina(lat: number, lng: number): boolean {
+  return lat >= 18 && lat <= 54 && lng >= 73 && lng <= 135;
+}
+
 const ACTION_BUTTONS = [
   {
     label: "Navigate",
@@ -91,8 +98,11 @@ export default function ChatPage() {
   const [userCity, setUserCity] = useState<string | null>(null);
   const [locationRequested, setLocationRequested] = useState(false);
   const [isReadingPhoto, setIsReadingPhoto] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoReason, setDemoReason] = useState<"outside_china" | "no_permission" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const locationResolvedRef = useRef(false);
 
   // Session tracking state
   const [anonymousUserId, setAnonymousUserId] = useState<string>("");
@@ -110,45 +120,76 @@ export default function ChatPage() {
     clearCurrentSession();
   }, []);
 
-  // Request geolocation on mount
+  // Request geolocation on mount with demo mode fallback
   useEffect(() => {
-    if (!navigator.geolocation) {
+    const activateDemoMode = (reason: "outside_china" | "no_permission") => {
+      setIsDemoMode(true);
+      setDemoReason(reason);
+      setUserLocation(DEMO_ORIGIN);
+      setUserCity(DEMO_CITY);
       setLocationRequested(true);
+    };
+
+    if (!navigator.geolocation) {
       setGpsPermissionStatus("denied");
+      activateDemoMode("no_permission");
       return;
     }
 
+    // Hard 5-second timeout: if geolocation hasn't resolved, activate demo mode
+    const hardTimeout = setTimeout(() => {
+      if (!locationResolvedRef.current) {
+        locationResolvedRef.current = true;
+        setGpsPermissionStatus("dismissed");
+        activateDemoMode("no_permission");
+      }
+    }, 5000);
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const coords = `${position.coords.longitude},${position.coords.latitude}`;
-        setUserLocation(coords);
+        if (locationResolvedRef.current) return;
+        locationResolvedRef.current = true;
+        clearTimeout(hardTimeout);
+
+        const { latitude, longitude } = position.coords;
         setGpsPermissionStatus("granted");
 
-        // Reverse geocode to get city name
-        try {
-          const response = await fetch('/api/reverse-geocode', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ location: coords }),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            setUserCity(data.city);
+        if (isInChina(latitude, longitude)) {
+          // Path A: GPS granted + in China → real location
+          const coords = `${longitude},${latitude}`;
+          setUserLocation(coords);
+          try {
+            const response = await fetch('/api/reverse-geocode', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ location: coords }),
+            });
+            if (response.ok) {
+              const data = await response.json();
+              setUserCity(data.city);
+            }
+          } catch (error) {
+            console.error('Failed to get city from coordinates:', error);
           }
-        } catch (error) {
-          console.error('Failed to get city from coordinates:', error);
+          setLocationRequested(true);
+        } else {
+          // Path B: GPS granted + NOT in China → demo mode
+          activateDemoMode("outside_china");
         }
-
-        setLocationRequested(true);
       },
       (error) => {
-        setGpsPermissionStatus(
-          error.code === 1 ? "denied" : "dismissed"
-        );
-        setLocationRequested(true);
+        if (locationResolvedRef.current) return;
+        locationResolvedRef.current = true;
+        clearTimeout(hardTimeout);
+
+        // Path C: GPS denied/dismissed → demo mode
+        setGpsPermissionStatus(error.code === 1 ? "denied" : "dismissed");
+        activateDemoMode("no_permission");
       },
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
+      { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 },
     );
+
+    return () => clearTimeout(hardTimeout);
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -192,11 +233,21 @@ export default function ChatPage() {
           content: m.content,
         }));
 
-        // Get fresh GPS location for this message (non-blocking, 3s timeout)
-        const currentLocation = await getCurrentLocation(3000);
-        const freshOrigin = currentLocation
-          ? `${currentLocation.lng},${currentLocation.lat}`
-          : userLocation || undefined;
+        // Get fresh GPS location for this message (skip in demo mode)
+        let freshOrigin: string | undefined;
+        let freshLat: number | undefined;
+        let freshLng: number | undefined;
+
+        if (isDemoMode) {
+          freshOrigin = DEMO_ORIGIN;
+        } else {
+          const currentLocation = await getCurrentLocation(3000);
+          freshOrigin = currentLocation
+            ? `${currentLocation.lng},${currentLocation.lat}`
+            : userLocation || undefined;
+          freshLat = currentLocation?.lat;
+          freshLng = currentLocation?.lng;
+        }
 
         const requestPayload = {
           messages: apiMessages,
@@ -211,8 +262,9 @@ export default function ChatPage() {
           deviceType: getDeviceType(),
           entryPage: getEntryPage(),
           gpsPermissionStatus: gpsPermissionStatus || undefined,
-          userLat: currentLocation?.lat,
-          userLng: currentLocation?.lng,
+          userLat: freshLat,
+          userLng: freshLng,
+          isDemoMode,
         };
 
         console.log('📤 Sending message with session tracking:', {
@@ -459,7 +511,7 @@ export default function ChatPage() {
         setToolStatus(null);
       }
     },
-    [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus],
+    [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus, isDemoMode],
   );
 
   const handleCameraCapture = useCallback(
@@ -491,12 +543,12 @@ export default function ChatPage() {
           ←
         </Link>
         <h1 className="text-base font-semibold text-gray-900">
-          ChinaTravel <span className="text-[#2563EB]">AI</span>
+          Hello<span className="text-[#2563EB]">China</span>
         </h1>
       </header>
 
       {/* Preview banner */}
-      {locationRequested && <PreviewBanner hasLocation={!!userLocation} city={userCity} />}
+      {locationRequested && <PreviewBanner hasLocation={!!userLocation} city={userCity} isDemoMode={isDemoMode} demoReason={demoReason} />}
 
       {/* Location prompt (shown briefly while waiting) */}
       {!locationRequested && (
@@ -512,7 +564,7 @@ export default function ChatPage() {
           <div className="flex h-full flex-col items-center justify-center px-4 py-8">
             <div className="mb-8 text-center">
               <h2 className="text-3xl font-bold text-gray-900">
-                Welcome to Inbound
+                Welcome to HelloChina
               </h2>
               <p className="mt-2 text-base text-gray-500">
                 Your AI guide to navigating China
@@ -570,6 +622,7 @@ export default function ChatPage() {
                     message={msg}
                     isFirstInGroup={isFirstInGroup}
                     onSend={handleSend}
+                    isDemoMode={isDemoMode}
                   />
                 );
               })}

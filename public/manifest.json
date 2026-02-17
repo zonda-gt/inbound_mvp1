@@ -1,6 +1,6 @@
 {
-  "name": "ChinaTravel AI",
-  "short_name": "ChinaTravel",
+  "name": "HelloChina",
+  "short_name": "HelloChina",
   "description": "AI-powered travel concierge for foreigners navigating China",
   "start_url": "/",
   "display": "standalone",

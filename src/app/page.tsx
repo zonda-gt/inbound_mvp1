@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NotifyForm from "@/components/NotifyForm";
 
 const valueProps = [
   {
@@ -32,7 +33,7 @@ export default function Home() {
         <div className="mx-auto max-w-5xl flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
-              ChinaTravel <span className="text-[#2563EB]">AI</span>
+              Hello<span className="text-[#2563EB]">China</span>
             </h1>
             <p className="text-sm text-gray-500">
               Your AI guide for navigating China
@@ -51,11 +52,11 @@ export default function Home() {
       <section className="px-6 py-16 md:py-24">
         <div className="mx-auto max-w-5xl text-center">
           <h2 className="text-4xl font-bold tracking-tight text-gray-900 md:text-5xl">
-            Navigate China with confidence
+            Like having a bilingual friend who knows the city
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-            AI-powered navigation, restaurant discovery, and travel help —
-            designed for foreigners
+            Ask anything in English — get metro directions, restaurant
+            recommendations, and translations with real context. Free.
           </p>
           <Link
             href="/chat"
@@ -94,18 +95,9 @@ export default function Home() {
             Not in China yet?
           </h3>
           <p className="mt-2 text-gray-600">
-            Explore what Shanghai has to offer and prepare for your trip
+            Get notified when we launch new features for your trip
           </p>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              className="rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB]"
-            />
-            <button className="rounded-lg bg-gray-900 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800">
-              Notify me
-            </button>
-          </div>
+          <NotifyForm />
         </div>
       </section>
 

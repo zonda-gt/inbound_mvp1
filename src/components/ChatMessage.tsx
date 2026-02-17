@@ -26,10 +26,12 @@ export default function ChatMessage({
   message,
   isFirstInGroup,
   onSend,
+  isDemoMode,
 }: {
   message: Message;
   isFirstInGroup: boolean;
   onSend?: (text: string, navContext?: NavContext) => void;
+  isDemoMode?: boolean;
 }) {
   const isUser = message.role === "user";
 
@@ -69,7 +71,7 @@ export default function ChatMessage({
           <>
             {/* Tool results appear first - instant structured data */}
             {message.navigationData && (
-              <NavigationCard data={message.navigationData} />
+              <NavigationCard data={message.navigationData} isDemoMode={isDemoMode} />
             )}
             {message.placesData && message.placesData.length > 0 && (
               <RestaurantList
