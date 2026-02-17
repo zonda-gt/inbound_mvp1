@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
@@ -38,6 +39,7 @@ export default function RootLayout({
         <ErrorBoundary>
           {children}
         </ErrorBoundary>
+        <Analytics />
       </body>
     </html>
   );
