@@ -57,8 +57,11 @@ export async function reverseGeocode(
     if (data.status !== "1" || !data.regeocode) return null;
 
     const addressComponent = data.regeocode.addressComponent;
+    // Amap returns [] (empty array) for city field in municipalities (Beijing, Shanghai, Chongqing, Tianjin)
+    const rawCity = addressComponent.city;
+    const city = (Array.isArray(rawCity) || !rawCity) ? (addressComponent.province || "") : rawCity;
     return {
-      city: addressComponent.city || addressComponent.province || "",
+      city,
       district: addressComponent.district || "",
       province: addressComponent.province || "",
       formatted_address: data.regeocode.formatted_address || "",

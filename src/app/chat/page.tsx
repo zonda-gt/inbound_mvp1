@@ -103,6 +103,7 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const locationResolvedRef = useRef(false);
+  const realCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
 
   // Session tracking state
   const [anonymousUserId, setAnonymousUserId] = useState<string>("");
@@ -153,6 +154,7 @@ export default function ChatPage() {
 
         const { latitude, longitude } = position.coords;
         setGpsPermissionStatus("granted");
+        realCoordsRef.current = { lat: latitude, lng: longitude };
 
         if (isInChina(latitude, longitude)) {
           // Path A: GPS granted + in China → real location
@@ -240,13 +242,27 @@ export default function ChatPage() {
 
         if (isDemoMode) {
           freshOrigin = DEMO_ORIGIN;
+          // For tracking: use real GPS coords if available (outside China users)
+          // For denied/dismissed: leave undefined (stored as null in DB)
+          if (realCoordsRef.current) {
+            freshLat = realCoordsRef.current.lat;
+            freshLng = realCoordsRef.current.lng;
+          }
         } else {
           const currentLocation = await getCurrentLocation(3000);
-          freshOrigin = currentLocation
-            ? `${currentLocation.lng},${currentLocation.lat}`
-            : userLocation || undefined;
-          freshLat = currentLocation?.lat;
-          freshLng = currentLocation?.lng;
+          if (currentLocation) {
+            freshOrigin = `${currentLocation.lng},${currentLocation.lat}`;
+            freshLat = currentLocation.lat;
+            freshLng = currentLocation.lng;
+          } else if (userLocation) {
+            // Fresh GPS failed but we have stored coordinates — parse and use them
+            freshOrigin = userLocation;
+            const [lng, lat] = userLocation.split(",").map(Number);
+            if (!isNaN(lat) && !isNaN(lng)) {
+              freshLat = lat;
+              freshLng = lng;
+            }
+          }
         }
 
         const requestPayload = {

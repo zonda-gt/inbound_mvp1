@@ -13,6 +13,7 @@ export type ChatSession = {
   first_message?: string | null;
   message_count?: number;
   last_active_at?: string;
+  is_demo_mode?: boolean;
 };
 
 export type ChatMessage = {
