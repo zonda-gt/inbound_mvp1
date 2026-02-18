@@ -451,6 +451,19 @@ export default function ChatPage() {
                 break;
               }
 
+              case "message_id": {
+                // Backend sent the DB message ID for the assistant message
+                const msgIdData = JSON.parse(ev.data);
+                if (msgIdData.messageId) {
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === aiMsgId ? { ...m, dbMessageId: msgIdData.messageId } : m,
+                    ),
+                  );
+                }
+                break;
+              }
+
               case "session_created": {
                 // Backend created a new session, store the ID
                 const sessionData = JSON.parse(ev.data);
@@ -632,6 +645,10 @@ export default function ChatPage() {
               {messages.map((msg, i) => {
                 const prevRole = i > 0 ? messages[i - 1].role : null;
                 const isFirstInGroup = msg.role !== prevRole;
+                const previousUserMessage =
+                  msg.role === "assistant" && i > 0 && messages[i - 1].role === "user"
+                    ? messages[i - 1].content
+                    : undefined;
                 return (
                   <ChatMessage
                     key={msg.id}
@@ -639,6 +656,8 @@ export default function ChatPage() {
                     isFirstInGroup={isFirstInGroup}
                     onSend={handleSend}
                     isDemoMode={isDemoMode}
+                    sessionId={sessionId}
+                    previousUserMessage={previousUserMessage}
                   />
                 );
               })}

@@ -111,24 +111,32 @@ export async function updateChatSession(
 
 /**
  * Log a chat message (server-side)
+ * Returns the database-generated message ID, or null on failure
  */
-export async function logChatMessage(message: ChatMessage): Promise<void> {
+export async function logChatMessage(message: ChatMessage): Promise<string | null> {
   try {
     const supabase = getSupabaseServerClient();
     if (!supabase) {
       console.warn("[Supabase] No server client — logChatMessage skipped");
-      return;
+      return null;
     }
 
-    const { error } = await supabase.from("chat_messages").insert(message);
+    const { data, error } = await supabase
+      .from("chat_messages")
+      .insert(message)
+      .select("id")
+      .single();
 
     if (error) {
       console.error("[Supabase] Error logging chat message:", error.message, error.details, "role:", message.role, "session:", message.session_id);
+      return null;
     } else {
-      console.log("[Supabase] Message logged:", message.role, "session:", message.session_id, message.tools_called ? `tools: ${message.tools_called.join(",")}` : "");
+      console.log("[Supabase] Message logged:", message.role, "session:", message.session_id, "id:", data.id, message.tools_called ? `tools: ${message.tools_called.join(",")}` : "");
+      return data.id;
     }
   } catch (error) {
     console.error("[Supabase] Exception logging chat message:", error);
+    return null;
   }
 }
 

@@ -5,6 +5,7 @@ import type { NavigationData } from "@/lib/ai";
 import type { POIResult } from "@/lib/amap";
 import NavigationCard from "./NavigationCard";
 import RestaurantList from "./RestaurantList";
+import MessageFeedback from "./MessageFeedback";
 
 export type NavContext = {
   destinationLocation: string; // "lng,lat"
@@ -20,6 +21,7 @@ export type Message = {
   userLocation?: string; // "lng,lat" format
   navigationData?: NavigationData;
   placesData?: POIResult[];
+  dbMessageId?: string; // Supabase message ID for feedback
 };
 
 export default function ChatMessage({
@@ -27,11 +29,15 @@ export default function ChatMessage({
   isFirstInGroup,
   onSend,
   isDemoMode,
+  sessionId,
+  previousUserMessage,
 }: {
   message: Message;
   isFirstInGroup: boolean;
   onSend?: (text: string, navContext?: NavContext) => void;
   isDemoMode?: boolean;
+  sessionId?: string | null;
+  previousUserMessage?: string;
 }) {
   const isUser = message.role === "user";
 
@@ -114,6 +120,15 @@ export default function ChatMessage({
                   {message.content}
                 </ReactMarkdown>
               </div>
+            )}
+
+            {/* Feedback buttons — only show when we have a DB message ID */}
+            {message.dbMessageId && sessionId && (
+              <MessageFeedback
+                dbMessageId={message.dbMessageId}
+                sessionId={sessionId}
+                userQuery={previousUserMessage || ""}
+              />
             )}
           </>
         )}

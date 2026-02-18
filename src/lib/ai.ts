@@ -487,7 +487,7 @@ export function streamChatResponse(
     async start(controller) {
       try {
         // Collect DB write promises so we can await them before closing the stream
-        const dbWrites: Promise<void>[] = [];
+        const dbWrites: Promise<unknown>[] = [];
 
         // Track request start time for response_time_ms
         const startTime = Date.now();
@@ -636,15 +636,19 @@ export function streamChatResponse(
             const responseTime = Date.now() - startTime;
             const isFallback = hasToolIntent(userMessage);
 
-            dbWrites.push(
-              logChatMessage({
-                session_id: activeSessionId,
-                role: "assistant",
-                content: fullResponseText,
-                is_fallback: isFallback,
-                response_time_ms: responseTime,
-              }),
-            );
+            const assistantMsgId = await logChatMessage({
+              session_id: activeSessionId,
+              role: "assistant",
+              content: fullResponseText,
+              is_fallback: isFallback,
+              response_time_ms: responseTime,
+            });
+
+            if (assistantMsgId) {
+              controller.enqueue(
+                encoder.encode(sseEvent("message_id", JSON.stringify({ messageId: assistantMsgId }))),
+              );
+            }
           }
 
           // Await all DB writes before closing the stream
@@ -775,7 +779,7 @@ export function streamChatResponse(
           await followUpStream.finalMessage();
         }
 
-        // Log assistant response (collected for await)
+        // Log assistant response and send DB message ID
         if (activeSessionId) {
           const responseTime = Date.now() - startTime;
           const toolsCalled = toolName ? [toolName] : undefined;
@@ -785,17 +789,21 @@ export function streamChatResponse(
           const isFallback =
             !toolName && hasToolIntent(userMessage);
 
-          dbWrites.push(
-            logChatMessage({
-              session_id: activeSessionId,
-              role: "assistant",
-              content: fullResponseText,
-              tools_called: toolsCalled,
-              tool_success: toolSuccess,
-              is_fallback: isFallback,
-              response_time_ms: responseTime,
-            }),
-          );
+          const assistantMsgId = await logChatMessage({
+            session_id: activeSessionId,
+            role: "assistant",
+            content: fullResponseText,
+            tools_called: toolsCalled,
+            tool_success: toolSuccess,
+            is_fallback: isFallback,
+            response_time_ms: responseTime,
+          });
+
+          if (assistantMsgId) {
+            controller.enqueue(
+              encoder.encode(sseEvent("message_id", JSON.stringify({ messageId: assistantMsgId }))),
+            );
+          }
         }
 
         // Await all DB writes before closing the stream
