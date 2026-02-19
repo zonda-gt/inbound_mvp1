@@ -5,6 +5,7 @@ import Link from "next/link";
 import ChatMessage, { Message, NavContext } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import TypingIndicator from "@/components/TypingIndicator";
+import ToolStreamingIndicator from "@/components/ToolStreamingIndicator";
 import SuggestedPrompts from "@/components/SuggestedPrompts";
 import PreviewBanner from "@/components/PreviewBanner";
 import {
@@ -94,6 +95,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<string | null>(null);
   const [userCity, setUserCity] = useState<string | null>(null);
   const [locationRequested, setLocationRequested] = useState(false);
@@ -101,6 +103,8 @@ export default function ChatPage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoReason, setDemoReason] = useState<"outside_china" | "no_permission" | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoScrollEnabledRef = useRef(true);
+  const forceScrollToBottomRef = useRef(false);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const locationResolvedRef = useRef(false);
   const realCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -194,18 +198,31 @@ export default function ChatPage() {
     return () => clearTimeout(hardTimeout);
   }, []);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     requestAnimationFrame(() => {
-      scrollRef.current?.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
+      const el = scrollRef.current;
+      if (!el) return;
+      el.scrollTo({
+        top: el.scrollHeight,
+        behavior,
       });
     });
   }, []);
 
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    autoScrollEnabledRef.current = distanceFromBottom <= 120;
+  }, []);
+
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isTyping, toolStatus, scrollToBottom]);
+    const shouldAutoScroll = autoScrollEnabledRef.current || forceScrollToBottomRef.current;
+    if (!shouldAutoScroll) return;
+    const behavior: ScrollBehavior = forceScrollToBottomRef.current ? "smooth" : "auto";
+    scrollToBottom(behavior);
+    forceScrollToBottomRef.current = false;
+  }, [messages, isTyping, toolStatus, isReadingPhoto, scrollToBottom]);
 
   const handleSend = useCallback(
     async (text: string, navContext?: NavContext, imageData?: { base64: string; mediaType: string; previewUrl: string }) => {
@@ -215,6 +232,7 @@ export default function ChatPage() {
         content: text,
         imageUrl: imageData?.previewUrl,
       };
+      forceScrollToBottomRef.current = true;
       const aiMsgId = makeId();
       const updatedMessages = [...messages, userMsg];
       setMessages(updatedMessages);
@@ -319,7 +337,6 @@ export default function ChatPage() {
         let aiMsgCreated = false;
         let navData: Message["navigationData"] = undefined;
         let placesResult: Message["placesData"] = undefined;
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -343,6 +360,7 @@ export default function ChatPage() {
                   setIsTyping(false);
                   setIsReadingPhoto(false);
                   setToolStatus(null);
+                  setActiveTool(null);
                   streamedText = chunk;
                   setMessages((prev) => [
                     ...prev,
@@ -376,6 +394,7 @@ export default function ChatPage() {
               case "tool_start": {
                 const info = JSON.parse(ev.data);
                 setToolStatus(info.label);
+                setActiveTool(info.tool || null);
                 setIsTyping(false);
                 setIsReadingPhoto(false);
                 break;
@@ -385,7 +404,33 @@ export default function ChatPage() {
                 const data = JSON.parse(ev.data);
                 if (data.navigationData) navData = data.navigationData;
                 if (data.placesData) placesResult = data.placesData;
-                setToolStatus(null);
+
+                // Curated restaurants: receive slugs, fetch full profiles asynchronously
+                if (data.curatedRestaurantSlugs) {
+                  setToolStatus("Building curated cards...");
+                  fetch(`/api/curated-restaurants?slugs=${(data.curatedRestaurantSlugs as string[]).join(",")}`)
+                    .then((r) => r.json())
+                    .then((body) => {
+                      if (body.restaurants?.length > 0) {
+                        setMessages((prev) =>
+                          prev.map((m) =>
+                            m.id === aiMsgId
+                              ? { ...m, curatedRestaurantsData: body.restaurants }
+                              : m,
+                          ),
+                        );
+                      }
+                    })
+                    .finally(() => {
+                      setToolStatus(null);
+                      setActiveTool(null);
+                    })
+                    .catch((err) => console.error("Failed to fetch curated restaurant profiles:", err));
+                } else {
+                  setToolStatus(null);
+                  setActiveTool(null);
+                }
+
                 if (!aiMsgCreated) {
                   aiMsgCreated = true;
                   setMessages((prev) => [
@@ -480,6 +525,7 @@ export default function ChatPage() {
                 setIsTyping(false);
                 setIsReadingPhoto(false);
                 setToolStatus(null);
+                setActiveTool(null);
                 if (!aiMsgCreated) {
                   setMessages((prev) => [
                     ...prev,
@@ -499,6 +545,7 @@ export default function ChatPage() {
                 setIsTyping(false);
                 setIsReadingPhoto(false);
                 setToolStatus(null);
+                setActiveTool(null);
                 if (aiMsgCreated) {
                   setMessages((prev) =>
                     prev.map((m) =>
@@ -538,6 +585,7 @@ export default function ChatPage() {
         setIsTyping(false);
         setIsReadingPhoto(false);
         setToolStatus(null);
+        setActiveTool(null);
       }
     },
     [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus, isDemoMode],
@@ -587,7 +635,7 @@ export default function ChatPage() {
       )}
 
       {/* Chat area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
         {!hasUserMessages && !isTyping ? (
           /* Welcome state */
           <div className="flex h-full flex-col items-center justify-center px-4 py-8">
@@ -662,12 +710,7 @@ export default function ChatPage() {
                 );
               })}
 
-              {toolStatus && (
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
-                  {toolStatus}
-                </div>
-              )}
+              {toolStatus && <ToolStreamingIndicator label={toolStatus} tool={activeTool} />}
 
               {isReadingPhoto && (
                 <div className="flex items-start gap-2">

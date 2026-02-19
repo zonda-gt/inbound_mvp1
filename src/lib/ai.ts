@@ -18,6 +18,12 @@ import {
   detectLanguage,
   hasToolIntent,
 } from "@/lib/logging";
+import {
+  searchCuratedRestaurants,
+  toSummary,
+  type CuratedRestaurant,
+  type CuratedRestaurantSummary,
+} from "@/lib/curated-restaurants";
 
 function buildSystemPrompt(userCity?: string, isDemoMode?: boolean): string {
   let cityContext: string;
@@ -196,7 +202,18 @@ Keep the translation section factual and complete. Put all opinions, recommendat
 
 If the image is NOT Chinese text (e.g., a photo of a place, a person, food without text), still be helpful — describe what you see and offer relevant assistance. For example, a photo of a dish could trigger: 'This looks like 红烧肉 (hóngshāo ròu) — braised pork belly. It's one of the most popular dishes in Shanghai. If you want to order more, tell the waiter: 再来一份红烧肉 (zài lái yī fèn hóngshāo ròu).'
 
-IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.`;
+IMPORTANT: Always start generating immediately with the translation. Do not preamble with 'Let me take a look at this photo' or 'I can see you've shared an image' — just go straight into the translation.
+
+CURATED RESTAURANT GUIDE:
+For all food-related queries, always check the curated restaurant database first — these restaurants have detailed profiles with photos, signature dish recommendations, ordering guides, and insider tips specifically prepared for foreign travelers. Show curated results whenever available.
+
+Determine the user's intent:
+DISCOVERY (recommend, suggest, best, where should I, specific cuisine/vibe/budget) → Search curated by filters. Fall back to Amap city search only if no curated match.
+PROXIMITY (near me, nearby, close, hungry) → Search curated within 20km of user. Fall back to Amap nearby search only if no curated restaurant is within that radius.
+SPECIFIC (asking about a named restaurant, what to order somewhere) → Search curated by name. If not in database, offer Amap basic info.
+
+When showing curated results, sound like a knowledgeable friend — lead with the foreigner hook, mention specific dishes, give practical advice. When falling back to Amap results, be transparent: these are basic listings without the detailed reviews and tips.
+Never call both curated and Amap for the same query. Pick one path and commit.`;
 }
 
 const TOOLS: Anthropic.Messages.Tool[] = [
@@ -268,19 +285,80 @@ const TOOLS: Anthropic.Messages.Tool[] = [
       required: ["type"],
     },
   },
+  {
+    name: "search_curated_restaurants",
+    description:
+      "Search HelloChina's curated restaurant guide — hand-picked Shanghai restaurants with English descriptions, signature dish recommendations with foreigner-friendliness ratings, ordering guides, and practical tips. Use this FIRST for all food queries, then only fall back to search_nearby_places if curated results are empty.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        cuisine: {
+          type: "string",
+          description:
+            "Filter by cuisine type (partial match, case insensitive). E.g., 'Sichuan', 'hot pot', 'Japanese', 'Cantonese', 'dumplings'.",
+        },
+        max_price: {
+          type: "number",
+          description:
+            "Maximum price per person in CNY. Only return restaurants at or below this price.",
+        },
+        best_for: {
+          type: "string",
+          description:
+            "Filter by occasion/tag. E.g., 'couples', 'groups', 'families with kids', 'solo', 'business', 'budget-friendly'.",
+        },
+        near_lat: {
+          type: "number",
+          description:
+            "User's latitude for proximity sorting.",
+        },
+        near_lng: {
+          type: "number",
+          description:
+            "User's longitude for proximity sorting.",
+        },
+        max_distance_km: {
+          type: "number",
+          description:
+            "Maximum distance from near_lat/near_lng in kilometers. Use 20 for 'near me' queries.",
+        },
+        city: {
+          type: "string",
+          description:
+            "Optional city filter for curated restaurants. Use the city explicitly requested by the user when present.",
+        },
+        query: {
+          type: "string",
+          description:
+            "Free text search across restaurant names, cuisine, descriptions, and foreigner hooks.",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
 
-const client = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let _client: Anthropic | null = null;
+function getClient(): Anthropic {
+  if (!_client) {
+    // APP_ANTHROPIC_API_KEY avoids conflict with Claude Code which sets ANTHROPIC_API_KEY=""
+    _client = new Anthropic({
+      apiKey: process.env.APP_ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return _client;
+}
 
 export type ChatResponse = {
   text: string;
   navigationData?: NavigationData;
   placesData?: POIResult[];
+  curatedRestaurantsData?: CuratedRestaurant[];
 };
+
+export type { CuratedRestaurant } from "@/lib/curated-restaurants";
 
 export type NavigationData = {
   origin: string; // "lng,lat"
@@ -316,6 +394,536 @@ export type NavContext = {
   destinationName: string;
   destinationAddress: string;
 };
+
+type FoodIntent = "discovery" | "proximity" | "specific";
+
+type CuratedSearchInput = {
+  cuisine?: string;
+  max_price?: number;
+  best_for?: string;
+  near_lat?: number;
+  near_lng?: number;
+  max_distance_km?: number;
+  query?: string;
+  city?: string;
+};
+
+type PlacesSearchInput = {
+  type: "restaurant";
+  searchMode: "nearby" | "city";
+  keyword?: string;
+  city?: string;
+  location?: string;
+  radius?: number;
+};
+
+type FoodRoutingPlan = {
+  intent: FoodIntent;
+  curatedInput: CuratedSearchInput;
+  fallbackPlacesInput?: PlacesSearchInput;
+  specificName?: string;
+};
+
+function parseOrigin(origin?: string): { lng: number; lat: number } | null {
+  if (!origin) return null;
+  const [lng, lat] = origin.split(",").map(Number);
+  if (Number.isNaN(lng) || Number.isNaN(lat)) return null;
+  return { lng, lat };
+}
+
+const CITY_ALIASES: Array<{ cn: string; aliases: string[] }> = [
+  { cn: "上海", aliases: ["shanghai", "shang hai", "上海", "上海市"] },
+  { cn: "北京", aliases: ["beijing", "bei jing", "北京", "北京市"] },
+  { cn: "广州", aliases: ["guangzhou", "guang zhou", "canton", "广州", "广州市"] },
+  { cn: "深圳", aliases: ["shenzhen", "shen zhen", "深圳", "深圳市"] },
+  { cn: "成都", aliases: ["chengdu", "cheng du", "成都", "成都市"] },
+  { cn: "杭州", aliases: ["hangzhou", "hang zhou", "杭州", "杭州市"] },
+  { cn: "重庆", aliases: ["chongqing", "chong qing", "重庆", "重庆市"] },
+  { cn: "天津", aliases: ["tianjin", "tian jin", "天津", "天津市"] },
+  { cn: "西安", aliases: ["xian", "xi'an", "xi an", "西安", "西安市"] },
+  { cn: "苏州", aliases: ["suzhou", "su zhou", "苏州", "苏州市"] },
+  { cn: "南京", aliases: ["nanjing", "nan jing", "南京", "南京市"] },
+  { cn: "武汉", aliases: ["wuhan", "wu han", "武汉", "武汉市"] },
+];
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeCityName(city?: string): string {
+  if (!city) return "";
+  return city
+    .toLowerCase()
+    .replace(/市$/u, "")
+    .replace(/\bcity\b/g, "")
+    .replace(/['’\s_-]/g, "")
+    .trim();
+}
+
+function toAmapCity(city?: string): string | undefined {
+  const normalized = normalizeCityName(city);
+  if (!normalized) return undefined;
+  for (const entry of CITY_ALIASES) {
+    if (normalizeCityName(entry.cn) === normalized) return entry.cn;
+    if (entry.aliases.some((alias) => normalizeCityName(alias) === normalized)) return entry.cn;
+  }
+  return city;
+}
+
+function stripCityTokensFromQuery(query: string | undefined, city?: string): string | undefined {
+  if (!query) return undefined;
+  const cityEntry = CITY_ALIASES.find((entry) => entry.cn === city);
+  if (!cityEntry) return query;
+
+  let cleaned = query;
+  for (const alias of cityEntry.aliases) {
+    if (/[\u4e00-\u9fff]/.test(alias)) {
+      cleaned = cleaned.split(alias).join(" ");
+    } else {
+      cleaned = cleaned.replace(new RegExp(`\\b${escapeRegExp(alias)}\\b`, "gi"), " ");
+    }
+  }
+
+  const normalized = cleaned.replace(/\s+/g, " ").trim();
+  return normalized.length >= 3 ? normalized : undefined;
+}
+
+function tryParseJson<T>(text: string): T | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+
+  const candidates = [trimmed];
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    candidates.push(trimmed.slice(firstBrace, lastBrace + 1));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      return JSON.parse(candidate) as T;
+    } catch {
+      // Try next parse candidate.
+    }
+  }
+
+  return null;
+}
+
+async function inferFoodTargetCity(
+  userMessage: string,
+  userCity?: string,
+  isDemoMode?: boolean,
+): Promise<string | undefined> {
+  const fallbackCity = toAmapCity(userCity) || (isDemoMode ? "上海" : undefined);
+
+  try {
+    const response = await getClient().messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 120,
+      system:
+        `Extract the target city for restaurant search.\n` +
+        `Return ONLY compact JSON: {"target_city_cn": string|null}.\n` +
+        `Rules:\n` +
+        `- Use Chinese city name (e.g. 北京, 上海, 成都).\n` +
+        `- If user asks near me/nearby/around here, use current city: ${fallbackCity || "null"}.\n` +
+        `- If user mentions another city (planning/discovery there), use that city.\n` +
+        `- If city is unclear, return null.\n` +
+        `- Prefer destination city over dish-origin words.`,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    const text = response.content
+      .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join(" ")
+      .trim();
+
+    const parsed = tryParseJson<{ target_city_cn?: string | null }>(text);
+    const inferred = toAmapCity(parsed?.target_city_cn || undefined);
+    return inferred || fallbackCity;
+  } catch (error) {
+    console.warn("[FoodRouting] AI city inference failed:", error);
+    return fallbackCity;
+  }
+}
+
+function isNavigationQuery(message: string): boolean {
+  const lower = message.toLowerCase();
+  const navKeywords = [
+    "how do i get",
+    "how to get",
+    "directions",
+    "navigate",
+    "route",
+    "metro",
+    "subway",
+    "train",
+    "bus",
+    "taxi",
+    "go to",
+    "take me to",
+  ];
+  return navKeywords.some((k) => lower.includes(k));
+}
+
+function containsFoodKeywords(message: string): boolean {
+  const lower = message.toLowerCase();
+  const foodKeywords = [
+    "restaurant",
+    "restaurants",
+    "food",
+    "eat",
+    "dinner",
+    "lunch",
+    "breakfast",
+    "brunch",
+    "snack",
+    "hotpot",
+    "hot pot",
+    "cuisine",
+    "cafe",
+    "coffee",
+    "dessert",
+    "bbq",
+    "barbecue",
+    "sushi",
+    "dumpling",
+    "noodle",
+    "where should i eat",
+    "where to eat",
+  ];
+  return foodKeywords.some((k) => lower.includes(k));
+}
+
+function extractSpecificRestaurantName(message: string): string | null {
+  const patterns = [
+    /what(?:\s+should\s+i)?\s+order\s+at\s+([^?.!\n]+)/i,
+    /what\s+to\s+order\s+at\s+([^?.!\n]+)/i,
+    /tell\s+me\s+about\s+([^?.!\n]+)/i,
+    /do\s+you\s+know\s+([^?.!\n]+)/i,
+    /is\s+([^?.!\n]+?)\s+(?:good|worth it|worth going)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) {
+      return match[1]
+        .replace(/\b(restaurant|resto|cafe|hot pot|hotpot|place)\b/gi, "")
+        .trim();
+    }
+  }
+
+  return null;
+}
+
+function detectFoodIntent(message: string): FoodIntent | null {
+  if (isNavigationQuery(message)) return null;
+
+  const lower = message.toLowerCase();
+  const hasFood = containsFoodKeywords(message);
+  const specificName = extractSpecificRestaurantName(message);
+
+  if (!hasFood && !specificName) return null;
+
+  const proximityKeywords = [
+    "near me",
+    "nearby",
+    "close by",
+    "close to me",
+    "around here",
+    "what's close",
+    "whats close",
+    "hungry now",
+    "walking distance",
+  ];
+  if (proximityKeywords.some((k) => lower.includes(k))) return "proximity";
+
+  const specificKeywords = [
+    "what should i order at",
+    "what to order at",
+    "tell me about",
+    "do you know",
+  ];
+  if (specificName || specificKeywords.some((k) => lower.includes(k))) return "specific";
+
+  return "discovery";
+}
+
+function extractCuisine(message: string): string | undefined {
+  const lower = message.toLowerCase();
+  const mappings: Array<{ keywords: string[]; cuisine: string }> = [
+    { keywords: ["hotpot", "hot pot", "火锅"], cuisine: "hot pot" },
+    { keywords: ["sichuan", "川菜"], cuisine: "Sichuan" },
+    { keywords: ["shanghainese", "本帮"], cuisine: "Shanghainese" },
+    { keywords: ["cantonese", "粤菜"], cuisine: "Cantonese" },
+    { keywords: ["japanese", "sushi", "ramen"], cuisine: "Japanese" },
+    { keywords: ["korean"], cuisine: "Korean" },
+    { keywords: ["italian", "pizza", "pasta"], cuisine: "Italian" },
+    { keywords: ["coffee", "cafe"], cuisine: "Cafe" },
+    { keywords: ["bbq", "barbecue", "grill"], cuisine: "BBQ" },
+    { keywords: ["dumpling"], cuisine: "Dumplings" },
+    { keywords: ["seafood"], cuisine: "Seafood" },
+    { keywords: ["vegetarian", "vegan"], cuisine: "Vegetarian" },
+  ];
+
+  for (const m of mappings) {
+    if (m.keywords.some((k) => lower.includes(k))) return m.cuisine;
+  }
+  return undefined;
+}
+
+function extractBestFor(message: string): string | undefined {
+  const lower = message.toLowerCase();
+  if (/(romantic|date|couple)/i.test(lower)) return "couples";
+  if (/(family|kids|children)/i.test(lower)) return "families with kids";
+  if (/(group|friends|party)/i.test(lower)) return "groups";
+  if (/(business|client|meeting)/i.test(lower)) return "business";
+  if (/(solo|alone)/i.test(lower)) return "solo";
+  if (/(budget|cheap|affordable)/i.test(lower)) return "budget-friendly";
+  return undefined;
+}
+
+function extractMaxPrice(message: string): number | undefined {
+  const patterns = [
+    /(?:under|below|less than|max|at most)\s*¥?\s*(\d{2,4})/i,
+    /¥\s*(\d{2,4})\s*(?:or less|max|under)/i,
+    /(\d{2,4})\s*(?:rmb|yuan)\b/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match?.[1]) {
+      const value = Number(match[1]);
+      if (!Number.isNaN(value)) return value;
+    }
+  }
+  return undefined;
+}
+
+function deriveFallbackKeyword(message: string, cuisine?: string, specificName?: string): string {
+  if (specificName) return specificName;
+  if (cuisine) return cuisine;
+  const trimmed = message
+    .replace(/\b(near me|nearby|close by|around here|what's close|whats close|hungry now)\b/gi, "")
+    .replace(/[^\w\s\u4e00-\u9fff]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return trimmed || "餐厅";
+}
+
+function levenshteinDistance(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      );
+    }
+  }
+
+  return dp[m][n];
+}
+
+function isFuzzyStopword(token: string, stopwords: Set<string>): boolean {
+  if (stopwords.has(token)) return true;
+
+  // Common typo-prone generic words that should not become curated filters.
+  const fuzzyStopwordTargets = [
+    "recommend",
+    "recommendation",
+    "suggest",
+    "best",
+    "find",
+    "food",
+    "restaurant",
+    "restaurants",
+    "nearby",
+    "shanghai",
+  ];
+
+  for (const target of fuzzyStopwordTargets) {
+    const maxDistance = target.length <= 6 ? 1 : 2;
+    if (Math.abs(token.length - target.length) > maxDistance) continue;
+    if (levenshteinDistance(token, target) <= maxDistance) return true;
+  }
+
+  return false;
+}
+
+function extractFreeTextFoodFilter(message: string): string | undefined {
+  const stopwords = new Set([
+    "recommend",
+    "recommendation",
+    "recommendations",
+    "suggest",
+    "suggestion",
+    "suggestions",
+    "best",
+    "find",
+    "food",
+    "eat",
+    "restaurant",
+    "restaurants",
+    "spot",
+    "spots",
+    "place",
+    "places",
+    "where",
+    "should",
+    "i",
+    "me",
+    "my",
+    "in",
+    "at",
+    "for",
+    "to",
+    "near",
+    "nearby",
+    "close",
+    "around",
+    "here",
+    "hungry",
+    "now",
+    "looking",
+    "want",
+    "with",
+    "tonight",
+    "today",
+    "shanghai",
+    "city",
+    "a",
+    "an",
+    "the",
+    "please",
+  ]);
+
+  const tokens = message
+    .toLowerCase()
+    .replace(/[^\w\s\u4e00-\u9fff]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((t) => !isFuzzyStopword(t, stopwords));
+
+  if (tokens.length === 0) return undefined;
+  const query = tokens.join(" ").trim();
+  return query.length >= 3 ? query : undefined;
+}
+
+function buildFoodRoutingPlan(
+  userMessage: string,
+  origin?: string,
+  userCity?: string,
+  targetCity?: string,
+): FoodRoutingPlan | null {
+  const intent = detectFoodIntent(userMessage);
+  if (!intent) return null;
+
+  const effectiveTargetCity = toAmapCity(targetCity || userCity);
+  const cuisine = extractCuisine(userMessage);
+  const max_price = extractMaxPrice(userMessage);
+  const best_for = extractBestFor(userMessage);
+  const freeTextQuery = stripCityTokensFromQuery(
+    extractFreeTextFoodFilter(userMessage),
+    effectiveTargetCity,
+  );
+  const specificName = intent === "specific" ? extractSpecificRestaurantName(userMessage) || undefined : undefined;
+  const parsedOrigin = parseOrigin(origin);
+  const fallbackKeyword = deriveFallbackKeyword(userMessage, cuisine, specificName);
+
+  if (intent === "proximity") {
+    const curatedInput: CuratedSearchInput = {
+      near_lat: parsedOrigin?.lat,
+      near_lng: parsedOrigin?.lng,
+      max_distance_km: 20,
+    };
+    if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
+    if (specificName) curatedInput.query = specificName;
+    if (!specificName && !cuisine && freeTextQuery) curatedInput.query = freeTextQuery;
+    if (cuisine) curatedInput.cuisine = cuisine;
+    if (max_price) curatedInput.max_price = max_price;
+    if (best_for) curatedInput.best_for = best_for;
+
+    return {
+      intent,
+      curatedInput,
+      fallbackPlacesInput: {
+        type: "restaurant",
+        searchMode: "nearby",
+        location: origin,
+        radius: 20000,
+        keyword: fallbackKeyword,
+      },
+    };
+  }
+
+  if (intent === "specific") {
+    const curatedInput: CuratedSearchInput = {
+      query: specificName || userMessage,
+    };
+    if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
+
+    return {
+      intent,
+      specificName,
+      curatedInput,
+    };
+  }
+
+  const curatedInput: CuratedSearchInput = {};
+  if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
+  if (!cuisine && !max_price && !best_for && freeTextQuery) {
+    curatedInput.query = freeTextQuery;
+  }
+  if (cuisine) curatedInput.cuisine = cuisine;
+  if (max_price) curatedInput.max_price = max_price;
+  if (best_for) curatedInput.best_for = best_for;
+
+  return {
+    intent: "discovery",
+    curatedInput,
+    fallbackPlacesInput: {
+      type: "restaurant",
+      searchMode: "city",
+      city: effectiveTargetCity || "上海",
+      keyword: fallbackKeyword,
+    },
+  };
+}
+
+async function generateTextOnlyResponse(
+  messages: Anthropic.Messages.MessageParam[],
+  userCity?: string,
+  isDemoMode?: boolean,
+  extraSystemInstruction?: string,
+): Promise<string> {
+  const stream = getClient().messages.stream({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 1024,
+    system: `${buildSystemPrompt(userCity, isDemoMode)}${
+      extraSystemInstruction ? `\n\n${extraSystemInstruction}` : ""
+    }`,
+    messages,
+  });
+
+  let text = "";
+  stream.on("text", (chunk) => {
+    text += chunk;
+  });
+  await stream.finalMessage();
+  return text;
+}
 
 async function executeNavigationTool(
   input: {
@@ -458,6 +1066,28 @@ async function executePlacesSearch(
   return { results };
 }
 
+async function executeCuratedSearch(
+  input: CuratedSearchInput,
+): Promise<{
+  summaries: CuratedRestaurantSummary[];
+  slugs: string[];
+  error?: string;
+}> {
+  const results = await searchCuratedRestaurants(input);
+  if (results.length === 0) {
+    return {
+      summaries: [],
+      slugs: [],
+      error:
+        "No curated restaurants found matching those criteria. Try broader filters or use search_nearby_places for Amap results.",
+    };
+  }
+  return {
+    summaries: results.map(toSummary),
+    slugs: results.map((r) => r.slug),
+  };
+}
+
 // SSE helper: format a server-sent event
 function sseEvent(event: string, data: string): string {
   return `event: ${event}\ndata: ${data}\n\n`;
@@ -494,6 +1124,16 @@ export function streamChatResponse(
 
         // Get the user's latest message
         const userMessage = messages[messages.length - 1]?.content || "";
+        const foodIntent = detectFoodIntent(userMessage);
+        const inferredTargetCity =
+          !image && !navContext && foodIntent
+            ? await inferFoodTargetCity(userMessage, userCity, isDemoMode)
+            : undefined;
+        const effectiveCity = inferredTargetCity || toAmapCity(userCity) || "上海";
+        const foodRoutingPlan =
+          !image && !navContext
+            ? buildFoodRoutingPlan(userMessage, origin, userCity, inferredTargetCity)
+            : null;
 
         // Create or update session
         let activeSessionId = sessionId;
@@ -595,8 +1235,186 @@ export function streamChatResponse(
           }
         });
 
+        // Deterministic routing for food queries:
+        // always curated first, then intent-aware fallback only if curated is empty.
+        if (foodRoutingPlan) {
+          let fullResponseText = "";
+          let toolName: string | undefined = "search_curated_restaurants";
+          let placesData: POIResult[] | undefined;
+
+          controller.enqueue(
+            encoder.encode(
+              sseEvent(
+                "tool_start",
+                JSON.stringify({ tool: "search_curated_restaurants", label: "Checking curated restaurants..." }),
+              ),
+            ),
+          );
+
+          const curatedResult = await executeCuratedSearch(foodRoutingPlan.curatedInput);
+          const curatedToolResult = JSON.stringify({
+            results: curatedResult.summaries,
+            error: curatedResult.error,
+          });
+          const curatedSlugs =
+            curatedResult.slugs.length > 0 ? curatedResult.slugs : undefined;
+
+          if (curatedSlugs) {
+            controller.enqueue(
+              encoder.encode(
+                sseEvent(
+                  "tool_data",
+                  JSON.stringify({ curatedRestaurantSlugs: curatedSlugs }),
+                ),
+              ),
+            );
+          }
+
+          let responseText = "";
+
+          if (curatedSlugs) {
+            responseText = await generateTextOnlyResponse(
+              [
+                ...apiMessages,
+                {
+                  role: "user" as const,
+                  content:
+                    `Curated restaurant search has already been executed by backend routing.` +
+                    ` Intent: ${foodRoutingPlan.intent}.` +
+                    ` The curated cards are already displayed to the user.` +
+                    ` Use only these curated summaries:\n${curatedToolResult}`,
+                },
+              ],
+              userCity,
+              isDemoMode,
+              "Food routing is already resolved. Do not call tools. Do not suggest or trigger Amap fallback when curated results exist. Keep the response concise and practical.",
+            );
+          } else if (foodRoutingPlan.intent === "specific") {
+            responseText =
+              "I don't have a detailed profile for this restaurant yet. I can search Amap for basic info (address, rating, and opening hours) if you want.";
+          } else if (foodRoutingPlan.fallbackPlacesInput) {
+            toolName = "search_nearby_places";
+            const fallbackMode = foodRoutingPlan.fallbackPlacesInput.searchMode;
+
+            controller.enqueue(
+              encoder.encode(
+                sseEvent(
+                  "tool_start",
+                  JSON.stringify({
+                    tool: "search_nearby_places",
+                    label:
+                      fallbackMode === "nearby"
+                        ? "Searching restaurants nearby..."
+                        : "Searching restaurants in city...",
+                  }),
+                ),
+              ),
+            );
+
+            const fallbackResult = await executePlacesSearch(
+              foodRoutingPlan.fallbackPlacesInput,
+              origin,
+            );
+
+            if (fallbackResult.results.length > 0) {
+              placesData = fallbackResult.results;
+              controller.enqueue(
+                encoder.encode(
+                  sseEvent("tool_data", JSON.stringify({ placesData })),
+                ),
+              );
+
+              let placesText = await generateTextOnlyResponse(
+                [
+                  ...apiMessages,
+                  {
+                    role: "user" as const,
+                    content:
+                      `Curated restaurant search returned zero results for this ${foodRoutingPlan.intent} food query.` +
+                      ` We are now showing Amap fallback listings only.` +
+                      ` Be transparent these are basic listings without curated deep tips.` +
+                      ` Start with <enrichment> JSON block for every place in order, then 1-2 sentence text.\n\n` +
+                      `Results: ${JSON.stringify(fallbackResult)}`,
+                  },
+                ],
+                userCity,
+                isDemoMode,
+                "Do not call tools. The response must begin with <enrichment> JSON for place cards.",
+              );
+
+              const enrichMatch = placesText.match(
+                /<enrichment>([\s\S]*?)<\/enrichment>/,
+              );
+              if (enrichMatch) {
+                try {
+                  const enrichment = JSON.parse(enrichMatch[1]);
+                  controller.enqueue(
+                    encoder.encode(
+                      sseEvent("places_update", JSON.stringify(enrichment)),
+                    ),
+                  );
+                } catch (error) {
+                  console.error("Failed to parse enrichment:", error);
+                }
+                placesText = placesText
+                  .replace(/<enrichment>[\s\S]*?<\/enrichment>/, "")
+                  .trim();
+              }
+
+              responseText = placesText;
+            } else {
+              responseText =
+                fallbackMode === "nearby"
+                  ? "I couldn't find curated picks within 20 km, and there are no strong nearby Amap listings right now. Try widening the area or adding a cuisine keyword."
+                  : "I couldn't find curated matches for that request, and Amap city listings were also limited. Try broadening cuisine, vibe, or budget constraints.";
+            }
+          }
+
+          if (responseText) {
+            fullResponseText += responseText;
+            controller.enqueue(
+              encoder.encode(sseEvent("text", JSON.stringify(responseText))),
+            );
+          }
+
+          if (activeSessionId) {
+            const responseTime = Date.now() - startTime;
+            const toolsCalled = toolName ? [toolName] : undefined;
+            const toolSuccess =
+              toolName === "search_curated_restaurants"
+                ? curatedSlugs !== undefined
+                : placesData !== undefined;
+
+            const assistantMsgId = await logChatMessage({
+              session_id: activeSessionId,
+              role: "assistant",
+              content: fullResponseText,
+              tools_called: toolsCalled,
+              tool_success: toolSuccess,
+              is_fallback: false,
+              response_time_ms: responseTime,
+            });
+
+            if (assistantMsgId) {
+              controller.enqueue(
+                encoder.encode(
+                  sseEvent(
+                    "message_id",
+                    JSON.stringify({ messageId: assistantMsgId }),
+                  ),
+                ),
+              );
+            }
+          }
+
+          await Promise.allSettled(dbWrites);
+          controller.enqueue(encoder.encode(sseEvent("done", "{}")));
+          controller.close();
+          return;
+        }
+
         // First call — streaming
-        const stream = client.messages.stream({
+        const stream = getClient().messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
           system: buildSystemPrompt(userCity, isDemoMode),
@@ -612,6 +1430,7 @@ export function streamChatResponse(
         let toolName: string | undefined;
         let navigationData: NavigationData | undefined;
         let placesData: POIResult[] | undefined;
+        let curatedSlugs: string[] | undefined;
 
         // Stream text deltas as they arrive (JSON-encoded to preserve whitespace)
         stream.on("text", (text) => {
@@ -670,6 +1489,10 @@ export function streamChatResponse(
           controller.enqueue(
             encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "search_nearby_places", label: "Searching nearby..." }))),
           );
+        } else if (toolName === "search_curated_restaurants") {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "search_curated_restaurants", label: "Checking curated restaurants..." }))),
+          );
         }
 
         // Execute the tool
@@ -700,6 +1523,17 @@ export function streamChatResponse(
           placesData = placesResult.results.length > 0
             ? placesResult.results
             : undefined;
+        } else if (toolName === "search_curated_restaurants") {
+          const toolInput = tb.input as CuratedSearchInput;
+          const curatedResult = await executeCuratedSearch(toolInput);
+          // Send only lightweight summaries to Claude (~5KB vs ~60KB)
+          toolResultContent = JSON.stringify({
+            results: curatedResult.summaries,
+            error: curatedResult.error,
+          });
+          curatedSlugs = curatedResult.slugs.length > 0
+            ? curatedResult.slugs
+            : undefined;
         } else {
           controller.enqueue(encoder.encode(sseEvent("done", "{}")));
           controller.close();
@@ -717,27 +1551,125 @@ export function streamChatResponse(
             encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
           );
         }
+        if (curatedSlugs) {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_data", JSON.stringify({ curatedRestaurantSlugs: curatedSlugs }))),
+          );
+        }
+
+        // If curated search returned empty and user was asking about food,
+        // automatically fall back to Amap nearby search instead of letting
+        // Claude chain another tool call (which causes blank responses).
+        let didCuratedFallback = false;
+        let curatedFallbackInput: PlacesSearchInput | undefined;
+        if (
+          toolName === "search_curated_restaurants" &&
+          !curatedSlugs &&
+          foodIntent &&
+          foodIntent !== "specific"
+        ) {
+          const fallbackMode = foodIntent === "proximity" ? "nearby" : "city";
+          controller.enqueue(
+            encoder.encode(
+              sseEvent(
+                "tool_start",
+                JSON.stringify({
+                  tool: "search_nearby_places",
+                  label:
+                    fallbackMode === "nearby"
+                      ? "Searching restaurants nearby..."
+                      : "Searching restaurants in city...",
+                }),
+              ),
+            ),
+          );
+
+          const curatedInput = tb.input as { cuisine?: string; query?: string };
+          const fallbackKeyword =
+            curatedInput.cuisine ||
+            curatedInput.query ||
+            deriveFallbackKeyword(userMessage, curatedInput.cuisine);
+
+          curatedFallbackInput =
+            fallbackMode === "nearby"
+              ? {
+                  type: "restaurant",
+                  searchMode: "nearby",
+                  keyword: fallbackKeyword,
+                  location: origin,
+                  radius: 20000,
+                }
+              : {
+                  type: "restaurant",
+                  searchMode: "city",
+                  keyword: fallbackKeyword,
+                  city: effectiveCity,
+                };
+
+          const fallbackResult = await executePlacesSearch(
+            curatedFallbackInput,
+            origin,
+          );
+
+          if (fallbackResult.results.length > 0) {
+            placesData = fallbackResult.results;
+            controller.enqueue(
+              encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
+            );
+          }
+          toolName = "search_nearby_places";
+          didCuratedFallback = true;
+          // Replace the tool result content with places data for the follow-up
+          toolResultContent = JSON.stringify(fallbackResult);
+        }
+
+        // Build follow-up messages. When we did a curated→places fallback,
+        // strip the curated tool_use from history and pretend the AI called
+        // search_nearby_places directly, so Claude doesn't get confused.
+        let followUpMessages: Anthropic.Messages.MessageParam[];
+        if (didCuratedFallback) {
+          // Replace the curated tool_use block with a search_nearby_places one
+          const syntheticToolUse: Anthropic.Messages.ContentBlockParam = {
+            type: "tool_use",
+            id: tb.id,
+            name: "search_nearby_places",
+            input:
+              curatedFallbackInput || {
+                type: "restaurant",
+                searchMode: "city",
+                city: effectiveCity,
+              },
+          };
+          // Keep any text blocks from the original response
+          const textBlocks = finalMessage.content.filter(
+            (b): b is Anthropic.Messages.TextBlock => b.type === "text",
+          );
+          followUpMessages = [
+            ...apiMessages,
+            { role: "assistant" as const, content: [...textBlocks, syntheticToolUse] },
+            {
+              role: "user" as const,
+              content: [{ type: "tool_result" as const, tool_use_id: tb.id, content: toolResultContent }],
+            },
+          ];
+        } else {
+          followUpMessages = [
+            ...apiMessages,
+            { role: "assistant" as const, content: finalMessage.content },
+            {
+              role: "user" as const,
+              content: [{ type: "tool_result" as const, tool_use_id: tb.id, content: toolResultContent }],
+            },
+          ];
+        }
 
         // Follow-up call with tool result — also streamed
-        const followUpStream = client.messages.stream({
+        const followUpStream = getClient().messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
           system: buildSystemPrompt(userCity, isDemoMode),
           tools: TOOLS,
-          messages: [
-            ...apiMessages,
-            { role: "assistant", content: finalMessage.content },
-            {
-              role: "user",
-              content: [
-                {
-                  type: "tool_result",
-                  tool_use_id: tb.id,
-                  content: toolResultContent,
-                },
-              ],
-            },
-          ],
+          messages: followUpMessages,
         });
 
         // Clear any pre-tool text and stream the follow-up
@@ -745,15 +1677,38 @@ export function streamChatResponse(
 
         if (placesData) {
           // Buffer the full response to extract <enrichment> block
-          let fullResponse = "";
+          let followUpText = "";
           followUpStream.on("text", (text) => {
-            fullResponse += text;
+            followUpText += text;
             fullResponseText += text;
           });
-          await followUpStream.finalMessage();
+          const followUpFinal = await followUpStream.finalMessage();
+
+          // If follow-up produced another tool_use instead of text (e.g. trying to
+          // call search_curated_restaurants again), make a final text-only call
+          if (followUpFinal.stop_reason === "tool_use" || followUpText.length === 0) {
+            const finalTextStream = getClient().messages.stream({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1024,
+              system: buildSystemPrompt(userCity, isDemoMode),
+              messages: [
+                ...apiMessages,
+                {
+                  role: "user" as const,
+                  content: `Here are restaurant search results for the user's query. Respond with an <enrichment> JSON block first, then a brief 1-2 sentence text response.\n\nResults: ${toolResultContent}`,
+                },
+              ],
+            });
+            followUpText = "";
+            finalTextStream.on("text", (text) => {
+              followUpText += text;
+              fullResponseText += text;
+            });
+            await finalTextStream.finalMessage();
+          }
 
           // Extract and send enrichment data
-          const enrichMatch = fullResponse.match(/<enrichment>([\s\S]*?)<\/enrichment>/);
+          const enrichMatch = followUpText.match(/<enrichment>([\s\S]*?)<\/enrichment>/);
           if (enrichMatch) {
             try {
               const enrichment = JSON.parse(enrichMatch[1]);
@@ -763,15 +1718,15 @@ export function streamChatResponse(
             } catch (e) {
               console.error("Failed to parse enrichment:", e);
             }
-            fullResponse = fullResponse.replace(/<enrichment>[\s\S]*?<\/enrichment>/, "").trim();
+            followUpText = followUpText.replace(/<enrichment>[\s\S]*?<\/enrichment>/, "").trim();
           }
 
           // Send the clean text (JSON-encoded to preserve whitespace)
-          if (fullResponse) {
-            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(fullResponse))));
+          if (followUpText) {
+            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(followUpText))));
           }
         } else {
-          // For navigation and other tools, stream text normally (JSON-encoded)
+          // For navigation and curated restaurants, stream text normally (JSON-encoded)
           followUpStream.on("text", (text) => {
             fullResponseText += text;
             controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
@@ -784,7 +1739,7 @@ export function streamChatResponse(
           const responseTime = Date.now() - startTime;
           const toolsCalled = toolName ? [toolName] : undefined;
           const toolSuccess = toolName
-            ? (navigationData !== undefined || placesData !== undefined)
+            ? (navigationData !== undefined || placesData !== undefined || curatedSlugs !== undefined)
             : undefined;
           const isFallback =
             !toolName && hasToolIntent(userMessage);

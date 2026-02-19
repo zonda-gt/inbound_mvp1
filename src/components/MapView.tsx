@@ -15,7 +15,15 @@ export type MapMarker = {
   position: [number, number]; // [lng, lat]
   label: string;
   name: string;
+  sourceIndex?: number; // original list index for card sync
 };
+
+function toFiniteCoord(value: unknown): number | null {
+  if (value == null) return null;
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
 
 type MapViewProps = {
   // Navigation route display
@@ -65,9 +73,15 @@ export default function MapView({
   const lastMarkersKeyRef = useRef("");
 
   const [deviceHeading, setDeviceHeading] = useState<number | null>(null);
-  const [orientationPermissionGranted, setOrientationPermissionGranted] = useState(false);
+  const [orientationPermissionGranted, setOrientationPermissionGranted] = useState(() => {
+    if (typeof window === "undefined") return false;
+    // Non-iOS browsers do not require explicit permission.
+    return typeof (DeviceOrientationEvent as any).requestPermission !== "function";
+  });
 
-  onMarkerClickRef.current = onMarkerClick;
+  useEffect(() => {
+    onMarkerClickRef.current = onMarkerClick;
+  }, [onMarkerClick]);
 
   const { AMap, loaded, error } = useAMap();
 
@@ -114,9 +128,6 @@ export default function MapView({
       return () => {
         document.removeEventListener('click', handleUserGesture);
       };
-    } else {
-      // Non-iOS or older iOS - permission not needed
-      setOrientationPermissionGranted(true);
     }
   }, []);
 
@@ -154,6 +165,19 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !AMap || !route) return;
 
+    const originLng = toFiniteCoord(route.origin[0]);
+    const originLat = toFiniteCoord(route.origin[1]);
+    const destLng = toFiniteCoord(route.destination[0]);
+    const destLat = toFiniteCoord(route.destination[1]);
+    if (
+      originLng == null ||
+      originLat == null ||
+      destLng == null ||
+      destLat == null
+    ) {
+      return;
+    }
+
     // Clean previous route overlays
     routeOverlaysRef.current.forEach((o) => map.remove(o));
     routeOverlaysRef.current = [];
@@ -162,9 +186,19 @@ export default function MapView({
 
     // Draw polylines
     for (const pl of route.polylines) {
-      if (pl.path.length < 2) continue;
+      const path = pl.path
+        .map(([lng, lat]: [number, number]) => {
+          const validLng = toFiniteCoord(lng);
+          const validLat = toFiniteCoord(lat);
+          if (validLng == null || validLat == null) return null;
+          return new AMap.LngLat(validLng, validLat);
+        })
+        .filter((p): p is any => p !== null);
+
+      if (path.length < 2) continue;
+
       const polyline = new AMap.Polyline({
-        path: pl.path.map(([lng, lat]: [number, number]) => new AMap.LngLat(lng, lat)),
+        path,
         strokeColor: pl.color,
         strokeWeight: pl.dashed ? 3 : 5,
         strokeOpacity: pl.dashed ? 0.6 : 0.85,
@@ -177,7 +211,7 @@ export default function MapView({
 
     // Origin marker (blue dot)
     const originMarker = new AMap.Marker({
-      position: new AMap.LngLat(route.origin[0], route.origin[1]),
+      position: new AMap.LngLat(originLng, originLat),
       content:
         '<div style="width:14px;height:14px;border-radius:50%;background:#2563EB;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
       anchor: "center",
@@ -188,7 +222,7 @@ export default function MapView({
 
     // Destination marker (red dot)
     const destMarker = new AMap.Marker({
-      position: new AMap.LngLat(route.destination[0], route.destination[1]),
+      position: new AMap.LngLat(destLng, destLat),
       content:
         '<div style="width:14px;height:14px;border-radius:50%;background:#EF4444;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
       anchor: "center",
@@ -221,14 +255,19 @@ export default function MapView({
 
     const newMarkers: any[] = [];
     markers.forEach((m, i) => {
-      const isActive = activeMarker === i;
+      const lng = toFiniteCoord(m.position[0]);
+      const lat = toFiniteCoord(m.position[1]);
+      if (lng == null || lat == null) return;
+
+      const markerIndex = m.sourceIndex ?? i;
+      const isActive = activeMarker === markerIndex;
       const marker = new AMap.Marker({
-        position: new AMap.LngLat(m.position[0], m.position[1]),
+        position: new AMap.LngLat(lng, lat),
         content: markerHtml(m.label, isActive),
         anchor: "center",
         zIndex: isActive ? 100 : 10,
       });
-      marker.on("click", () => onMarkerClickRef.current?.(i));
+      marker.on("click", () => onMarkerClickRef.current?.(markerIndex));
       map.add(marker);
       newMarkers.push(marker);
     });
@@ -236,16 +275,25 @@ export default function MapView({
     markerOverlaysRef.current = newMarkers;
 
     // Only fitView when the marker set changes (not on activeMarker change)
-    const key = markers.map((m) => m.position.join(",")).join("|");
+    const key = markers
+      .map((m, i) => `${m.sourceIndex ?? i}:${m.position.join(",")}`)
+      .join("|");
     if (key !== lastMarkersKeyRef.current) {
       lastMarkersKeyRef.current = key;
       map.setFitView(newMarkers, false, [40, 40, 40, 40]);
     }
 
     // Pan to active marker
-    if (activeMarker != null && markers[activeMarker]) {
-      const pos = markers[activeMarker].position;
-      map.panTo(new AMap.LngLat(pos[0], pos[1]));
+    if (activeMarker != null) {
+      const target = markers.find((m, i) => (m.sourceIndex ?? i) === activeMarker);
+      const pos = target?.position;
+      if (pos) {
+        const lng = toFiniteCoord(pos[0]);
+        const lat = toFiniteCoord(pos[1]);
+        if (lng != null && lat != null) {
+          map.panTo(new AMap.LngLat(lng, lat));
+        }
+      }
     }
 
     return () => {
@@ -259,6 +307,10 @@ export default function MapView({
     const map = mapRef.current;
     if (!map || !AMap || !userLocation) return;
 
+    const userLng = toFiniteCoord(userLocation[0]);
+    const userLat = toFiniteCoord(userLocation[1]);
+    if (userLng == null || userLat == null) return;
+
     // Clean previous user location overlays
     userLocationOverlaysRef.current.forEach((o) => map.remove(o));
     userLocationOverlaysRef.current = [];
@@ -267,10 +319,6 @@ export default function MapView({
 
     // Direction cone/arrow (if heading available)
     if (deviceHeading !== null) {
-      // Create a semi-transparent blue cone pointing in the heading direction
-      const coneAngle = 45; // degrees, width of the cone
-      const coneRadius = 50; // pixels from center
-
       const svg = `
         <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="position: absolute; left: -60px; top: -60px; transform: rotate(${deviceHeading}deg);">
           <path d="M 60 60 L 60 10 L 80 40 L 60 35 L 40 40 Z" fill="#2563EB" fill-opacity="0.3" stroke="#2563EB" stroke-width="1" stroke-opacity="0.5"/>
@@ -278,7 +326,7 @@ export default function MapView({
       `;
 
       const directionMarker = new AMap.Marker({
-        position: new AMap.LngLat(userLocation[0], userLocation[1]),
+        position: new AMap.LngLat(userLng, userLat),
         content: svg,
         anchor: 'center',
         zIndex: 99,
@@ -304,7 +352,7 @@ export default function MapView({
     `;
 
     const blueDotMarker = new AMap.Marker({
-      position: new AMap.LngLat(userLocation[0], userLocation[1]),
+      position: new AMap.LngLat(userLng, userLat),
       content: blueDotContent,
       anchor: 'center',
       zIndex: 100,
@@ -321,7 +369,7 @@ export default function MapView({
       `;
 
       const labelMarker = new AMap.Marker({
-        position: new AMap.LngLat(userLocation[0], userLocation[1]),
+        position: new AMap.LngLat(userLng, userLat),
         content: labelContent,
         anchor: 'top',
         offset: new AMap.Pixel(0, 10),

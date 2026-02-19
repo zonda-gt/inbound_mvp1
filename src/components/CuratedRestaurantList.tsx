@@ -1,39 +1,41 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback } from "react";
-import type { POIResult } from "@/lib/amap";
-import RestaurantCard from "./RestaurantCard";
+import type { CuratedRestaurant } from "@/lib/curated-restaurants";
+import CuratedRestaurantCard from "./CuratedRestaurantCard";
 import MapView, { type MapMarker } from "./MapView";
 
-export default function RestaurantList({
-  places,
+export default function CuratedRestaurantList({
+  restaurants,
   onNavigate,
   userLocation,
 }: {
-  places: POIResult[];
+  restaurants: CuratedRestaurant[];
   onNavigate: (name: string, location: string, address: string) => void;
   userLocation?: [number, number]; // [lng, lat]
 }) {
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const display = places.slice(0, 5);
 
   const markers: MapMarker[] = useMemo(
     () =>
-      display
-        .map((place, i) => {
-          const [lng, lat] = place.location.split(",").map(Number);
-          if (isNaN(lng) || isNaN(lat)) return null;
+      restaurants
+        .map((r, i) => {
+          if (r.longitude == null || r.latitude == null) return null;
+
+          const lng = Number(r.longitude);
+          const lat = Number(r.latitude);
+          if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
           return {
             position: [lng, lat] as [number, number],
             label: String(i + 1),
-            name: place.name,
+            name: r.name_cn,
             sourceIndex: i,
           };
         })
         .filter((m) => m !== null) as MapMarker[],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [display.map((p) => p.location).join("|")],
+    [restaurants.map((r) => `${r.longitude},${r.latitude}`).join("|")],
   );
 
   const handleMarkerClick = useCallback((index: number) => {
@@ -48,19 +50,19 @@ export default function RestaurantList({
 
   return (
     <div className="my-2">
-      {/* Place cards - shown first for instant visibility */}
+      {/* Restaurant cards */}
       <div className="flex flex-col gap-2.5 mb-2.5">
-        {display.map((place, i) => (
+        {restaurants.map((restaurant, i) => (
           <div
-            key={i}
+            key={restaurant.id}
             className="hc-card-enter"
             style={{ animationDelay: `${i * 70}ms` }}
             ref={(el) => {
               if (el) cardRefs.current.set(i, el);
             }}
           >
-            <RestaurantCard
-              place={place}
+            <CuratedRestaurantCard
+              restaurant={restaurant}
               onNavigate={onNavigate}
               index={i + 1}
               active={activeIndex === i}
@@ -70,9 +72,9 @@ export default function RestaurantList({
         ))}
       </div>
 
-      {/* Map with numbered markers - shown below cards */}
+      {/* Map with numbered markers */}
       {markers.length > 0 && (
-        <div className="hc-map-enter" style={{ animationDelay: `${display.length * 70}ms` }}>
+        <div className="hc-map-enter" style={{ animationDelay: `${restaurants.length * 70}ms` }}>
           <MapView
             markers={markers}
             activeMarker={activeIndex}

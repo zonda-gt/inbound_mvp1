@@ -3,8 +3,10 @@
 import ReactMarkdown from "react-markdown";
 import type { NavigationData } from "@/lib/ai";
 import type { POIResult } from "@/lib/amap";
+import type { CuratedRestaurant } from "@/lib/curated-restaurants";
 import NavigationCard from "./NavigationCard";
 import RestaurantList from "./RestaurantList";
+import CuratedRestaurantList from "./CuratedRestaurantList";
 import MessageFeedback from "./MessageFeedback";
 
 export type NavContext = {
@@ -21,6 +23,7 @@ export type Message = {
   userLocation?: string; // "lng,lat" format
   navigationData?: NavigationData;
   placesData?: POIResult[];
+  curatedRestaurantsData?: CuratedRestaurant[];
   dbMessageId?: string; // Supabase message ID for feedback
 };
 
@@ -90,12 +93,23 @@ export default function ChatMessage({
                 }
               />
             )}
+            {message.curatedRestaurantsData && message.curatedRestaurantsData.length > 0 && (
+              <CuratedRestaurantList
+                restaurants={message.curatedRestaurantsData}
+                onNavigate={handleNavigate}
+                userLocation={
+                  message.userLocation
+                    ? message.userLocation.split(",").map(Number) as [number, number]
+                    : undefined
+                }
+              />
+            )}
 
             {/* AI text appears last - streams in below structured data */}
             {message.content && (
               <div
                 className={`rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-900 ${
-                  message.navigationData || message.placesData ? "mt-2" : ""
+                  message.navigationData || message.placesData || message.curatedRestaurantsData ? "mt-2" : ""
                 }`}
               >
                 <ReactMarkdown
