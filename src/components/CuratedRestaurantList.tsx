@@ -67,6 +67,7 @@ export default function CuratedRestaurantList({
               index={i + 1}
               active={activeIndex === i}
               onCardClick={() => handleCardClick(i)}
+              userLocation={userLocation}
             />
           </div>
         ))}

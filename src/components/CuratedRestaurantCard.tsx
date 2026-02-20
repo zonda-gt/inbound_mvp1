@@ -78,18 +78,35 @@ function buildHeadsUp(restaurant: CuratedRestaurant): string | null {
   return parts.slice(0, 2).join(" ");
 }
 
+function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDistance(km: number): string {
+  if (km < 1) return `${Math.round(km * 1000)}m`;
+  return `${km.toFixed(1)}km`;
+}
+
 export default function CuratedRestaurantCard({
   restaurant,
   onNavigate,
   index,
   active,
   onCardClick,
+  userLocation,
 }: {
   restaurant: CuratedRestaurant;
   onNavigate: (name: string, location: string, address: string) => void;
   index?: number;
   active?: boolean;
   onCardClick?: () => void;
+  userLocation?: [number, number]; // [lng, lat]
 }) {
   const [expanded, setExpanded] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
@@ -104,6 +121,10 @@ export default function CuratedRestaurantCard({
   const collageImages = galleryImages.slice(0, 3);
   const hasCollage = collageImages.length >= 3;
   const location = `${restaurant.longitude},${restaurant.latitude}`;
+  const distanceKm =
+    userLocation && restaurant.latitude != null && restaurant.longitude != null
+      ? haversineDistance(userLocation[1], userLocation[0], restaurant.latitude, restaurant.longitude)
+      : null;
   const topDishes = pickTopDishes(restaurant.signature_dishes);
   const headsUp = buildHeadsUp(restaurant);
   const orderGuide = restaurant.ordering_guide?.for_2_people;
@@ -242,13 +263,19 @@ export default function CuratedRestaurantCard({
           &ldquo;{restaurant.foreigner_hook}&rdquo;
         </p>
 
-        {/* ── Info line: price · rating · cuisine ── */}
+        {/* ── Info line: price · rating · cuisine · distance ── */}
         <div className="px-4 pb-4 text-[13px] text-gray-500">
           <span className="font-medium text-gray-700">¥{restaurant.price_per_person}/person</span>
           <span className="mx-1.5">·</span>
           <span>⭐ {restaurant.rating}</span>
           <span className="mx-1.5">·</span>
           <span>{simplifyCuisine(restaurant.cuisine)}</span>
+          {distanceKm != null && (
+            <>
+              <span className="mx-1.5">·</span>
+              <span>📍 {formatDistance(distanceKm)}</span>
+            </>
+          )}
         </div>
 
         {/* ── Action buttons ── */}

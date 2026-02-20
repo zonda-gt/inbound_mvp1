@@ -51,7 +51,7 @@ export default function ChatInput({
             adjustHeight();
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about China travel..."
+          placeholder="How can I help with your China trip today?"
           rows={1}
           disabled={disabled}
           className="flex-1 resize-none rounded-xl border border-gray-300 bg-gray-50 px-4 py-2.5 text-[15px] leading-snug text-gray-900 placeholder:text-gray-400 focus:border-[#2563EB] focus:outline-none focus:ring-1 focus:ring-[#2563EB] disabled:opacity-50"
