@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import AttributionCapture from "@/components/AttributionCapture";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} font-sans antialiased`}>
         <ErrorBoundary>
+          <AttributionCapture />
           {children}
         </ErrorBoundary>
         <Analytics />

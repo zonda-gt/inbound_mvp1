@@ -2,7 +2,38 @@
 
 const ANON_USER_ID_KEY = "anon_user_id";
 const REFERRAL_SOURCE_KEY = "referral_source";
+const UTM_SOURCE_KEY = "utm_source";
+const UTM_MEDIUM_KEY = "utm_medium";
+const UTM_CAMPAIGN_KEY = "utm_campaign";
+const ATTRIBUTION_CAPTURED_AT_KEY = "attribution_captured_at";
+const ATTRIBUTION_CAPTURED_VISIT_KEY = "attribution_captured_visit";
 const SESSION_ID_KEY = "current_session_id";
+
+function normalizeAttributionToken(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function persistAttribution(
+  referralSource: string,
+  utmSource: string | null,
+  utmMedium: string | null,
+  utmCampaign: string | null,
+): void {
+  localStorage.setItem(REFERRAL_SOURCE_KEY, referralSource);
+  localStorage.setItem(ATTRIBUTION_CAPTURED_AT_KEY, new Date().toISOString());
+  sessionStorage.setItem(ATTRIBUTION_CAPTURED_VISIT_KEY, "1");
+
+  if (utmSource) localStorage.setItem(UTM_SOURCE_KEY, utmSource);
+  else localStorage.removeItem(UTM_SOURCE_KEY);
+
+  if (utmMedium) localStorage.setItem(UTM_MEDIUM_KEY, utmMedium);
+  else localStorage.removeItem(UTM_MEDIUM_KEY);
+
+  if (utmCampaign) localStorage.setItem(UTM_CAMPAIGN_KEY, utmCampaign);
+  else localStorage.removeItem(UTM_CAMPAIGN_KEY);
+}
 
 /**
  * Get or create persistent anonymous user ID
@@ -20,26 +51,46 @@ export function getAnonymousUserId(): string {
 }
 
 /**
- * Capture referral source from URL ?ref= parameter
- * Store in sessionStorage (persists for current visit only)
+ * Capture referral source using UTM params first, then document.referrer.
+ * Persist in localStorage so attribution survives page navigation before chat starts.
  */
 export function captureReferralSource(): string | null {
   if (typeof window === "undefined") return null;
 
-  // Check if we already captured it in this session
-  const existing = sessionStorage.getItem(REFERRAL_SOURCE_KEY);
-  if (existing) return existing;
-
-  // Check URL for ?ref= parameter
   const params = new URLSearchParams(window.location.search);
-  const ref = params.get("ref");
+  const utmSource = normalizeAttributionToken(params.get("utm_source"));
+  const utmMedium = normalizeAttributionToken(params.get("utm_medium"));
+  const utmCampaign = normalizeAttributionToken(params.get("utm_campaign"));
+  const hasAnyUtm = Boolean(utmSource || utmMedium || utmCampaign);
 
-  if (ref) {
-    sessionStorage.setItem(REFERRAL_SOURCE_KEY, ref);
-    return ref;
+  if (hasAnyUtm) {
+    const source = utmSource || "unknown";
+    const medium = utmMedium || "direct";
+    const referralSource = `${source}/${medium}`;
+    persistAttribution(referralSource, utmSource, utmMedium, utmCampaign);
+    return referralSource;
   }
 
-  return null;
+  const existing = localStorage.getItem(REFERRAL_SOURCE_KEY);
+  const alreadyCapturedThisVisit =
+    sessionStorage.getItem(ATTRIBUTION_CAPTURED_VISIT_KEY) === "1";
+  if (alreadyCapturedThisVisit && existing) {
+    return existing;
+  }
+
+  const referrer = document.referrer.toLowerCase();
+  let referralSource = "direct";
+
+  if (referrer.includes("reddit.com")) {
+    referralSource = "reddit/direct";
+  } else if (referrer.includes("facebook.com")) {
+    referralSource = "facebook/direct";
+  } else if (!referrer) {
+    referralSource = "direct";
+  }
+
+  persistAttribution(referralSource, null, null, null);
+  return referralSource;
 }
 
 /**
