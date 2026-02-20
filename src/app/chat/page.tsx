@@ -331,10 +331,18 @@ export default function ChatPage() {
         const reader = res.body?.getReader();
         if (!reader) throw new Error("No response body");
 
+        const emptyResponseFallback =
+          /how do i get|how to get|directions|navigate|route|metro|subway|go to|take me to/i.test(
+            text.toLowerCase(),
+          )
+            ? "I couldn't find directions to that location. Could you share the Chinese name or address? You can also try typing it in Chinese characters."
+            : "I couldn't generate a response just now. Please try rephrasing your question.";
+
         const decoder = new TextDecoder();
         let buffer = "";
         let streamedText = "";
         let aiMsgCreated = false;
+        let aiMsgHasVisibleOutput = false;
         let navData: Message["navigationData"] = undefined;
         let placesResult: Message["placesData"] = undefined;
         while (true) {
@@ -374,11 +382,13 @@ export default function ChatPage() {
                     ),
                   );
                 }
+                if (chunk.trim().length > 0) aiMsgHasVisibleOutput = true;
                 break;
               }
 
               case "text_clear": {
                 streamedText = "";
+                aiMsgHasVisibleOutput = false;
                 if (aiMsgCreated) {
                   setMessages((prev) =>
                     prev.map((m) =>
@@ -404,6 +414,13 @@ export default function ChatPage() {
                 const data = JSON.parse(ev.data);
                 if (data.navigationData) navData = data.navigationData;
                 if (data.placesData) placesResult = data.placesData;
+                if (
+                  data.navigationData ||
+                  (Array.isArray(data.placesData) && data.placesData.length > 0) ||
+                  (Array.isArray(data.curatedRestaurantSlugs) && data.curatedRestaurantSlugs.length > 0)
+                ) {
+                  aiMsgHasVisibleOutput = true;
+                }
 
                 // Curated restaurants: receive slugs, fetch full profiles asynchronously
                 if (data.curatedRestaurantSlugs) {
@@ -526,6 +543,7 @@ export default function ChatPage() {
                 setIsReadingPhoto(false);
                 setToolStatus(null);
                 setActiveTool(null);
+                aiMsgHasVisibleOutput = true;
                 if (!aiMsgCreated) {
                   setMessages((prev) => [
                     ...prev,
@@ -555,10 +573,53 @@ export default function ChatPage() {
                     ),
                   );
                 }
+
+                if (!aiMsgHasVisibleOutput) {
+                  if (!aiMsgCreated) {
+                    aiMsgCreated = true;
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        id: aiMsgId,
+                        role: "assistant",
+                        content: emptyResponseFallback,
+                        userLocation: userLocation || undefined,
+                      },
+                    ]);
+                  } else {
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.id === aiMsgId
+                          ? {
+                              ...m,
+                              content: emptyResponseFallback,
+                              userLocation: userLocation || undefined,
+                              navigationData: navData,
+                              placesData: placesResult,
+                            }
+                          : m,
+                      ),
+                    );
+                  }
+                  aiMsgHasVisibleOutput = true;
+                }
                 break;
               }
             }
           }
+        }
+
+        // Safety net: if stream ended unexpectedly without any visible assistant output.
+        if (!aiMsgHasVisibleOutput) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: aiMsgId,
+              role: "assistant",
+              content: emptyResponseFallback,
+              userLocation: userLocation || undefined,
+            },
+          ]);
         }
       } catch (error) {
         console.error("═══ Chat Message Send Error ═══");
@@ -739,7 +800,6 @@ export default function ChatPage() {
         ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (file) {

@@ -240,7 +240,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
             "The Chinese city name to constrain the search. Use the city explicitly mentioned by the user if they specify one. Otherwise, use the user's current city from GPS. Use '' (empty string) for NATIONAL searches when the destination is in another city or province. DO NOT provide a city parameter if you don't know the city - omit it instead.",
         },
       },
-      required: ["destination"],
+      required: ["destination", "chineseName"],
     },
   },
   {
@@ -434,6 +434,9 @@ function parseOrigin(origin?: string): { lng: number; lat: number } | null {
 const CITY_ALIASES: Array<{ cn: string; aliases: string[] }> = [
   { cn: "上海", aliases: ["shanghai", "shang hai", "上海", "上海市"] },
   { cn: "北京", aliases: ["beijing", "bei jing", "北京", "北京市"] },
+  { cn: "乌鲁木齐", aliases: ["urumqi", "wu lu mu qi", "wulumuqi", "乌鲁木齐", "乌鲁木齐市"] },
+  { cn: "沈阳", aliases: ["shenyang", "shen yang", "沈阳", "沈阳市"] },
+  { cn: "抚顺", aliases: ["fushun", "fu shun", "抚顺", "抚顺市"] },
   { cn: "广州", aliases: ["guangzhou", "guang zhou", "canton", "广州", "广州市"] },
   { cn: "深圳", aliases: ["shenzhen", "shen zhen", "深圳", "深圳市"] },
   { cn: "成都", aliases: ["chengdu", "cheng du", "成都", "成都市"] },
@@ -468,6 +471,164 @@ function toAmapCity(city?: string): string | undefined {
     if (entry.aliases.some((alias) => normalizeCityName(alias) === normalized)) return entry.cn;
   }
   return city;
+}
+
+function findCityMentionInText(text: string): string | undefined {
+  if (!text) return undefined;
+  for (const entry of CITY_ALIASES) {
+    for (const alias of entry.aliases) {
+      if (/[\u4e00-\u9fff]/.test(alias)) {
+        if (text.includes(alias)) return entry.cn;
+      } else {
+        const pattern = new RegExp(`\\b${escapeRegExp(alias)}\\b`, "i");
+        if (pattern.test(text)) return entry.cn;
+      }
+    }
+  }
+  return undefined;
+}
+
+function inferDominantCityFromUserMessages(
+  messageHistory: Array<{ role: string; content: string }>,
+): string | undefined {
+  const counts = new Map<string, number>();
+  const recentUserMessages = messageHistory
+    .filter((m) => m.role === "user")
+    .slice(-8);
+
+  for (const m of recentUserMessages) {
+    const city = findCityMentionInText(m.content);
+    if (!city) continue;
+    counts.set(city, (counts.get(city) || 0) + 1);
+  }
+
+  let bestCity: string | undefined;
+  let bestCount = 0;
+  for (const [city, count] of counts) {
+    if (count > bestCount) {
+      bestCity = city;
+      bestCount = count;
+    }
+  }
+  return bestCity;
+}
+
+function stripInternalRetryText(text: string): string {
+  if (!text) return "";
+  const patterns = [
+    /\blet me (?:try|search|check|get|look up|find)[^.!?\n:]*[:.!?]?\s*/gim,
+    /\bi(?:'|’)ll (?:try|search|check|get|look up|find)[^.!?\n:]*[:.!?]?\s*/gim,
+    /\btrying [^.!?\n:]*[:.!?]?\s*/gim,
+    /\bone moment[^.!?\n:]*[:.!?]?\s*/gim,
+  ];
+
+  let cleaned = text;
+  for (const pattern of patterns) {
+    cleaned = cleaned.replace(pattern, "");
+  }
+  return cleaned.trim();
+}
+
+function isNavigationPlaceholderText(text: string): boolean {
+  const trimmed = text.trim();
+  if (!trimmed) return true;
+  const lower = trimmed.toLowerCase();
+
+  const placeholderStarts = [
+    /^i can help\b/i,
+    /^sure\b/i,
+    /^okay\b/i,
+    /^alright\b/i,
+  ];
+  const internalPhrases = [
+    /search for .* first/i,
+    /find .* exact location/i,
+    /navigation details for you/i,
+    /let me/i,
+    /i(?:'|’)ll try/i,
+  ];
+
+  if (placeholderStarts.some((p) => p.test(trimmed))) return true;
+  if (internalPhrases.some((p) => p.test(lower))) return true;
+  return false;
+}
+
+function isNavigationFailureGuidance(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("couldn't find") ||
+    lower.includes("could not find") ||
+    lower.includes("can't find") ||
+    lower.includes("cannot find") ||
+    lower.includes("chinese name") ||
+    lower.includes("address")
+  );
+}
+
+function buildNoOutputFallback(userMessage: string): string {
+  if (isNavigationQuery(userMessage)) {
+    return "I couldn't find directions to that location. Could you share the Chinese name or address? You can also try typing it in Chinese characters.";
+  }
+  return "I couldn't generate a response just now. Please try rephrasing your question.";
+}
+
+async function inferNavigationTargetCity(
+  messageHistory: Array<{ role: string; content: string }>,
+  userCity?: string,
+  isDemoMode?: boolean,
+): Promise<string | undefined> {
+  const fallbackCity = toAmapCity(userCity) || (isDemoMode ? "上海" : undefined);
+  const latestUserMessage =
+    [...messageHistory].reverse().find((m) => m.role === "user")?.content || "";
+
+  const explicitLatestCity = findCityMentionInText(latestUserMessage);
+  if (explicitLatestCity) return explicitLatestCity;
+
+  const dominantCity = inferDominantCityFromUserMessages(messageHistory);
+  if (dominantCity) return dominantCity;
+
+  const recentContext = messageHistory
+    .slice(-8)
+    .map((m) => `${m.role.toUpperCase()}: ${m.content}`)
+    .join("\n");
+
+  try {
+    const response = await getClient().messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 140,
+      system:
+        `Extract the target city for navigation.\n` +
+        `Return ONLY compact JSON: {"target_city_cn": string|null}.\n` +
+        `Rules:\n` +
+        `- Use Chinese city name (e.g. 北京, 上海, 乌鲁木齐).\n` +
+        `- Prioritize explicit city in the latest user query.\n` +
+        `- If latest query has no city, infer from recent conversation context.\n` +
+        `- If user has been consistently asking about one city, use that city.\n` +
+        `- If uncertain, return null.\n`,
+      messages: [
+        {
+          role: "user",
+          content:
+            `Latest user query:\n${latestUserMessage}\n\n` +
+            `Recent conversation:\n${recentContext}\n\n` +
+            `Current location city fallback: ${fallbackCity || "null"}`,
+        },
+      ],
+    });
+
+    const text = response.content
+      .filter((block): block is Anthropic.Messages.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join(" ")
+      .trim();
+
+    const parsed = tryParseJson<{ target_city_cn?: string | null }>(text);
+    const inferred = toAmapCity(parsed?.target_city_cn || undefined);
+    return inferred || fallbackCity;
+  } catch (error) {
+    console.warn("[NavigationRouting] AI city inference failed:", error);
+    return fallbackCity;
+  }
 }
 
 function stripCityTokensFromQuery(query: string | undefined, city?: string): string | undefined {
@@ -556,6 +717,11 @@ function isNavigationQuery(message: string): boolean {
     "directions",
     "navigate",
     "route",
+    "travel",
+    "travelling",
+    "public transit",
+    "public transport",
+    "without a car",
     "metro",
     "subway",
     "train",
@@ -991,6 +1157,34 @@ async function executeNavigationTool(
   };
 }
 
+function applyNavigationCityOverride(
+  input: { destination: string; chineseName?: string; city?: string },
+  userMessage: string,
+  inferredNavigationCity?: string,
+): { destination: string; chineseName?: string; city?: string } {
+  const inferredCity = toAmapCity(inferredNavigationCity);
+  if (!inferredCity) return input;
+
+  const toolCity = toAmapCity(input.city);
+  const explicitCity = findCityMentionInText(userMessage);
+
+  // Keep explicit city from latest user message.
+  if (explicitCity && toolCity && toolCity === explicitCity) return input;
+  if (explicitCity && !toolCity) return { ...input, city: explicitCity };
+
+  // If model omitted city, inject inferred conversation city.
+  if (!toolCity) {
+    return { ...input, city: inferredCity };
+  }
+
+  // Override Shanghai default when conversation context clearly points elsewhere.
+  if (toolCity === "上海" && inferredCity !== "上海" && !explicitCity) {
+    return { ...input, city: inferredCity };
+  }
+
+  return input;
+}
+
 async function executePlacesSearch(
   input: {
     type: string;
@@ -1124,12 +1318,24 @@ export function streamChatResponse(
 
         // Get the user's latest message
         const userMessage = messages[messages.length - 1]?.content || "";
+        const isNavigationIntent =
+          !image && !navContext && isNavigationQuery(userMessage);
+        const inferredNavigationCity = isNavigationIntent
+          ? await inferNavigationTargetCity(messages, userCity, isDemoMode)
+          : undefined;
         const foodIntent = detectFoodIntent(userMessage);
         const inferredTargetCity =
           !image && !navContext && foodIntent
             ? await inferFoodTargetCity(userMessage, userCity, isDemoMode)
             : undefined;
-        const effectiveCity = inferredTargetCity || toAmapCity(userCity) || "上海";
+        const effectiveCity =
+          inferredTargetCity ||
+          inferredNavigationCity ||
+          toAmapCity(userCity) ||
+          "上海";
+        const promptCity = inferredNavigationCity || userCity;
+        let emittedUserText = false;
+        let emittedToolData = false;
         const foodRoutingPlan =
           !image && !navContext
             ? buildFoodRoutingPlan(userMessage, origin, userCity, inferredTargetCity)
@@ -1268,6 +1474,7 @@ export function streamChatResponse(
                 ),
               ),
             );
+            emittedToolData = true;
           }
 
           let responseText = "";
@@ -1285,7 +1492,7 @@ export function streamChatResponse(
                     ` Use only these curated summaries:\n${curatedToolResult}`,
                 },
               ],
-              userCity,
+              promptCity,
               isDemoMode,
               "Food routing is already resolved. Do not call tools. Do not suggest or trigger Amap fallback when curated results exist. Keep the response concise and practical.",
             );
@@ -1323,6 +1530,7 @@ export function streamChatResponse(
                   sseEvent("tool_data", JSON.stringify({ placesData })),
                 ),
               );
+              emittedToolData = true;
 
               let placesText = await generateTextOnlyResponse(
                 [
@@ -1337,7 +1545,7 @@ export function streamChatResponse(
                       `Results: ${JSON.stringify(fallbackResult)}`,
                   },
                 ],
-                userCity,
+                promptCity,
                 isDemoMode,
                 "Do not call tools. The response must begin with <enrichment> JSON for place cards.",
               );
@@ -1375,6 +1583,16 @@ export function streamChatResponse(
             controller.enqueue(
               encoder.encode(sseEvent("text", JSON.stringify(responseText))),
             );
+            if (responseText.trim().length > 0) emittedUserText = true;
+          }
+
+          if (!emittedUserText && !emittedToolData) {
+            const fallbackText = buildNoOutputFallback(userMessage);
+            fullResponseText += fallbackText;
+            controller.enqueue(
+              encoder.encode(sseEvent("text", JSON.stringify(fallbackText))),
+            );
+            emittedUserText = true;
           }
 
           if (activeSessionId) {
@@ -1417,7 +1635,7 @@ export function streamChatResponse(
         const stream = getClient().messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: buildSystemPrompt(userCity, isDemoMode),
+          system: buildSystemPrompt(promptCity, isDemoMode),
           tools: TOOLS,
           messages: apiMessages,
         });
@@ -1427,15 +1645,16 @@ export function streamChatResponse(
         let toolBlock: Anthropic.Messages.ToolUseBlock | null = null;
         const contentBlocks: Anthropic.Messages.ContentBlock[] = [];
         let fullResponseText = "";
+        let initialResponseText = "";
         let toolName: string | undefined;
         let navigationData: NavigationData | undefined;
         let placesData: POIResult[] | undefined;
         let curatedSlugs: string[] | undefined;
 
-        // Stream text deltas as they arrive (JSON-encoded to preserve whitespace)
+        // Buffer first-pass text. If this turn uses tools, suppress this draft text
+        // entirely so internal retry narration never flashes in UI.
         stream.on("text", (text) => {
-          fullResponseText += text;
-          controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
+          initialResponseText += text;
         });
 
         stream.on("contentBlock", (block) => {
@@ -1450,6 +1669,23 @@ export function streamChatResponse(
         const finalMessage = await stream.finalMessage();
 
         if (!hasToolUse || !toolBlock) {
+          if (initialResponseText.trim().length > 0) {
+            fullResponseText += initialResponseText;
+            controller.enqueue(
+              encoder.encode(sseEvent("text", JSON.stringify(initialResponseText))),
+            );
+            emittedUserText = true;
+          }
+
+          if (!emittedUserText && !emittedToolData) {
+            const fallbackText = buildNoOutputFallback(userMessage);
+            fullResponseText += fallbackText;
+            controller.enqueue(
+              encoder.encode(sseEvent("text", JSON.stringify(fallbackText))),
+            );
+            emittedUserText = true;
+          }
+
           // Pure text response — already streamed, log and close
           if (activeSessionId) {
             const responseTime = Date.now() - startTime;
@@ -1499,12 +1735,22 @@ export function streamChatResponse(
         let toolResultContent: string;
 
         if (toolName === "get_navigation") {
-          const toolInput = tb.input as {
+          const rawToolInput = tb.input as {
             destination: string;
             chineseName?: string;
             city?: string;
           };
-          const navResult = await executeNavigationTool(toolInput, origin, userCity, navContext);
+          const toolInput = applyNavigationCityOverride(
+            rawToolInput,
+            userMessage,
+            inferredNavigationCity,
+          );
+          const navResult = await executeNavigationTool(
+            toolInput,
+            origin,
+            inferredNavigationCity || userCity,
+            navContext,
+          );
           toolResultContent = navResult.result
             ? JSON.stringify(navResult.result)
             : JSON.stringify({ error: navResult.error });
@@ -1535,6 +1781,10 @@ export function streamChatResponse(
             ? curatedResult.slugs
             : undefined;
         } else {
+          const fallbackText = buildNoOutputFallback(userMessage);
+          controller.enqueue(
+            encoder.encode(sseEvent("text", JSON.stringify(fallbackText))),
+          );
           controller.enqueue(encoder.encode(sseEvent("done", "{}")));
           controller.close();
           return;
@@ -1545,16 +1795,19 @@ export function streamChatResponse(
           controller.enqueue(
             encoder.encode(sseEvent("tool_data", JSON.stringify({ navigationData }))),
           );
+          emittedToolData = true;
         }
         if (placesData) {
           controller.enqueue(
             encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
           );
+          emittedToolData = true;
         }
         if (curatedSlugs) {
           controller.enqueue(
             encoder.encode(sseEvent("tool_data", JSON.stringify({ curatedRestaurantSlugs: curatedSlugs }))),
           );
+          emittedToolData = true;
         }
 
         // If curated search returned empty and user was asking about food,
@@ -1616,6 +1869,7 @@ export function streamChatResponse(
             controller.enqueue(
               encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
             );
+            emittedToolData = true;
           }
           toolName = "search_nearby_places";
           didCuratedFallback = true;
@@ -1667,13 +1921,15 @@ export function streamChatResponse(
         const followUpStream = getClient().messages.stream({
           model: "claude-sonnet-4-20250514",
           max_tokens: 1024,
-          system: buildSystemPrompt(userCity, isDemoMode),
+          system: buildSystemPrompt(promptCity, isDemoMode),
           tools: TOOLS,
           messages: followUpMessages,
         });
 
         // Clear any pre-tool text and stream the follow-up
         controller.enqueue(encoder.encode(sseEvent("text_clear", "")));
+        emittedUserText = false;
+        fullResponseText = "";
 
         if (placesData) {
           // Buffer the full response to extract <enrichment> block
@@ -1690,7 +1946,7 @@ export function streamChatResponse(
             const finalTextStream = getClient().messages.stream({
               model: "claude-sonnet-4-20250514",
               max_tokens: 1024,
-              system: buildSystemPrompt(userCity, isDemoMode),
+              system: buildSystemPrompt(promptCity, isDemoMode),
               messages: [
                 ...apiMessages,
                 {
@@ -1724,14 +1980,142 @@ export function streamChatResponse(
           // Send the clean text (JSON-encoded to preserve whitespace)
           if (followUpText) {
             controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(followUpText))));
+            if (followUpText.trim().length > 0) emittedUserText = true;
           }
         } else {
-          // For navigation and curated restaurants, stream text normally (JSON-encoded)
+          // For navigation and curated restaurants, buffer follow-up so internal
+          // retry narration can be filtered before reaching the user.
+          let followUpText = "";
           followUpStream.on("text", (text) => {
-            fullResponseText += text;
-            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(text))));
+            followUpText += text;
           });
-          await followUpStream.finalMessage();
+          const followUpFinal = await followUpStream.finalMessage();
+
+          if (followUpFinal.stop_reason === "tool_use") {
+            const retryToolBlock = followUpFinal.content.find(
+              (b): b is Anthropic.Messages.ToolUseBlock => b.type === "tool_use",
+            );
+
+            if (retryToolBlock) {
+              let retryToolResultContent = "";
+
+              if (retryToolBlock.name === "get_navigation") {
+                const rawToolInput = retryToolBlock.input as {
+                  destination: string;
+                  chineseName?: string;
+                  city?: string;
+                };
+                const toolInput = applyNavigationCityOverride(
+                  rawToolInput,
+                  userMessage,
+                  inferredNavigationCity,
+                );
+                const navResult = await executeNavigationTool(
+                  toolInput,
+                  origin,
+                  inferredNavigationCity || userCity,
+                  navContext,
+                );
+                retryToolResultContent = navResult.result
+                  ? JSON.stringify(navResult.result)
+                  : JSON.stringify({ error: navResult.error });
+                if (navResult.result) {
+                  navigationData = navResult.result;
+                  controller.enqueue(
+                    encoder.encode(sseEvent("tool_data", JSON.stringify({ navigationData }))),
+                  );
+                  emittedToolData = true;
+                }
+                toolName = "get_navigation";
+              } else if (retryToolBlock.name === "search_nearby_places") {
+                const placesInput = retryToolBlock.input as {
+                  type: string;
+                  searchMode?: string;
+                  keyword?: string;
+                  city?: string;
+                  location?: string;
+                  radius?: number;
+                };
+                const placesResult = await executePlacesSearch(placesInput, origin);
+                retryToolResultContent = JSON.stringify(placesResult);
+                if (placesResult.results.length > 0) {
+                  placesData = placesResult.results;
+                  controller.enqueue(
+                    encoder.encode(sseEvent("tool_data", JSON.stringify({ placesData }))),
+                  );
+                  emittedToolData = true;
+                }
+                toolName = "search_nearby_places";
+              } else if (retryToolBlock.name === "search_curated_restaurants") {
+                const curatedInput = retryToolBlock.input as CuratedSearchInput;
+                const curatedResult = await executeCuratedSearch(curatedInput);
+                retryToolResultContent = JSON.stringify({
+                  results: curatedResult.summaries,
+                  error: curatedResult.error,
+                });
+                if (curatedResult.slugs.length > 0) {
+                  curatedSlugs = curatedResult.slugs;
+                  controller.enqueue(
+                    encoder.encode(
+                      sseEvent(
+                        "tool_data",
+                        JSON.stringify({ curatedRestaurantSlugs: curatedSlugs }),
+                      ),
+                    ),
+                  );
+                  emittedToolData = true;
+                }
+                toolName = "search_curated_restaurants";
+              }
+
+              if (retryToolResultContent) {
+                followUpText = await generateTextOnlyResponse(
+                  [
+                    ...followUpMessages,
+                    { role: "assistant" as const, content: followUpFinal.content },
+                    {
+                      role: "user" as const,
+                      content: [
+                        {
+                          type: "tool_result" as const,
+                          tool_use_id: retryToolBlock.id,
+                          content: retryToolResultContent,
+                        },
+                      ],
+                    },
+                  ],
+                  promptCity,
+                  isDemoMode,
+                  "Do not narrate retries or internal tool behavior. Provide the final answer directly.",
+                );
+              }
+            }
+          }
+
+          followUpText = stripInternalRetryText(followUpText);
+          if (
+            toolName === "get_navigation" &&
+            !navigationData &&
+            (isNavigationPlaceholderText(followUpText) ||
+              followUpText.trim().length < 40 ||
+              !isNavigationFailureGuidance(followUpText))
+          ) {
+            followUpText = buildNoOutputFallback(userMessage);
+          }
+          if (followUpText) {
+            fullResponseText += followUpText;
+            controller.enqueue(encoder.encode(sseEvent("text", JSON.stringify(followUpText))));
+            if (followUpText.trim().length > 0) emittedUserText = true;
+          }
+        }
+
+        if (!emittedUserText && !emittedToolData) {
+          const fallbackText = buildNoOutputFallback(userMessage);
+          fullResponseText += fallbackText;
+          controller.enqueue(
+            encoder.encode(sseEvent("text", JSON.stringify(fallbackText))),
+          );
+          emittedUserText = true;
         }
 
         // Log assistant response and send DB message ID
