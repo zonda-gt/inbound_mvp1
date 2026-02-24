@@ -1,0 +1,14 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#F8FAFC"/>
+  <rect x="56" y="56" width="1088" height="518" rx="24" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2"/>
+  <text x="112" y="220" fill="#0F172A" font-size="68" font-family="Arial, Helvetica, sans-serif" font-weight="700">
+    Hello<tspan fill="#2563EB">China</tspan> Blog
+  </text>
+  <text x="112" y="295" fill="#475569" font-size="38" font-family="Arial, Helvetica, sans-serif" font-weight="500">
+    Practical travel guides for navigating China
+  </text>
+  <rect x="112" y="368" width="260" height="68" rx="12" fill="#2563EB"/>
+  <text x="150" y="412" fill="#FFFFFF" font-size="30" font-family="Arial, Helvetica, sans-serif" font-weight="600">
+    Try HelloChina
+  </text>
+</svg>
