@@ -1,5 +1,6 @@
 const AMAP_KEY = process.env.AMAP_API_KEY || "";
 const BASE = "https://restapi.amap.com/v3";
+const PLACE_SHOW_FIELDS = "business,photos,navi,indoor";
 
 export type GeoResult = {
   location: string; // "lng,lat"
@@ -128,6 +129,7 @@ export async function searchPlace(
       keywords: keyword,
       key: AMAP_KEY,
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       output: "JSON",
     });
     if (city) params.set("city", city);
@@ -261,9 +263,15 @@ export async function getWalkingRoute(
 export type POIResult = {
   name: string;
   address: string;
-  location: string;
+  location: string; // navigation location (entrance first, center fallback)
+  centerLocation: string;
+  entranceLocation?: string;
   distance: number;
   type: string;
+  tag: string;
+  businessArea: string;
+  floor: string;
+  photoUrl?: string;
   rating: string;
   tel: string;
   openingHours: string;
@@ -273,20 +281,78 @@ export type POIResult = {
   description?: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parsePOIResults(pois: any[]): POIResult[] {
-  return pois.map((p: Record<string, any>) => ({
-    name: (p.name as string) || "",
-    address: (p.address as string) || "",
-    location: (p.location as string) || "",
-    distance: Number(p.distance || 0),
-    type: (p.type as string) || "",
-    rating: ((p.biz_ext as Record<string, unknown>)?.rating as string) || "",
-    tel: (p.tel as string) || "",
-    openingHours:
-      ((p.biz_ext as Record<string, unknown>)?.open_time as string) || "",
-    cost: ((p.biz_ext as Record<string, unknown>)?.cost as string) || "",
-  }));
+function toValidLocation(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const [lngRaw, latRaw] = trimmed.split(",");
+  const lng = Number(lngRaw);
+  const lat = Number(latRaw);
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return "";
+  return `${lng},${lat}`;
+}
+
+function toCleanText(value: unknown): string {
+  if (value == null) return "";
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toCleanText(item))
+      .filter(Boolean)
+      .join(" / ")
+      .trim();
+  }
+  if (typeof value === "object") return "";
+  return String(value).trim();
+}
+
+function firstPhotoUrl(raw: unknown): string | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "url" in item &&
+      typeof (item as Record<string, unknown>).url === "string"
+    ) {
+      const url = ((item as Record<string, unknown>).url as string).trim();
+      if (url) return url;
+    }
+  }
+  return undefined;
+}
+
+function parsePOIResults(pois: Array<Record<string, unknown>>): POIResult[] {
+  return pois.map((p) => {
+    const navi = (p.navi as Record<string, unknown> | undefined) || {};
+    const bizExt = (p.biz_ext as Record<string, unknown> | undefined) || {};
+    const indoorData = (p.indoor_data as Record<string, unknown> | undefined) || {};
+    const centerLocation = toValidLocation(p.location);
+    const entranceLocation = toValidLocation(p.entr_location || navi.entr_location);
+
+    return {
+      // Amap navi.entr_location is better than center point for mall-style venues.
+      // Keep centerLocation for map/debug while using location for actual navigation.
+      centerLocation,
+      entranceLocation: entranceLocation || undefined,
+      location: entranceLocation || centerLocation,
+      name: toCleanText(p.name),
+      address: toCleanText(p.address),
+      distance: Number(p.distance || 0),
+      type: toCleanText(p.type),
+      tag: toCleanText(p.tag),
+      businessArea: toCleanText(p.business_area),
+      floor: toCleanText(indoorData.floor) || toCleanText(p.floor),
+      photoUrl: firstPhotoUrl(p.photos),
+      rating: toCleanText(bizExt.rating),
+      tel: toCleanText(p.tel),
+      openingHours:
+        toCleanText(p.opentime_today) ||
+        toCleanText(bizExt.opentime_today) ||
+        toCleanText(bizExt.open_time) ||
+        "",
+      cost: toCleanText(bizExt.cost),
+    };
+  });
 }
 
 export async function searchNearbyRestaurants(
@@ -301,6 +367,7 @@ export async function searchNearbyRestaurants(
       radius: String(radius),
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",
@@ -331,6 +398,7 @@ export async function searchNearbyAttractions(
       radius: String(radius),
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",
@@ -362,6 +430,7 @@ export async function searchNearbyPOI(
       radius: String(radius),
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",
@@ -393,6 +462,7 @@ export async function searchCityRestaurants(
       citylimit: "true",
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",
@@ -423,6 +493,7 @@ export async function searchCityAttractions(
       citylimit: "true",
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",
@@ -454,6 +525,7 @@ export async function searchCityPOI(
       citylimit: "true",
       sortrule: "weight",
       extensions: "all",
+      show_fields: PLACE_SHOW_FIELDS,
       offset: "10",
       key: AMAP_KEY,
       output: "JSON",

@@ -14,9 +14,10 @@ export default function RestaurantList({
   onNavigate: (name: string, location: string, address: string) => void;
   userLocation?: [number, number]; // [lng, lat]
 }) {
+  const MAX_DISPLAY_RESULTS = 8;
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const display = places.slice(0, 5);
+  const display = places.slice(0, MAX_DISPLAY_RESULTS);
 
   const markers: MapMarker[] = useMemo(
     () =>

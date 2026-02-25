@@ -49,7 +49,29 @@ export default async function BlogIndexPage() {
           </p>
         </section>
 
-        <section className="mt-10 space-y-4 sm:mt-12 sm:space-y-5">
+        {/* Featured interactive guide */}
+        <section className="mt-10 sm:mt-12">
+          <Link
+            href="/blog/china-payment-guide"
+            className="group block rounded-2xl border-2 border-[#2563EB]/20 bg-gradient-to-br from-blue-50/60 to-white p-5 transition-all hover:border-[#2563EB]/40 hover:shadow-md sm:p-6"
+          >
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <span className="rounded bg-[#2563EB]/10 px-2 py-0.5 text-xs font-semibold text-[#2563EB]">Interactive Guide</span>
+              <span>February 2026</span>
+              <span aria-hidden>•</span>
+              <span>25 min read</span>
+            </div>
+            <h2 className="mt-3 text-xl font-semibold leading-tight tracking-tight text-slate-900 sm:text-2xl">
+              The Ultimate Guide to Paying in China (2025/2026)
+            </h2>
+            <p className="mt-3 text-base leading-7 text-slate-600">
+              Step-by-step Alipay &amp; WeChat Pay setup, fee comparison, real-world scenarios, troubleshooting, and an interactive pre-trip checklist. Everything foreigners need for mobile payments in China.
+            </p>
+            <p className="mt-4 text-sm font-semibold text-[#2563EB]">Read the full guide →</p>
+          </Link>
+        </section>
+
+        <section className="mt-6 space-y-4 sm:mt-8 sm:space-y-5">
           {posts.map((post) => (
             <Link
               key={post.slug}

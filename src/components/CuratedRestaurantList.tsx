@@ -14,12 +14,14 @@ export default function CuratedRestaurantList({
   onNavigate: (name: string, location: string, address: string) => void;
   userLocation?: [number, number]; // [lng, lat]
 }) {
+  const MAX_DISPLAY_RESULTS = 8;
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
   const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const display = restaurants.slice(0, MAX_DISPLAY_RESULTS);
 
   const markers: MapMarker[] = useMemo(
     () =>
-      restaurants
+      display
         .map((r, i) => {
           if (r.longitude == null || r.latitude == null) return null;
 
@@ -35,7 +37,7 @@ export default function CuratedRestaurantList({
         })
         .filter((m) => m !== null) as MapMarker[],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [restaurants.map((r) => `${r.longitude},${r.latitude}`).join("|")],
+    [display.map((r) => `${r.longitude},${r.latitude}`).join("|")],
   );
 
   const handleMarkerClick = useCallback((index: number) => {
@@ -52,7 +54,7 @@ export default function CuratedRestaurantList({
     <div className="my-2">
       {/* Restaurant cards */}
       <div className="flex flex-col gap-2.5 mb-2.5">
-        {restaurants.map((restaurant, i) => (
+        {display.map((restaurant, i) => (
           <div
             key={restaurant.id}
             className="hc-card-enter"
@@ -75,7 +77,7 @@ export default function CuratedRestaurantList({
 
       {/* Map with numbered markers */}
       {markers.length > 0 && (
-        <div className="hc-map-enter" style={{ animationDelay: `${restaurants.length * 70}ms` }}>
+        <div className="hc-map-enter" style={{ animationDelay: `${display.length * 70}ms` }}>
           <MapView
             markers={markers}
             activeMarker={activeIndex}

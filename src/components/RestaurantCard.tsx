@@ -81,6 +81,25 @@ function walkMins(meters: number) {
   return Math.max(1, Math.round(meters / 80));
 }
 
+function formatFloorLabel(floor: unknown): string {
+  const cleaned = typeof floor === "string"
+    ? floor.trim()
+    : typeof floor === "number"
+      ? String(floor)
+      : "";
+  if (!cleaned) return "";
+  if (/^floor\s+/i.test(cleaned)) return cleaned;
+
+  const upper = cleaned.toUpperCase();
+  if (/^-?\d+$/.test(upper)) {
+    const n = Number(upper);
+    if (n < 0) return `Floor B${Math.abs(n)}F`;
+    return `Floor ${upper}F`;
+  }
+  if (/^(B\d+F|B\d+|F\d+|\d+F)$/.test(upper)) return `Floor ${upper}`;
+  return `Floor ${upper}`;
+}
+
 export default function RestaurantCard({
   place,
   onNavigate,
@@ -106,6 +125,9 @@ export default function RestaurantCard({
   const hasRating = place.rating && place.rating !== "0";
   const hasCost = place.cost && place.cost !== "0";
   const hasHours = !!place.openingHours;
+  const hasBusinessArea = !!place.businessArea;
+  const hasFloor = !!formatFloorLabel(place.floor);
+  const floorLabel = hasFloor ? formatFloorLabel(place.floor) : "";
 
   return (
     <div
@@ -115,7 +137,7 @@ export default function RestaurantCard({
           : "border-gray-200"
       }`}
       onClick={onCardClick}
-    >
+      >
       {/* ── Type banner ── */}
       <div className={`flex items-center gap-2 px-4 py-2.5 ${placeInfo.bg}`}>
         {index != null && (
@@ -128,6 +150,16 @@ export default function RestaurantCard({
           {placeInfo.label}
         </span>
       </div>
+
+      {/* ── Photo ── */}
+      {place.photoUrl && (
+        <img
+          src={place.photoUrl}
+          alt={place.englishName || place.name}
+          className="h-48 w-full object-cover"
+          loading="lazy"
+        />
+      )}
 
       {/* ── Name + rating ── */}
       <div className="px-4 pt-3 pb-1">
@@ -157,6 +189,8 @@ export default function RestaurantCard({
         )}
         {hasCost && <span>💰 ~¥{place.cost}/person</span>}
         {hasHours && <span>🕐 {place.openingHours}</span>}
+        {hasBusinessArea && <span>📍 {place.businessArea} area</span>}
+        {hasFloor && <span>🏢 {floorLabel}</span>}
       </div>
 
       {/* ── Description ── */}

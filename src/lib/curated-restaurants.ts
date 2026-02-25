@@ -56,6 +56,10 @@ export type CuratedRestaurant = {
   created_at: string;
 };
 
+export type CuratedRestaurantHybridResult = CuratedRestaurant & {
+  similarity: number;
+};
+
 function haversineDistance(
   lat1: number,
   lng1: number,
@@ -210,6 +214,87 @@ export async function searchCuratedRestaurants(filters: {
   }
 
   return results;
+}
+
+function toVectorLiteral(values: number[]): string {
+  const normalized = values.filter((value) => Number.isFinite(value));
+  return `[${normalized.join(",")}]`;
+}
+
+export async function searchCuratedRestaurantsHybrid(filters: {
+  query_embedding: number[];
+  filter_category?: "restaurant" | "bar" | null;
+  max_price?: number;
+  user_lat?: number;
+  user_lng?: number;
+  max_distance_km?: number;
+  match_limit?: number;
+  similarity_threshold?: number;
+  city?: string;
+}): Promise<{ results: CuratedRestaurantHybridResult[]; error?: string }> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) {
+    console.warn("[CuratedHybrid] Supabase not configured");
+    return { results: [], error: "Curated database is not configured." };
+  }
+
+  const queryVector = toVectorLiteral(filters.query_embedding);
+  if (queryVector === "[]") {
+    return { results: [], error: "Query embedding is empty." };
+  }
+
+  const { data, error } = await supabase.rpc("search_restaurants_hybrid", {
+    query_embedding: queryVector,
+    filter_category: filters.filter_category ?? null,
+    max_price: filters.max_price ?? null,
+    user_lat: filters.user_lat ?? null,
+    user_lng: filters.user_lng ?? null,
+    max_distance_km: filters.max_distance_km ?? 50,
+    match_limit: filters.match_limit ?? 3,
+    similarity_threshold: filters.similarity_threshold ?? 0.3,
+  });
+
+  if (error) {
+    console.error("[CuratedHybrid] RPC error:", error);
+    return {
+      results: [],
+      error:
+        "Curated semantic search failed. Falling back to Amap listings is recommended.",
+    };
+  }
+
+  let results = (data || []) as CuratedRestaurantHybridResult[];
+
+  // Hybrid RPC currently does not include city filtering. Apply a post-filter on
+  // the matched rows so city-specific queries (e.g. "food in Beijing") do not
+  // return Shanghai-only curated restaurants.
+  if (filters.city && results.length > 0) {
+    const slugs = results.map((r) => r.slug).filter(Boolean);
+    if (slugs.length > 0) {
+      const { data: cityRows, error: cityError } = await supabase
+        .from("restaurants")
+        .select("slug,address")
+        .in("slug", slugs);
+
+      if (cityError) {
+        console.error("[CuratedHybrid] City post-filter fetch error:", cityError);
+      } else {
+        const allowedSlugs = new Set(
+          (cityRows || [])
+            .filter((row) =>
+              addressMatchesCity(
+                (row as { address?: string | null }).address,
+                filters.city!,
+              ),
+            )
+            .map((row) => (row as { slug: string }).slug),
+        );
+        results = results.filter((row) => allowedSlugs.has(row.slug));
+      }
+    }
+  }
+
+  return { results };
 }
 
 /** Convert a full restaurant to a lightweight summary for Claude */

@@ -19,11 +19,12 @@ import {
   hasToolIntent,
 } from "@/lib/logging";
 import {
-  searchCuratedRestaurants,
+  searchCuratedRestaurantsHybrid,
   toSummary,
   type CuratedRestaurant,
   type CuratedRestaurantSummary,
 } from "@/lib/curated-restaurants";
+import { embedQuery } from "@/lib/embedding";
 
 function buildSystemPrompt(userCity?: string, isDemoMode?: boolean): string {
   let cityContext: string;
@@ -160,6 +161,8 @@ When showing search results from the search_nearby_places tool, DO NOT list indi
 Then write your brief 1-2 sentence text after the closing tag. Rules:
 - englishName: English translation, romanization, or established English name. Examples: 肯德基→KFC, 芭芭露莎→Barbarossa, 虹桥汇→Hongqiao Hub, 虹桥新天地购物中心→Hongqiao Xintiandi Shopping Center
 - description: Max 10 words about the place — cuisine/specialty for restaurants, what it is for malls/attractions/etc.
+- IMPORTANT: For Amap restaurant results, use the Chinese 'tag' field first (and 'type' as backup) to generate the one-line English context. Example: tag "火锅;川菜;聚会" → "Sichuan hot pot, good for groups."
+- If 'tag' exists, do not ignore it. Convert it into natural English, concise and practical.
 - This enrichment block is MANDATORY. Never skip it. Never put it inside your text. Always output it first, then your text.
 
 FORMAT your text responses for readability:
@@ -209,7 +212,7 @@ For all food-related queries, always check the curated restaurant database first
 
 Determine the user's intent:
 DISCOVERY (recommend, suggest, best, where should I, specific cuisine/vibe/budget) → Search curated by filters. Fall back to Amap city search only if no curated match.
-PROXIMITY (near me, nearby, close, hungry) → Search curated within 20km of user. Fall back to Amap nearby search only if no curated restaurant is within that radius.
+PROXIMITY (near me, nearby, close, hungry) → Search curated within 2km of user. Fall back to Amap nearby search only if no curated restaurant is within that radius.
 SPECIFIC (asking about a named restaurant, what to order somewhere) → Search curated by name. If not in database, offer Amap basic info.
 
 When showing curated results, sound like a knowledgeable friend — lead with the foreigner hook, mention specific dishes, give practical advice. When falling back to Amap results, be transparent: these are basic listings without the detailed reviews and tips.
@@ -320,7 +323,7 @@ const TOOLS: Anthropic.Messages.Tool[] = [
         max_distance_km: {
           type: "number",
           description:
-            "Maximum distance from near_lat/near_lng in kilometers. Use 20 for 'near me' queries.",
+            "Maximum distance from near_lat/near_lng in kilometers. Use 2 for 'near me' queries, 5 for neighborhood, 50 for city-wide.",
         },
         city: {
           type: "string",
@@ -339,6 +342,13 @@ const TOOLS: Anthropic.Messages.Tool[] = [
 ];
 
 const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
+const PROXIMITY_MAX_DISTANCE_KM = 2;
+const NEIGHBORHOOD_MAX_DISTANCE_KM = 5;
+const CITY_WIDE_MAX_DISTANCE_KM = 50;
+const PROXIMITY_RADIUS_METERS = PROXIMITY_MAX_DISTANCE_KM * 1000;
+const MAX_PLACE_RESULTS = 8;
+const CURATED_MATCH_LIMIT = 3;
+const CURATED_SIMILARITY_THRESHOLD = 0.3;
 
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -398,14 +408,21 @@ export type NavContext = {
 type FoodIntent = "discovery" | "proximity" | "specific";
 
 type CuratedSearchInput = {
+  // Legacy fields from tool schema are accepted for backward compatibility.
   cuisine?: string;
-  max_price?: number;
   best_for?: string;
   near_lat?: number;
   near_lng?: number;
   max_distance_km?: number;
+  max_price?: number;
   query?: string;
+  semantic_query?: string;
+  filter_category?: "restaurant" | "bar" | null;
+  match_limit?: number;
+  similarity_threshold?: number;
+  intent?: FoodIntent;
   city?: string;
+  user_message?: string;
 };
 
 type PlacesSearchInput = {
@@ -756,6 +773,17 @@ function containsFoodKeywords(message: string): boolean {
     "sushi",
     "dumpling",
     "noodle",
+    "bar",
+    "bars",
+    "cocktail",
+    "cocktails",
+    "drink",
+    "drinks",
+    "beer",
+    "wine",
+    "pub",
+    "speakeasy",
+    "nightlife",
     "where should i eat",
     "where to eat",
   ];
@@ -816,27 +844,34 @@ function detectFoodIntent(message: string): FoodIntent | null {
   return "discovery";
 }
 
-function extractCuisine(message: string): string | undefined {
+function inferCategoryFilter(message: string): "restaurant" | "bar" | null {
   const lower = message.toLowerCase();
-  const mappings: Array<{ keywords: string[]; cuisine: string }> = [
-    { keywords: ["hotpot", "hot pot", "火锅"], cuisine: "hot pot" },
-    { keywords: ["sichuan", "川菜"], cuisine: "Sichuan" },
-    { keywords: ["shanghainese", "本帮"], cuisine: "Shanghainese" },
-    { keywords: ["cantonese", "粤菜"], cuisine: "Cantonese" },
-    { keywords: ["japanese", "sushi", "ramen"], cuisine: "Japanese" },
-    { keywords: ["korean"], cuisine: "Korean" },
-    { keywords: ["italian", "pizza", "pasta"], cuisine: "Italian" },
-    { keywords: ["coffee", "cafe"], cuisine: "Cafe" },
-    { keywords: ["bbq", "barbecue", "grill"], cuisine: "BBQ" },
-    { keywords: ["dumpling"], cuisine: "Dumplings" },
-    { keywords: ["seafood"], cuisine: "Seafood" },
-    { keywords: ["vegetarian", "vegan"], cuisine: "Vegetarian" },
-  ];
-
-  for (const m of mappings) {
-    if (m.keywords.some((k) => lower.includes(k))) return m.cuisine;
+  if (/\b(bar|bars|cocktail|cocktails|drink|drinks|beer|wine|pub|speakeasy|nightlife)\b/.test(lower)) {
+    return "bar";
   }
-  return undefined;
+  if (containsFoodKeywords(message)) return "restaurant";
+  return null;
+}
+
+function isNeighborhoodFoodQuery(message: string): boolean {
+  const lower = message.toLowerCase();
+  const proximityKeywords = [
+    "near me",
+    "nearby",
+    "close by",
+    "close to me",
+    "around here",
+    "what's close",
+    "whats close",
+    "hungry now",
+    "walking distance",
+  ];
+  if (proximityKeywords.some((k) => lower.includes(k))) return false;
+
+  return (
+    /\b(near|around|close to|close by|by)\b/.test(lower) ||
+    /附近|周边|周圍/.test(message)
+  );
 }
 
 function extractBestFor(message: string): string | undefined {
@@ -867,9 +902,31 @@ function extractMaxPrice(message: string): number | undefined {
   return undefined;
 }
 
-function deriveFallbackKeyword(message: string, cuisine?: string, specificName?: string): string {
+function extractDietaryAndVibeHints(message: string): string[] {
+  const lower = message.toLowerCase();
+  const hints: string[] = [];
+
+  if (/(not spicy|non spicy|no spice|mild spice|less spicy|low spice)/.test(lower)) {
+    hints.push("not spicy");
+  } else if (/\bspicy\b/.test(lower)) {
+    hints.push("spicy");
+  }
+
+  if (/(vegetarian|vegan|plant based|plant-based)/.test(lower)) hints.push("vegetarian");
+  if (/\bhalal\b/.test(lower)) hints.push("halal");
+  if (/(romantic|date night|date)/.test(lower)) hints.push("romantic date night");
+  if (/(family|kids|children)/.test(lower)) hints.push("family friendly");
+  if (/(business|client|meeting)/.test(lower)) hints.push("business dinner");
+  if (/(solo|alone)/.test(lower)) hints.push("solo dining");
+  if (/(budget|cheap|affordable)/.test(lower)) hints.push("budget friendly");
+  if (/(fine dining|upscale|high end|high-end|luxury)/.test(lower)) hints.push("fine dining");
+
+  return Array.from(new Set(hints));
+}
+
+function deriveFallbackKeyword(message: string, specificName?: string, semanticQuery?: string): string {
   if (specificName) return specificName;
-  if (cuisine) return cuisine;
+  if (semanticQuery) return semanticQuery;
   const trimmed = message
     .replace(/\b(near me|nearby|close by|around here|what's close|whats close|hungry now)\b/gi, "")
     .replace(/[^\w\s\u4e00-\u9fff]/g, " ")
@@ -912,9 +969,6 @@ function isFuzzyStopword(token: string, stopwords: Set<string>): boolean {
     "suggest",
     "best",
     "find",
-    "food",
-    "restaurant",
-    "restaurants",
     "nearby",
     "shanghai",
   ];
@@ -938,10 +992,6 @@ function extractFreeTextFoodFilter(message: string): string | undefined {
     "suggestions",
     "best",
     "find",
-    "food",
-    "eat",
-    "restaurant",
-    "restaurants",
     "spot",
     "spots",
     "place",
@@ -967,6 +1017,25 @@ function extractFreeTextFoodFilter(message: string): string | undefined {
     "with",
     "tonight",
     "today",
+    "under",
+    "below",
+    "less",
+    "than",
+    "max",
+    "at",
+    "most",
+    "price",
+    "cost",
+    "yuan",
+    "rmb",
+    "cny",
+    "budget",
+    "within",
+    "km",
+    "kilometer",
+    "kilometers",
+    "meter",
+    "meters",
     "shanghai",
     "city",
     "a",
@@ -977,6 +1046,8 @@ function extractFreeTextFoodFilter(message: string): string | undefined {
 
   const tokens = message
     .toLowerCase()
+    .replace(/¥\s*\d{1,4}/g, " ")
+    .replace(/\b\d{1,4}\s*(rmb|yuan|cny|块|元)?\b/g, " ")
     .replace(/[^\w\s\u4e00-\u9fff]/g, " ")
     .split(/\s+/)
     .filter(Boolean)
@@ -985,6 +1056,35 @@ function extractFreeTextFoodFilter(message: string): string | undefined {
   if (tokens.length === 0) return undefined;
   const query = tokens.join(" ").trim();
   return query.length >= 3 ? query : undefined;
+}
+
+function buildSemanticFoodSearchString(
+  message: string,
+  specificName?: string,
+  cityToken?: string,
+): string {
+  if (specificName) return specificName.trim();
+
+  const baseQuery = stripCityTokensFromQuery(
+    extractFreeTextFoodFilter(message),
+    cityToken,
+  );
+  const hints = extractDietaryAndVibeHints(message);
+  const combined = [baseQuery, ...hints]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!combined) return "restaurant food";
+
+  const tokenCount = combined.split(/\s+/).filter(Boolean).length;
+  if (tokenCount === 1) {
+    const lower = combined.toLowerCase();
+    if (lower === "restaurant" || lower === "food") return "restaurant food";
+    return `${combined} restaurant food`;
+  }
+
+  return combined;
 }
 
 function buildFoodRoutingPlan(
@@ -997,30 +1097,54 @@ function buildFoodRoutingPlan(
   if (!intent) return null;
 
   const effectiveTargetCity = toAmapCity(targetCity || userCity);
-  const cuisine = extractCuisine(userMessage);
   const max_price = extractMaxPrice(userMessage);
   const best_for = extractBestFor(userMessage);
-  const freeTextQuery = stripCityTokensFromQuery(
-    extractFreeTextFoodFilter(userMessage),
-    effectiveTargetCity,
-  );
   const specificName = intent === "specific" ? extractSpecificRestaurantName(userMessage) || undefined : undefined;
   const parsedOrigin = parseOrigin(origin);
-  const fallbackKeyword = deriveFallbackKeyword(userMessage, cuisine, specificName);
+  const categoryFilter = inferCategoryFilter(userMessage);
+  const isNeighborhood = intent !== "proximity" && isNeighborhoodFoodQuery(userMessage);
+  const distanceKm =
+    intent === "proximity"
+      ? PROXIMITY_MAX_DISTANCE_KM
+      : isNeighborhood
+        ? NEIGHBORHOOD_MAX_DISTANCE_KM
+        : CITY_WIDE_MAX_DISTANCE_KM;
+  const semanticQueryBase = buildSemanticFoodSearchString(
+    userMessage,
+    specificName,
+    effectiveTargetCity,
+  );
+  const semanticQuery = [semanticQueryBase, best_for]
+    .filter((part): part is string => Boolean(part))
+    .join(" ")
+    .trim();
+  const fallbackKeyword = deriveFallbackKeyword(
+    userMessage,
+    specificName,
+    semanticQuery,
+  );
+
+  const curatedInput: CuratedSearchInput = {
+    query: specificName,
+    semantic_query: semanticQuery,
+    filter_category: categoryFilter,
+    max_price,
+    match_limit: CURATED_MATCH_LIMIT,
+    similarity_threshold: CURATED_SIMILARITY_THRESHOLD,
+    max_distance_km: distanceKm,
+    city: effectiveTargetCity,
+    intent,
+    user_message: userMessage,
+    // Backward-compatible tags for LLM tool inputs.
+    best_for,
+  };
+
+  if (parsedOrigin && (intent === "proximity" || isNeighborhood)) {
+    curatedInput.near_lat = parsedOrigin.lat;
+    curatedInput.near_lng = parsedOrigin.lng;
+  }
 
   if (intent === "proximity") {
-    const curatedInput: CuratedSearchInput = {
-      near_lat: parsedOrigin?.lat,
-      near_lng: parsedOrigin?.lng,
-      max_distance_km: 20,
-    };
-    if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
-    if (specificName) curatedInput.query = specificName;
-    if (!specificName && !cuisine && freeTextQuery) curatedInput.query = freeTextQuery;
-    if (cuisine) curatedInput.cuisine = cuisine;
-    if (max_price) curatedInput.max_price = max_price;
-    if (best_for) curatedInput.best_for = best_for;
-
     return {
       intent,
       curatedInput,
@@ -1028,33 +1152,20 @@ function buildFoodRoutingPlan(
         type: "restaurant",
         searchMode: "nearby",
         location: origin,
-        radius: 20000,
+        radius: PROXIMITY_RADIUS_METERS,
         keyword: fallbackKeyword,
       },
     };
   }
 
   if (intent === "specific") {
-    const curatedInput: CuratedSearchInput = {
-      query: specificName || userMessage,
-    };
-    if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
-
+    curatedInput.query = specificName || userMessage;
     return {
       intent,
       specificName,
       curatedInput,
     };
   }
-
-  const curatedInput: CuratedSearchInput = {};
-  if (effectiveTargetCity) curatedInput.city = effectiveTargetCity;
-  if (!cuisine && !max_price && !best_for && freeTextQuery) {
-    curatedInput.query = freeTextQuery;
-  }
-  if (cuisine) curatedInput.cuisine = cuisine;
-  if (max_price) curatedInput.max_price = max_price;
-  if (best_for) curatedInput.best_for = best_for;
 
   return {
     intent: "discovery",
@@ -1257,7 +1368,12 @@ async function executePlacesSearch(
     }
   }
 
-  return { results };
+  const cappedResults =
+    input.type === "restaurant"
+      ? results.slice(0, MAX_PLACE_RESULTS)
+      : results;
+
+  return { results: cappedResults };
 }
 
 async function executeCuratedSearch(
@@ -1267,18 +1383,73 @@ async function executeCuratedSearch(
   slugs: string[];
   error?: string;
 }> {
-  const results = await searchCuratedRestaurants(input);
-  if (results.length === 0) {
+  const semanticQuery = [
+    input.semantic_query,
+    input.query,
+    input.cuisine,
+    input.best_for,
+  ]
+    .filter((part): part is string => Boolean(part && part.trim()))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim() || "restaurant food";
+
+  let queryEmbedding: number[];
+  try {
+    queryEmbedding = await embedQuery(semanticQuery);
+  } catch (error) {
+    console.error("[CuratedHybrid] Failed to embed query:", error);
     return {
       summaries: [],
       slugs: [],
       error:
-        "No curated restaurants found matching those criteria. Try broader filters or use search_nearby_places for Amap results.",
+        "I couldn't run curated semantic matching right now. I can still search nearby Amap listings.",
     };
   }
+
+  const curatedResult = await searchCuratedRestaurantsHybrid({
+    query_embedding: queryEmbedding,
+    filter_category:
+      input.filter_category ??
+      inferCategoryFilter(input.user_message || semanticQuery) ??
+      null,
+    max_price: input.max_price,
+    user_lat: input.near_lat,
+    user_lng: input.near_lng,
+    max_distance_km: input.max_distance_km ?? CITY_WIDE_MAX_DISTANCE_KM,
+    match_limit: input.match_limit ?? CURATED_MATCH_LIMIT,
+    similarity_threshold:
+      input.similarity_threshold ?? CURATED_SIMILARITY_THRESHOLD,
+    city: input.city,
+  });
+
+  if (curatedResult.error) {
+    return {
+      summaries: [],
+      slugs: [],
+      error: curatedResult.error,
+    };
+  }
+
+  if (curatedResult.results.length > 0) {
+    const scorePreview = curatedResult.results
+      .map((r) => `${r.slug}:${r.similarity.toFixed(3)}`)
+      .join(", ");
+    console.log("[CuratedHybrid] Semantic matches:", scorePreview);
+  }
+
+  if (curatedResult.results.length === 0) {
+    return {
+      summaries: [],
+      slugs: [],
+      error:
+        "I don't have curated picks matching that yet.",
+    };
+  }
+
   return {
-    summaries: results.map(toSummary),
-    slugs: results.map((r) => r.slug),
+    summaries: curatedResult.results.map(toSummary),
+    slugs: curatedResult.results.map((r) => r.slug),
   };
 }
 
@@ -1540,6 +1711,8 @@ export function streamChatResponse(
                     content:
                       `Curated restaurant search returned zero results for this ${foodRoutingPlan.intent} food query.` +
                       ` We are now showing Amap fallback listings only.` +
+                      ` Start the text response with: "I don't have curated picks matching that, but here are some nearby options."` +
+                      ` In <enrichment>, derive each restaurant description from Amap tag/type fields when available.` +
                       ` Be transparent these are basic listings without curated deep tips.` +
                       ` Start with <enrichment> JSON block for every place in order, then 1-2 sentence text.\n\n` +
                       `Results: ${JSON.stringify(fallbackResult)}`,
@@ -1573,7 +1746,7 @@ export function streamChatResponse(
             } else {
               responseText =
                 fallbackMode === "nearby"
-                  ? "I couldn't find curated picks within 20 km, and there are no strong nearby Amap listings right now. Try widening the area or adding a cuisine keyword."
+                  ? `I couldn't find curated picks within ${PROXIMITY_MAX_DISTANCE_KM} km, and there are no strong nearby Amap listings right now. Try widening the area or adding a cuisine keyword.`
                   : "I couldn't find curated matches for that request, and Amap city listings were also limited. Try broadening cuisine, vibe, or budget constraints.";
             }
           }
@@ -1837,11 +2010,12 @@ export function streamChatResponse(
             ),
           );
 
-          const curatedInput = tb.input as { cuisine?: string; query?: string };
+          const curatedInput = tb.input as CuratedSearchInput;
           const fallbackKeyword =
-            curatedInput.cuisine ||
+            curatedInput.semantic_query ||
             curatedInput.query ||
-            deriveFallbackKeyword(userMessage, curatedInput.cuisine);
+            curatedInput.cuisine ||
+            deriveFallbackKeyword(userMessage, undefined, curatedInput.query);
 
           curatedFallbackInput =
             fallbackMode === "nearby"
@@ -1850,7 +2024,7 @@ export function streamChatResponse(
                   searchMode: "nearby",
                   keyword: fallbackKeyword,
                   location: origin,
-                  radius: 20000,
+                  radius: PROXIMITY_RADIUS_METERS,
                 }
               : {
                   type: "restaurant",
