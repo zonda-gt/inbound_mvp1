@@ -41,7 +41,7 @@ export default function HeroSection() {
           {/* Quick stats */}
           <div className="mt-6 sm:mt-10 flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-6">
             {[
-              { icon: Smartphone, label: "2 Apps to Install", sublabel: "Alipay + WeChat" },
+              { icon: Smartphone, label: "One of Two Apps", sublabel: "Alipay or WeChat" },
               { icon: CreditCard, label: "Visa & Mastercard", sublabel: "International cards OK" },
               { icon: MapPin, label: "Works Everywhere", sublabel: "Shops, transport, food" },
             ].map((item, i) => (

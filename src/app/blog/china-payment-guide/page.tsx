@@ -122,7 +122,7 @@ export default function ChinaPaymentGuidePage() {
           <CTASection />
         </main>
         <PayFooter />
-        <StickyBanner />
+        <StickyBanner message="Got questions about paying in China? Ask your AI Local Friend" />
       </div>
     </>
   );

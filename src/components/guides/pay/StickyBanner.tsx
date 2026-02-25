@@ -2,13 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 
-export default function StickyBanner() {
-  const [visible, setVisible] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+interface StickyBannerProps {
+  message?: string;
+}
 
+export default function StickyBanner({
+  message = "Planning a China trip? Get insider tips most tourists never find",
+}: StickyBannerProps) {
+  const [visible, setVisible] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
       // Show after scrolling past the hero (~85vh)
@@ -17,8 +21,6 @@ export default function StickyBanner() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  if (dismissed) return null;
 
   return (
     <AnimatePresence>
@@ -42,11 +44,8 @@ export default function StickyBanner() {
                   <MessageCircle className="w-4 h-4 text-[#FFD700]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-white truncate">
-                    Overwhelmed? Your AI Local Friend can help
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-white/50 hidden sm:block">
-                    Get personalized setup help for your specific phone &amp; cards
+                  <p className="text-xs sm:text-sm font-medium text-white leading-snug">
+                    {message}
                   </p>
                 </div>
               </div>
@@ -58,13 +57,6 @@ export default function StickyBanner() {
                 Chat Now
               </Link>
 
-              <button
-                onClick={() => setDismissed(true)}
-                className="flex-shrink-0 p-1 text-white/30 hover:text-white/60 transition-colors"
-                aria-label="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
             </div>
           </div>
         </motion.div>
