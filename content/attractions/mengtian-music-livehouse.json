@@ -1,0 +1,248 @@
+{
+  "attraction_name_cn": "梦田音乐LiveHouse(百乐门店)",
+  "attraction_name_en": "Mengtian Music LiveHouse (Paramount Ballroom)",
+  "address_cn": "上海市静安区愚园路218号百乐门二楼",
+  "experience_type": "social",
+  "experience_type_secondary": "aesthetic",
+
+  "hook": "Live music inside Shanghai's legendary 1933 Paramount Ballroom — the same Art Deco dance hall where gangsters and socialites partied in the Jazz Age — now reborn as a neon-soaked live house where the crowd sings along to Mandopop hits until 1:30 AM.",
+
+  "honest_description": "This is a live music bar occupying the second floor of the Paramount (百乐门), one of Shanghai's most historically iconic buildings. The space mashes up 1930s Art Deco architecture — sweeping staircase, gold railings, ornate ceilings — with neon lights, LED screens, and a modern club sound system. Rotating house bands play Mandopop, ballads, rock, and rap from around 9 PM, building to a full-venue singalong party after midnight with balloon drops, confetti, and DJ sets. The music is almost entirely in Chinese, which limits the experience if you don't know the songs — but the energy, the building, and the visual spectacle are worth it regardless. Think of it as half live music venue, half nightclub, inside a museum-worthy building. Best for couples and groups who want a big, loud Shanghai night out; skip if you need quiet conversation or hate smoke.",
+
+  "foreigner_top_question": "How does entry and table service work?",
+  "foreigner_top_answer": "There are three seating tiers: side tables (两边) have no minimum spend and are free to sit at — just order drinks. Center floor tables (中间散台) near the stage have a minimum spend of around ¥500-1000 on weekends (drinks, snacks, fruit platters count toward it). Private booths/VIP rooms (卡座/包厢) require ¥2000+ minimum spend. Phone ahead to reserve — they'll meet you at the ground floor entrance and walk you up. You can also buy discounted packages on Dianping. There's no cover charge — you pay through what you consume.",
+
+  "experience_format_note": "This is a Chinese-style live house (音乐酒吧), which works differently from Western live music venues. Key things to know: (1) SEATING, NOT STANDING: Unlike Western gig venues, you sit at assigned tables. Your table determines your minimum spend. Side tables = no minimum, center = ¥500-1000 minimum on Fri/Sat, VIP booths = ¥2000+. (2) TABLE SERVICE: You order drinks and food at your table via a server, not at a bar. Packages/sets (套餐) are the best value — beer buckets, cocktail sets with fruit platters and snacks. Scanning a QR code menu is standard; individual drink prices are steep. (3) SONG REQUESTS: You can request songs (点歌) and even dedicate songs to someone — this is a core part of Chinese live house culture. One reviewer described a stranger ordering heartbreak ballads all night after a breakup. (4) THE ARC OF THE NIGHT: Warm-up singers start ~8:30-9 PM (mellow, often underwhelming). The real show begins ~10 PM with stronger vocalists and full band. After 11:30 PM-midnight, it transforms into a full party — DJ sets, balloon drops, confetti, crowd participation, sing-alongs. The peak is midnight to 1:30 AM. (5) SMOKING: Multiple reviewers mention indoor smoking. This is common in Chinese nightlife venues. Bring tolerance or sit further from the center. (6) DRESS CODE: No strict dress code, but people dress up. Sequin dresses, vintage/retro looks, and smart casual are common. There's even a qipao (旗袍) dress-up area for photos. (7) VOLUME: It gets extremely loud, especially during DJ sets after 11 PM. Multiple reviewers mention it being uncomfortably loud. Consider bringing earplugs.",
+
+  "vibe": "Art Deco glamour meets neon-lit karaoke party — an entire room of strangers belting out the same Chinese ballad at midnight while confetti rains down.",
+
+  "time_needed": {
+    "quick_visit": "1.5 hours — arrive at 10 PM, catch the best vocalists, leave before DJ",
+    "recommended": "3 hours — arrive 9:30 PM, enjoy the build from mellow to full party mode around midnight",
+    "deep_dive": "5+ hours — arrive early, stay until closing at 1:30 AM for the full arc including the late-night DJ party"
+  },
+
+  "best_time": {
+    "best_time_of_day": "Arrive between 9:00-9:30 PM for a good seat; the real show starts at 10 PM and peaks at midnight",
+    "worst_time": "Weekday evenings can feel dead with sparse crowds and flat atmosphere. Friday and Saturday are dramatically better.",
+    "seasonal_notes": "No strong seasonal variation — it's an indoor venue. Summers may feel slightly stuffier.",
+    "pro_tip": "The golden window is arriving at 9:30 PM on a Friday or Saturday — early enough for a good seat, late enough that the energy is building. Don't leave before midnight; the last 90 minutes are where the real magic happens."
+  },
+
+  "getting_in": {
+    "price_rmb": "No cover charge. Side tables: no minimum spend, just order what you want. Center tables (Fri/Sat): ¥500-1000 minimum spend. VIP booths: ¥2000+ minimum. Dianping group-buy packages available (weekday packages can be as low as ¥100-200 for two people including drinks and snacks). Individual drinks: beer ~¥30-50, cocktails ¥60-100+, fruit platters ¥200-400+.",
+    "price_usd": "Realistically ¥200-500/person ($28-70) for a good night with drinks and snacks. Can go higher at VIP tables.",
+    "booking_required": "Strongly recommended on weekends — phone or WeChat reservation. Walk-ins possible but you may get a poor seat or wait.",
+    "booking_method": "Phone: 15618969709 (Chinese). WeChat message also works for reservation. Dianping/Meituan for discounted packages (requires Chinese payment). Walk-in is possible on weekdays.",
+    "passport_accepted": "No ID check for entry — this is a bar, not a regulated venue. Just show up.",
+    "what_to_bring": "Phone (for QR code menu ordering), Chinese mobile payment helps enormously. Cash may work but isn't guaranteed for all transactions.",
+    "queue_situation": "No queue per se — it's reservation-based seating. Arrive by 9:30 PM on weekends to get a decent seat.",
+    "language_barrier_rating": "some-chinese-helps"
+  },
+
+  "experience_highlights": [
+    {
+      "name": "The Paramount Building Itself",
+      "description": "Built in 1933, this Art Deco ballroom was Shanghai's most glamorous nightlife venue in the pre-war era. The spiral staircase, gold railings, ornate ceiling, and sweeping dance floor are original architectural elements now bathed in modern neon. It's a genuinely historic space.",
+      "foreigner_appeal": "🔴 UNIQUELY CHINESE",
+      "foreigner_note": "The Paramount (百乐门) is one of Shanghai's most famous historical buildings — it was THE nightclub of 1930s Shanghai, frequented by the city's elite during its 'Paris of the East' heyday. You're partying in a piece of living history.",
+      "tip": "Take the spiral staircase up slowly — it's one of the best photo spots. The gold railings and curved architecture are stunning."
+    },
+    {
+      "name": "The Midnight Singalong",
+      "description": "After 11:30 PM the energy shifts dramatically — the entire room sings along to classic Chinese pop songs while confetti, balloons, and paper planes fill the air. Strangers become a chorus. It's the emotional peak of the night.",
+      "foreigner_appeal": "🔴 UNIQUELY CHINESE",
+      "foreigner_note": "The songs are Chinese pop classics — think the equivalent of an entire bar singing along to Bohemian Rhapsody, but the songs are ones you probably don't know. Even without understanding the lyrics, the collective energy is infectious. The song '后来' (Later) by Rene Liu is a crowd favorite — look it up beforehand.",
+      "tip": "Stay until at least midnight. Everything before that is warmup. The real experience starts after 11:30 PM."
+    },
+    {
+      "name": "Neon + Art Deco Photo Opportunities",
+      "description": "The venue is designed for photos — neon tunnel, retro signage, spiral staircase with gold railings, qipao (Chinese dress) photo area, and the live band as backdrop. Reviewers describe it as 'every angle is a photo spot.'",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "There's a qipao (traditional Chinese dress) costume area where you can dress up and take photos in the venue. It's campy and fun even if you're not Chinese.",
+      "tip": "The neon light tunnel and the spiral staircase are the two best photo spots. Go early before it's too crowded and dark."
+    },
+    {
+      "name": "House Band Vocalists",
+      "description": "Multiple rotating singers and a full band perform throughout the night. Genres span Mandopop ballads, rock, jazz, and rap. The male vocalists after 10 PM are consistently praised as excellent; the warm-up singers before 10 PM get mixed reviews.",
+      "foreigner_appeal": "🟡 CULTURALLY INTERESTING",
+      "foreigner_note": "The songs are almost entirely Chinese pop — if you know Mandopop at all, you'll recognize hits. If you don't, it's still a high-energy live music experience with surprisingly good production values. Think of it as a crash course in what Chinese people actually listen to.",
+      "tip": "The male vocalists performing after 10 PM are consistently praised. The pre-10 PM warmup acts are skippable."
+    },
+    {
+      "name": "Cocktails and Bar Snacks",
+      "description": "The cocktail program gets good reviews — signature gradient drinks are photogenic, and the bar snacks (fried items, fruit platters) are surprisingly decent. The spicy bullfrog dish is specifically called out as unexpectedly good.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Order a package (套餐) for best value — individual menu items via QR code are overpriced. The beer-bucket-plus-snacks combos are the sweet spot.",
+      "tip": "Avoid ordering individual items off the scanned QR menu — prices are steep. The Dianping group-buy packages or in-house set menus are much better value."
+    }
+  ],
+
+  "what_visitors_miss": [
+    {
+      "what": "The waiting area has games and snacks",
+      "why": "If you arrive early or there's a wait, the holding area has claw machines, arcade games, tea, and snacks — it's designed to keep you entertained, not just parked."
+    },
+    {
+      "what": "Side seats have no minimum spend",
+      "why": "Many visitors assume the whole venue has a minimum. The tables along the sides of the stage have zero minimum — you can sit, order a single beer, and enjoy the full show. You sacrifice the center view but save potentially hundreds of yuan."
+    },
+    {
+      "what": "The building's daytime exterior",
+      "why": "Most visitors only see the venue at night. The Paramount's exterior is a beautiful Art Deco building worth photographing in daylight — come back the next day for a completely different perspective on the same building."
+    }
+  ],
+
+  "strategy": {
+    "smart_route": "Arrive 9-9:30 PM — take photos on the spiral staircase and neon tunnel while it's still relatively empty — get seated — order a set menu package — endure the warmup acts — the real show starts at 10 PM — enjoy the peak vocalists 10-11:30 PM — stay through midnight for the party climax with confetti and sing-along — leave by 12:30-1 AM unless you want the full DJ experience to 1:30 AM.",
+    "what_to_skip": "The warm-up performers before 10 PM are consistently described as mediocre — arrive at 9:30 PM and use that time for drinks and photos rather than expecting great music. Also skip VIP booths unless you're in a large group — the extra spend doesn't dramatically improve the experience, and the booth decor reportedly feels dated.",
+    "pro_tips": [
+      "Phone ahead to reserve a side table (两边) for zero minimum spend with a decent view, or a center table if you're willing to spend ¥500-1000.",
+      "Buy a Dianping group-buy (团购) package before going — weekday deals can be absurdly cheap (as low as two-digit per person).",
+      "Bring earplugs — several reviewers explicitly complain about hearing-damage volume levels, especially during DJ sets after 11 PM."
+    ]
+  },
+
+  "heads_up": [
+    {
+      "warning": "Indoor smoking is common",
+      "advice": "Multiple reviewers complain about cigarette smoke. There's no strict non-smoking policy. Sit toward the sides or back if smoke bothers you. This is standard for Chinese nightlife venues."
+    },
+    {
+      "warning": "The volume gets extreme after 11 PM",
+      "advice": "When the DJ sets start, multiple reviewers describe it as painfully loud — one joked about 'permanent hearing damage.' Bring earplugs if you're sensitive to noise, or leave before the DJ transition."
+    },
+    {
+      "warning": "Drinks are weak and overpriced if ordered individually",
+      "advice": "Several reviewers note cocktails have minimal alcohol content and individual prices via the QR menu are steep. Always order a package deal (套餐) or buy a Dianping voucher in advance."
+    },
+    {
+      "warning": "Seating allocation can feel opaque",
+      "advice": "The venue steers walk-ins to less desirable side seats while reserving center spots for bigger spenders. This isn't a scam — it's how Chinese live houses work. If you want center, book ahead and confirm your table location."
+    },
+    {
+      "warning": "The music is almost entirely in Chinese",
+      "advice": "If you don't know Chinese pop music, the sing-along portion (the emotional peak) will be something you observe rather than participate in. This is still a great experience — but set expectations that it's more about the atmosphere than the music for non-Chinese speakers."
+    }
+  ],
+
+  "preparation": {
+    "what_to_wear": "Dress up — most patrons make an effort. Smart casual minimum, many women wear sequin dresses or vintage-inspired outfits. The venue has a qipao dress-up area for photos. No strict dress code enforced, but you'll feel underdressed in a t-shirt and sneakers.",
+    "what_to_bring": "Phone with Chinese payment app if possible (for QR code ordering). Earplugs. Portable charger — your phone battery will die from photos and video.",
+    "what_not_to_bring": "Don't bring expectations of a quiet evening — this is a party venue, not a jazz lounge."
+  },
+
+  "physical_accessibility": {
+    "physical_intensity": "low",
+    "physical_details": "You're seated the entire time. The only physical element is climbing the spiral staircase to the 2nd floor (no elevator mentioned). Standing and dancing happens organically during the late-night party section but is optional.",
+    "age_notes": "Skews young (20s-30s). No age restrictions mentioned but this is clearly an adult nightlife venue. Not suitable for children.",
+    "health_warnings": "Extremely loud volume during DJ sets — hearing protection recommended. Indoor smoking present. Flashing/strobe lights throughout."
+  },
+
+  "concierge_opportunities": [
+    {
+      "action": "Reserve a table and specify seating preference",
+      "platform": "Phone call in Chinese: 15618969709, or WeChat message",
+      "value_to_user": "Guarantees a good seat — walk-ins get placed in leftover spots. Specify '中间散台' for center or '两边' for sides (no minimum)."
+    },
+    {
+      "action": "Buy a discounted drinks/food package",
+      "platform": "Dianping (大众点评) or Meituan — requires Chinese payment",
+      "value_to_user": "Weekday packages can be as low as ¥100-200 for two people including beer, snacks, and fruit. Saves 30-50% vs ordering individually. Weekend packages also available."
+    }
+  ],
+
+  "useful_chinese": [
+    {
+      "pinyin": "wǒ yù yuē le",
+      "chinese": "我预约了",
+      "english": "I have a reservation"
+    },
+    {
+      "pinyin": "liǎng biān de zuò wèi",
+      "chinese": "两边的座位",
+      "english": "Side tables (no minimum spend)"
+    },
+    {
+      "pinyin": "yǒu tào cān ma?",
+      "chinese": "有套餐吗？",
+      "english": "Do you have a package deal?"
+    },
+    {
+      "pinyin": "jǐ diǎn kāi shǐ yǎn chū?",
+      "chinese": "几点开始演出？",
+      "english": "What time does the show start?"
+    },
+    {
+      "pinyin": "kě yǐ diǎn gē ma?",
+      "chinese": "可以点歌吗？",
+      "english": "Can I request a song?"
+    },
+    {
+      "pinyin": "mǎi dān",
+      "chinese": "买单",
+      "english": "Bill please / Check please"
+    },
+    {
+      "pinyin": "xǐ shǒu jiān zài nǎ lǐ?",
+      "chinese": "洗手间在哪里？",
+      "english": "Where is the restroom?"
+    },
+    {
+      "pinyin": "tài chǎo le",
+      "chinese": "太吵了",
+      "english": "It's too loud"
+    }
+  ],
+
+  "pair_with": [
+    {
+      "suggestion": "Jing'an Temple (静安寺) — lit up at night",
+      "why": "Directly across the street. The golden temple illuminated at night against the Shanghai skyline is a stunning contrast photo. See it on your walk to or from the venue.",
+      "travel_time": "1 min walk (literally across the road)"
+    },
+    {
+      "suggestion": "Late-night street food on Yuyuan Road or Wuding Road",
+      "why": "After the venue closes at 1:30 AM, you'll want food. The surrounding Jing'an neighborhood has late-night noodle shops and street food within walking distance.",
+      "travel_time": "5-10 min walk"
+    },
+    {
+      "suggestion": "Drinks at a quieter cocktail bar on Yuyuan Road",
+      "why": "If you want to continue the evening at lower volume, the Yuyuan Road stretch between Jing'an Temple and Zhongshan Park has several excellent cocktail bars with a completely different vibe.",
+      "travel_time": "5-15 min walk"
+    }
+  ],
+
+  "cultural_context": "The Paramount Ballroom (百乐门) opened in 1933 and was Shanghai's most glamorous nightlife destination during the city's 'Paris of the East' era — a world of jazz bands, taxi dancers, and Art Deco opulence. After decades of closure under communism, it's been gradually revived as an entertainment venue. Drinking this in its current neon-lit incarnation connects you to Shanghai's layered identity: the freewheeling 1930s, the Communist austerity that erased it, and the modern resurgence that brought nightlife roaring back. Chinese live houses (音乐酒吧) also operate differently from Western venues — the seated table service, song dedications, and collective sing-alongs are distinctly Chinese social rituals worth experiencing even if you don't know the music.",
+
+  "photo_spots": [
+    {
+      "location": "The spiral staircase from ground floor to 2nd floor",
+      "tip": "Shoot looking upward from the base — the curved gold railings and Art Deco ceiling create a dramatic frame. Best before 10 PM when it's less crowded.",
+      "why": "Original 1933 architecture — this staircase has appeared in countless Shanghai nostalgia photos and films."
+    },
+    {
+      "location": "The neon light tunnel",
+      "tip": "Walk slowly through and have someone shoot from behind you — the colored lights create a silhouette effect.",
+      "why": "Classic cyberpunk-meets-Art-Deco aesthetic that's unique to this venue."
+    },
+    {
+      "location": "Neon sign wall near the entrance",
+      "tip": "Face the wall with the signs behind you. Works best with a slightly dark, moody edit.",
+      "why": "The retro neon signage against the old building interior is peak Shanghai aesthetic."
+    },
+    {
+      "location": "Qipao dress-up area",
+      "tip": "The venue provides traditional Chinese dresses (qipao/cheongsam) for photos. It's free and fun — don't be shy.",
+      "why": "Wearing a qipao inside a 1933 ballroom is about as 'old Shanghai' as it gets. Campy but great content."
+    }
+  ],
+
+  "best_for": [
+    "couples",
+    "good-for-dates",
+    "late-night-option",
+    "Instagram-worthy",
+    "unique-to-China"
+  ]
+}

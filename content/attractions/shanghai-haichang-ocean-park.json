@@ -1,0 +1,251 @@
+{
+  "attraction_name_cn": "上海海昌海洋公园",
+  "attraction_name_en": "Shanghai Haichang Ocean Park",
+  "address_cn": "上海市浦东新区南汇新城镇银飞路166号",
+  "experience_type": "activity",
+  "experience_type_secondary": "aesthetic",
+
+  "hook": "China's only orca theme park — a 10-ton killer whale leaps out of the water and drenches the front rows, plus penguins you can touch, a jellyfish hall that looks like a sci-fi movie set, and a roller coaster that loops over the ocean exhibits.",
+
+  "honest_description": "Haichang is a sprawling marine theme park on Shanghai's far southeastern coast that combines SeaWorld-style animal shows with theme park rides and aquarium exhibits across five themed zones. The undeniable star is the orca show — it's genuinely spectacular and reviewers call it worth the ticket price alone. The jellyfish hall is surprisingly beautiful, the penguin encounter is charming, and the roller coaster is legitimately thrilling. The catch: it's very far from central Shanghai (90+ minutes by transit), it's primarily designed for Chinese families with kids so everything is in Chinese, the on-site food is overpriced, and some outdoor rides close seasonally. Best for animal lovers and anyone who'd enjoy a full day away from typical tourist sights; skip if you only have a few days in Shanghai or hate theme parks.",
+
+  "vibe": "A cheerful, sprawling ocean wonderland buzzing with excited kids, splashing orcas, and that slightly surreal feeling of watching penguins waddle while a roller coaster roars overhead.",
+
+  "foreigner_top_question": "Is this fun for adults or mainly for kids?",
+  "foreigner_top_answer": "The animal shows (especially the orca and beluga performances) are genuinely impressive for all ages — multiple adult reviewers without children call the orca show 'worth the trip alone.' The jellyfish hall, ocean tunnel, and cable car are atmospheric enough for adults to enjoy. But the park's overall energy is very family-oriented, the NPC interactions and mini-games are designed for children, and solo adult travelers may feel out of place. Couples and friend groups who love marine life will have a great day; adults looking for sophisticated entertainment should look elsewhere.",
+
+  "experience_format_note": "Standard theme park format — buy a ticket, enter, and freely explore exhibits, shows, and rides all day. Key things to know: (1) Animal shows run at fixed times throughout the day — check the schedule on arrival and plan your route around them, as each show is only 10-20 minutes and runs 1-3 times daily. (2) Shows require you to arrive 15-20 minutes early to get good seats. (3) For the orca show, the front rows WILL get drenched — free ponchos are provided at the entrance. Sit on the upper level to stay dry. (4) Outside food is NOT allowed (water bottles are OK). Food is confiscated at the security check. On-site dining is expensive (¥289 for a 3-person meal). There's a convenience store 300m right of the exit if you want to eat before/after. (5) Your phone gets locked in a pouch — just kidding, but seriously, charge it fully as you'll be taking photos all day. (6) During Chinese New Year and special holiday periods, the park adds immersive NPC interactions, 'silver ticket' mini-games, and evening shows including drone displays and fireworks — these are seasonal additions, not year-round.",
+
+  "time_needed": {
+    "quick_visit": "5 hours minimum — enough to see the major animal shows (orca, beluga, dolphin) and walk through the main exhibit halls",
+    "recommended": "7-8 hours (full day, 9:30 AM to 5:00 PM) — this covers all shows, main exhibits, 1-2 rides, and the cable car",
+    "deep_dive": "Full day into evening (9:30 AM to 8:00 PM) if night shows are running — multiple reviewers say 'one day isn't enough to see everything'"
+  },
+
+  "best_time": {
+    "best_time_of_day": "Arrive right at opening (9:30 AM). Head directly to the orca theater first — it's the most popular show and fills fast. Mornings before 10 AM are least crowded for exhibits and tunnels.",
+    "worst_time": "Weekends and Chinese holidays are significantly more crowded. Chinese New Year (late Jan/Feb), National Day (Oct 1-7), May Day (May 1-5), and summer holidays (July-August) see the worst crowds. The roller coaster queue can hit 40+ minutes on busy days.",
+    "seasonal_notes": "Some outdoor rides (water raft, splash attractions) close in winter. Off-season (Nov-Mar excluding holidays) offers much cheaper tickets and smaller crowds, but fewer rides operate. Spring and autumn are ideal.",
+    "pro_tip": "Weekday visits are dramatically less crowded — cable car has no queue, rides can be ridden repeatedly. If visiting on a weekend, enter at 2 PM for discounted afternoon/evening tickets and catch the evening shows, fireworks, and drone displays with fewer daytime crowds."
+  },
+
+  "getting_in": {
+    "price_rmb": "Standard adult ticket: ~¥399 (varies by season, day, and promotional offers). Afternoon entry (~2 PM): ~¥99-459. Special promotions frequently drop to ¥9.9-99 for birthday months, zodiac sign deals, etc. VIP orca show seating: ¥120 extra. Cable car: ¥25-35.",
+    "price_usd": "Approximately $55-95 USD for standard adult; $14-65 for discounted/afternoon tickets",
+    "booking_required": "Yes — strongly recommended to book 1-3 days in advance online. Walk-up tickets may be available but are more expensive and same-day tickets sometimes sell out on holidays.",
+    "booking_method": "Trip.com (Ctrip international version) is the most foreigner-friendly option — accepts passports and international credit cards. The park's official WeChat account also sells tickets but requires Chinese payment methods. Meituan/Dianping have discounted combo tickets but typically require Chinese ID. IMPORTANT: One reviewer notes entry requires 身份证 (Chinese ID) scanning — confirm with Trip.com that passport-purchased tickets work at the gate, or contact the park's hotline (400-601-6699) to verify.",
+    "passport_accepted": "LIKELY but unconfirmed — one reviewer specifically mentions '得拿身份证进' (must show Chinese ID to enter). This may only apply to promotional/discounted tickets. Standard tickets purchased through Trip.com with passport number should work, but verify before traveling 90 minutes to get there.",
+    "what_to_bring": "Passport, booking confirmation (screenshot the QR code), comfortable walking shoes, sunscreen (limited shade in outdoor areas), portable charger, light rain jacket or poncho for orca show splash zone.",
+    "queue_situation": "Entry queue: minimal with pre-booked tickets. Show seating: arrive 15-20 min early. Rides: 10-15 min on weekdays, 30-40 min on weekends/holidays. No fast-track option mentioned.",
+    "language_barrier_rating": "some-chinese-helps"
+  },
+
+  "experience_highlights": [
+    {
+      "name": "Orca Show (虎鲸传奇)",
+      "description": "A massive orca leaps, splashes, and performs synchronized routines with trainers in a purpose-built stadium. The 10-ton animal launching out of the water creates a wall of spray that drenches the front rows. Reviewers almost universally call this the park's #1 highlight and 'worth the ticket price alone.'",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "China has only one orca park — this is it. If you have ethical concerns about captive orcas (similar to SeaWorld controversy), be aware this is an animal performance park. Several Chinese reviewers themselves express hope the orcas are well-treated.",
+      "tip": "Sit upper level to stay dry, or front rows if you want the full splash experience (free ponchos at entrance). Arrive 20 minutes early for good seats. The baby orca ('Fatty Bean') is especially popular."
+    },
+    {
+      "name": "Jellyfish Hall (水母馆)",
+      "description": "A darkened hall where dozens of jellyfish species pulse and glow in backlit tanks, creating an otherworldly atmosphere. The glass reflections act as natural portrait lighting — reviewers specifically mention it's great for photos.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Wear light-colored clothing — it photographs beautifully against the blue-lit tanks.",
+      "tip": "Visit right after opening when it's empty for unobstructed photos."
+    },
+    {
+      "name": "Beluga Whale Encounter (白鲸之恋/白鲸之梦)",
+      "description": "Beluga whales press their round faces against the glass, blow bubbles at visitors, and perform a 10-minute show with underwater divers. Reviewers use words like 'healing' and 'heart-melting' constantly.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "The beluga's signature move — opening its mouth wide then 'bowing' — has been turned into a local meme with the Shanghai dialect phrase 'I'm not scaring you, just saying thank you.'",
+      "tip": "The Arctic Hall viewing windows let you watch belugas swimming freely between shows — often less crowded than the show itself."
+    },
+    {
+      "name": "360° Ocean Tunnel (海底隧道)",
+      "description": "A wraparound glass tunnel where manta rays, sharks, and tropical fish swim directly overhead. Includes feeding shows at scheduled times and artificial bubble features for photography.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Use your phone's flash for better photos in the tunnel — reviewers specifically note this.",
+      "tip": "Visit at 10 AM when it first opens for near-empty tunnel photos."
+    },
+    {
+      "name": "Antarctic Penguin Hall (南极企鹅馆)",
+      "description": "Emperor penguins and Gentoo penguins waddle through a simulated Antarctic habitat. Visitors can watch them swim underwater through glass walls. Some experiences allow you to touch or feed them (additional fee).",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "The baby penguin (about one month old, as of recent reviews) is a crowd magnet.",
+      "tip": "The underwater viewing section is less crowded than the above-ground viewing — head downstairs."
+    },
+    {
+      "name": "Dolphin Roller Coaster (海豚过山车)",
+      "description": "The park's main thrill ride — a full-size coaster with inversions. Reviewers call it 'genuinely thrilling' and note it has height restrictions for children.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "This is a legitimate roller coaster, not a kiddie ride. Queue times hit 40 minutes on busy days.",
+      "tip": "Ride it early morning or late afternoon when queues are shortest. There's no single-rider line mentioned."
+    }
+  ],
+
+  "what_visitors_miss": [
+    {
+      "what": "The cable car (时空缆车) at sunset",
+      "why": "Only ¥25-35 per person, offers panoramic views of the entire park and surrounding coastline. Several reviewers mention the sunset view is particularly romantic and photogenic, but most families skip it because kids prefer the rides."
+    },
+    {
+      "what": "Fire Shark Hall glass walkway (火山鲨鱼馆)",
+      "why": "A glass-bottom walkway directly above a shark tank — 'walking over shark jaws' sensation. Most visitors rush to the orca show and skip this, but reviewers who find it call the thrill factor surprisingly high."
+    },
+    {
+      "what": "The Mermaid Show in Fire Shark Hall",
+      "why": "Divers dressed as mermaids perform underwater ballet surrounded by sharks and fish. Reviewers call it 'fairytale-like' and less crowded than the orca show because fewer people know about it."
+    }
+  ],
+
+  "strategy": {
+    "smart_route": "1) Enter at 9:30, go directly to Orca Theater for the first show. 2) After orca show, head to Beluga Hall (nearby). 3) Ocean Tunnel while it's still morning-quiet. 4) Penguin Hall. 5) Lunch. 6) Jellyfish Hall for photos. 7) Dolphin Roller Coaster. 8) Cable car for late afternoon views. 9) If evening shows are running, stay for drone/firework show from South Pole Bridge viewing spot.",
+    "what_to_skip": "The Ultraman-themed area is mainly for young kids obsessed with the Japanese franchise — adults without children can safely skip it. The 'silver ticket' NPC mini-games during holiday events are fun for Chinese-speaking visitors but largely inaccessible without Chinese.",
+    "pro_tips": [
+      "Check show times FIRST thing upon entering — your entire day should be built around the show schedule",
+      "The park's official WeChat account posts daily show schedules",
+      "Golf-cart style vehicles are available for rent near the entrance if walking the full park seems daunting",
+      "South Pole Bridge (南极桥) is the best viewing spot for the evening drone and fireworks show"
+    ]
+  },
+
+  "heads_up": [
+    {
+      "warning": "It's FAR from central Shanghai — 90+ minutes each way",
+      "advice": "The park is in Lingang/Nanhui, at the very southeastern tip of Shanghai. Take Metro Line 16 to Lingang Avenue (临港大道) station, then a 10-minute taxi. Budget 2 hours door-to-door from the Bund. Alternatively, stay at the adjacent Haichang hotel to split it into two days."
+    },
+    {
+      "warning": "No outside food allowed — and inside food is expensive",
+      "advice": "Security checks bags and confiscates food (water is OK). On-site meals run ¥100+ per person for mediocre theme park food. Eat a big breakfast before entering. There's a convenience store (FamilyMart) 300m to the right of the exit for after."
+    },
+    {
+      "warning": "Chinese ID requirement may block foreign passport holders for some ticket types",
+      "advice": "One reviewer mentions ID card scanning at the gate. Book through Trip.com with your passport number and confirm in advance that passport entry is accepted. Do NOT travel 90 minutes without confirming this first."
+    },
+    {
+      "warning": "Outdoor rides close seasonally and some facilities shut randomly",
+      "advice": "In winter, water rides and some outdoor attractions close. Multiple reviewers complain about arriving to find rides shut but full-price tickets still being charged. Check the park's WeChat or call the hotline (400-601-6699) before visiting to confirm what's open."
+    },
+    {
+      "warning": "Parking is expensive if driving",
+      "advice": "¥50-80 per day for parking. Several reviewers were shocked by the cost. Leave by 5 PM to avoid the taxi queue at closing time."
+    }
+  ],
+
+  "preparation": {
+    "what_to_wear": "Comfortable walking shoes — you'll cover a lot of ground across a very large park. Light layers (indoor exhibits are temperature-controlled but outdoor areas are exposed). Light-colored clothing photographs well in the jellyfish hall. If sitting in the orca show splash zone, wear clothes you don't mind getting wet.",
+    "what_to_bring": "Passport, booking confirmation screenshot, portable phone charger (you'll be photographing all day), sunscreen and hat (limited shade in outdoor areas), small water bottle (the only item allowed through security).",
+    "what_not_to_bring": "Outside food or snacks (will be confiscated at security). Heavy bags (you'll be walking for hours)."
+  },
+
+  "physical_accessibility": {
+    "physical_intensity": "moderate",
+    "physical_details": "The park covers 29.7 hectares — a LOT of walking. Mostly flat ground but distances between exhibits are significant. Reviewers recommend comfortable shoes and note their legs were tired by end of day. Rental carts available near entrance for those who need them.",
+    "age_notes": "Dolphin Roller Coaster has height restrictions for children. Must be 16+ for some thrill rides. The park is primarily designed for families with children aged 3-12.",
+    "health_warnings": "Strobe lights in some show effects. Standing/walking for extended periods. Hot in summer with limited shade in outdoor areas."
+  },
+
+  "concierge_opportunities": [
+    {
+      "action": "Book tickets and confirm passport entry acceptance",
+      "platform": "Trip.com (international Ctrip) or park hotline 400-601-6699",
+      "value_to_user": "Required — cannot enter without pre-booked ticket. CRITICAL to confirm passport (not just Chinese ID) works at the gate before making the 90-minute journey."
+    },
+    {
+      "action": "Check which rides and shows are operating on your visit date",
+      "platform": "Park's official WeChat account or phone hotline",
+      "value_to_user": "Prevents disappointment — multiple reviewers report arriving to find key attractions closed, especially in off-season."
+    },
+    {
+      "action": "Buy discounted afternoon/evening tickets",
+      "platform": "Meituan, Dianping, or park's WeChat mini-program",
+      "value_to_user": "Afternoon entry (after 2 PM) can be as low as ¥99 vs ¥399+ for full day — great if you only want to see evening shows and a few exhibits."
+    }
+  ],
+
+  "useful_chinese": [
+    {
+      "pinyin": "hǔ jīng biǎo yǎn jǐ diǎn kāi shǐ?",
+      "chinese": "虎鲸表演几点开始？",
+      "english": "What time does the orca show start?"
+    },
+    {
+      "pinyin": "hù zhào kě yǐ jìn ma?",
+      "chinese": "护照可以进吗？",
+      "english": "Can I enter with a passport?"
+    },
+    {
+      "pinyin": "jīn tiān nǎ xiē xiàng mù kāi fàng?",
+      "chinese": "今天哪些项目开放？",
+      "english": "Which attractions are open today?"
+    },
+    {
+      "pinyin": "biǎo yǎn shí jiān biǎo zài nǎ lǐ?",
+      "chinese": "表演时间表在哪里？",
+      "english": "Where is the show schedule?"
+    },
+    {
+      "pinyin": "zuò lán chē zài nǎ lǐ?",
+      "chinese": "坐缆车在哪里？",
+      "english": "Where do I board the cable car?"
+    },
+    {
+      "pinyin": "pái duì yào duō jiǔ?",
+      "chinese": "排队要多久？",
+      "english": "How long is the queue?"
+    },
+    {
+      "pinyin": "fù jìn yǒu chī de ma?",
+      "chinese": "附近有吃的吗？",
+      "english": "Is there food nearby?"
+    }
+  ],
+
+  "pair_with": [
+    {
+      "suggestion": "China Maritime Museum (中国航海博物馆)",
+      "why": "If you're already making the trek to Lingang, this impressive maritime museum is nearby and free — a good complement to the ocean theme and a way to justify the long journey.",
+      "travel_time": "10 min drive"
+    },
+    {
+      "suggestion": "Dishui Lake (滴水湖)",
+      "why": "The largest artificial lake in Shanghai is adjacent to the park area. Nice for a post-park sunset walk along the waterfront to decompress.",
+      "travel_time": "5 min drive"
+    },
+    {
+      "suggestion": "Stay at the adjacent Haichang Ocean Park Hotel",
+      "why": "Splits the experience into two days (hotel guests get 2-day park access), eliminates the brutal commute, and themed rooms delight kids. Multiple reviewers recommend this approach.",
+      "travel_time": "On-site"
+    }
+  ],
+
+  "cultural_context": "Marine theme parks with live animal shows remain hugely popular in China, where the SeaWorld-style controversy around captive orcas and dolphins has not gained the same traction as in Western countries. This park markets itself as an 'ocean education' destination and includes conservation messaging in its shows. Western visitors with strong feelings about marine mammal captivity should be aware that this is essentially China's SeaWorld — with all the ethical considerations that implies. During Chinese New Year and other holidays, the park layers traditional Chinese cultural performances (intangible cultural heritage or 'fēi yí' acts like iron-sparking fire shows, Chaoshan warrior dances, and mask-changing opera) onto the marine theme, creating a uniquely Chinese blend of ancient tradition and modern entertainment that you won't find at any Western ocean park.",
+
+  "photo_spots": [
+    {
+      "location": "Jellyfish Hall",
+      "tip": "Wear light/white clothing. The backlit tanks create natural portrait lighting — stand close to the glass for an ethereal glow effect.",
+      "why": "Reviewers specifically call this out as the best photo location in the park — 'every shot looks like a sci-fi movie.'"
+    },
+    {
+      "location": "360° Ocean Tunnel",
+      "tip": "Go at 10 AM when empty. Use flash for better results. The bubble features add sparkle to photos.",
+      "why": "Fish swimming directly overhead with blue lighting creates dramatic shots impossible to get elsewhere."
+    },
+    {
+      "location": "Cable car at sunset",
+      "tip": "Take the cable car around 4-5 PM for golden hour light over the park and coastline.",
+      "why": "Panoramic view of the entire park with the ocean in the background — the volcano-shaped shark building is particularly photogenic from above."
+    }
+  ],
+
+  "best_for": [
+    "families-with-kids",
+    "half-day-commitment",
+    "rainy-day-option",
+    "unique-to-China",
+    "Instagram-worthy"
+  ]
+}

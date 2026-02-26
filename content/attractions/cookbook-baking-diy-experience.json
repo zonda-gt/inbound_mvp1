@@ -1,0 +1,208 @@
+{
+  "attraction_name_cn": "COOK&BOOK烘焙烘焙DIY体验(芮欧百货店)",
+  "attraction_name_en": "COOK&BOOK Baking DIY Experience (Réel Mall)",
+  "address_cn": "上海市静安区南京西路1601号芮欧百货4层402",
+  "experience_type": "immersive",
+
+  "hook": "You pick a cute apron, choose your recipe — cookies, cakes, macarons, donuts — and a patient instructor walks you through every step in a bright, spotless kitchen inside one of Shanghai's fanciest malls. You eat what you make, and the whole thing is absurdly photogenic.",
+
+  "honest_description": "This is a polished, Instagram-ready baking workshop on the 4th floor of Réel Mall, one of Shanghai's premium shopping centers right on West Nanjing Road. The vibe is warm, clean, and low-pressure — instructors pre-measure all your ingredients, hand you an apron and a chef's hat, and guide you step by step through making cookies, cakes, macarons, or donuts. It's not a serious cooking school — it's a relaxing, tactile experience designed to make you feel accomplished and give you great photos. The space is compact and open-plan, which means you'll see other groups working alongside you. Best for couples, friends, or anyone who wants a chill afternoon activity that doesn't require physical fitness or Chinese language skills. Skip it if you want to learn real technique — this is about the experience, not culinary education.",
+
+  "foreigner_top_question": "Can I enjoy this without speaking Chinese?",
+  "foreigner_top_answer": "Mostly yes. The baking process is very visual and hands-on — instructors demonstrate each step and you follow along, so even without shared language the core experience works. However, all instruction is in Chinese, and the nuances of technique will be lost without translation. One reviewer mentions a 'translator fee' for group bookings, suggesting they can arrange English support for an extra charge. Call ahead or have your hotel concierge ask about English-speaking instructors.",
+
+  "experience_format_note": "This is a guided hands-on baking class, not a demonstration. Here's the flow: (1) Choose your recipe when booking — options include sugar cookies, decorated cookies, cakes (various flavors/styles), macarons, donuts, and seasonal specials like mooncakes. (2) Arrive and pick an apron and accessories (headband, chef hat) — these double as photo props. (3) Instructor has pre-measured all ingredients. You do the mixing, shaping, decorating yourself with step-by-step guidance. (4) While items bake/cool (20-30 min), you take photos with props or browse the mall. (5) Decorate your finished products. (6) Take everything home in provided packaging (ice packs available on request — ask for 冰袋). Sessions run 1-2 hours depending on complexity. You eat what you make. No prior experience needed.",
+
+  "vibe": "A cozy, sweet-smelling afternoon of butter and sugar where the real product is the photos and the feeling of making something with your hands.",
+
+  "time_needed": {
+    "quick_visit": "1 hour — for simpler items like donuts",
+    "recommended": "1.5-2 hours — standard for cookies or a cake, including baking wait time and photos",
+    "deep_dive": "2.5 hours — if doing a complex cake with full decoration, or combining two items"
+  },
+
+  "best_time": {
+    "best_time_of_day": "Weekday afternoons are quietest — you'll get more one-on-one attention from the instructor",
+    "worst_time": "Weekends get busy with families and groups; you may share the instructor's attention with 2-3 other parties simultaneously",
+    "seasonal_notes": "Seasonal specials appear — mooncakes around Mid-Autumn Festival (September/October), Christmas-themed items in December. These are worth timing for if you're visiting during those periods.",
+    "pro_tip": "Book for a weekday and you'll likely have the instructor nearly to yourself. Weekend visitors report waiting for guidance while the instructor juggles multiple groups."
+  },
+
+  "getting_in": {
+    "price_rmb": "~¥200-388 per person depending on the recipe. Cookie sessions around ¥200/person, cakes ¥288-388. Second person in a pair sometimes discounted (one reviewer paid ¥388 total for two people doing cookies). Custom orders and team-building packages priced separately.",
+    "price_usd": "~$28-55 per person",
+    "booking_required": "Advance booking recommended, especially weekends. At minimum 1 day ahead. Can book same-day on weekdays if space is available.",
+    "booking_method": "Phone booking: (021) 80181848 — calling in Chinese is most reliable. Also available on Dianping/Meituan but requires Chinese payment. Walk-ins possible on quiet weekdays.",
+    "passport_accepted": "No ID requirements — this is a commercial shop, not a ticketed attraction. Just show up for your booking.",
+    "what_to_bring": "Nothing special needed. Everything is provided (apron, tools, ingredients, packaging). Bring your phone for photos.",
+    "queue_situation": "No queue — it's by appointment. Arrive on time for your slot.",
+    "language_barrier_rating": "some-chinese-helps"
+  },
+
+  "experience_highlights": [
+    {
+      "name": "The Photo-Ready Aprons & Props",
+      "description": "You choose from a wall of cute, colorful aprons — this is Shanghai's most Instagrammed baking studio for a reason. They also have headbands, chef hats, and a giant oven prop specifically for photos.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "The emphasis on photography is a distinctly Chinese consumer culture thing — they've designed the entire space to be photogenic. Lean into it.",
+      "tip": "Staff will happily take photos of you working — they're skilled at finding good angles. Just ask (举 a camera gesture works)."
+    },
+    {
+      "name": "Bear-Shaped Sugar Cookies",
+      "description": "The signature item — adorable bear-shaped cookies that you shape, bake, and decorate yourself. Reviewers describe the process as 'therapeutic' and 'stress-relieving.' The finished products look professional.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "These are the most popular choice and the easiest for beginners. Great if you want a fun souvenir to take back to your hotel.",
+      "tip": "The fondant decorating step is harder than it looks — ask the instructor to demo first before you attempt it."
+    },
+    {
+      "name": "Full Cake Making (Jelly Cat Style)",
+      "description": "The premium experience — you make a full cake from scratch including whipping egg whites, making the sponge, filling, and decorating. The 'Jelly Cat' style cakes (shaped like plush toys) are the current trend. Takes about 2 hours.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "You choose your sponge flavor (chocolate, Earl Grey tea, vanilla) and filling. The Earl Grey option gets specific praise from reviewers.",
+      "tip": "Choose Earl Grey (伯爵红茶) sponge — multiple reviewers single it out as the best flavor."
+    },
+    {
+      "name": "Macaron Workshop",
+      "description": "More technically challenging — you learn to pipe shells with proper 'feet' (the ruffled edges) and fill them. Can request no artificial coloring.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Macarons are a French technique taught in a Chinese mall — a fun cultural collision. The matcha flavor is recommended.",
+      "tip": "The piping technique requires practice — don't be frustrated if your first few shells aren't perfect. The instructor will fix them discreetly."
+    }
+  ],
+
+  "what_visitors_miss": [
+    {
+      "what": "The recipe card you can take home",
+      "why": "At least one reviewer mentions getting a written recipe with measurements so you can recreate the item at home. Ask for it — they don't always offer it automatically."
+    },
+    {
+      "what": "Request an ice pack for transport",
+      "why": "One scathing review describes cream cakes melting on the subway ride home. The shop provides ice packs and packaging but you may need to specifically ask for 冰袋 (ice pack). Essential in summer."
+    },
+    {
+      "what": "The whole 4th floor is DIY shops",
+      "why": "Réel's 4th floor has multiple DIY/craft studios — you could combine baking with other hands-on workshops in the same trip."
+    }
+  ],
+
+  "strategy": {
+    "smart_route": "Take Metro Line 2/7 to Jing'an Temple station, walk into Réel Mall, elevator to 4th floor. After your session, browse the mall or walk 5 minutes to Jing'an Temple for photos.",
+    "what_to_skip": "The custom cookie ordering service (定制饼干) is for locals who want personalized gift cookies made by the shop — not a DIY experience. Don't confuse it with the hands-on classes.",
+    "pro_tips": [
+      "Book for a weekday if at all possible — weekend sessions mean sharing instructor attention with multiple groups.",
+      "If you're doing a cake, eat it the same day or store it in a fridge immediately. The cream doesn't survive Shanghai summer heat.",
+      "The shop is on the 4th floor of Réel Mall (芮欧百货) — take the elevator, it's easy to find once you're in the mall."
+    ]
+  },
+
+  "heads_up": [
+    {
+      "warning": "Pricing feels steep for what you get",
+      "advice": "At ¥200-388 per person, this isn't cheap. You're paying for the experience, the ingredients, and the Instagram content — not just the food. Set expectations accordingly. The cookies you make are tasty but small."
+    },
+    {
+      "warning": "Open-plan workspace means no privacy",
+      "advice": "The kitchen is one open room with shared tables. You'll be baking alongside other groups (often families with kids on weekends). If you want a more intimate experience, go on a weekday."
+    },
+    {
+      "warning": "Cream products melt fast in summer",
+      "advice": "If making anything with cream (cakes, certain decorated cookies), ask for an ice pack (冰袋) and get it into a fridge within an hour. One reviewer's entire cake was ruined on the subway ride home."
+    },
+    {
+      "warning": "Instruction is Chinese-only by default",
+      "advice": "The process is visual enough to follow without Chinese, but you'll miss technique explanations. Consider having a Chinese-speaking friend join, or ask about interpreter support when booking."
+    }
+  ],
+
+  "preparation": {
+    "what_to_wear": "Anything comfortable — you'll be given an apron. Avoid loose sleeves that could drag through batter. No dress code.",
+    "what_to_bring": "Just your phone for photos. Everything else (apron, tools, ingredients, packaging) is provided.",
+    "what_not_to_bring": "No outside food needed — you'll eat what you make. Don't bring perishable items in summer as there's no fridge for personal items."
+  },
+
+  "physical_accessibility": {
+    "physical_intensity": "low",
+    "physical_details": "Standing at a counter for 1-2 hours with light hand work (mixing, piping, decorating). Children as young as 3-4 can do the simpler items. Fully accessible — elevator to 4th floor, no physical barriers inside.",
+    "age_notes": "Very kid-friendly — instructors are experienced with children. Donut and simple cookie sessions work for ages 3+. Cake and macaron sessions better for ages 8+ or adults.",
+    "health_warnings": "Contains common allergens (wheat, dairy, eggs, nuts in some items). One reviewer noted the space can get warm due to ovens and poor ventilation on hot days."
+  },
+
+  "concierge_opportunities": [
+    {
+      "action": "Book a session and specify recipe choice",
+      "platform": "Phone call in Chinese: (021) 80181848, or Dianping/Meituan (requires Chinese payment)",
+      "value_to_user": "Required to guarantee a spot, especially weekends. Can also ask about English-speaking instructor availability."
+    },
+    {
+      "action": "Request interpreter/English support for the session",
+      "platform": "Phone call in Chinese when booking",
+      "value_to_user": "At least one review mentions a 'translator fee' was added for a group event — the shop may be able to arrange English-speaking guidance at extra cost."
+    }
+  ],
+
+  "useful_chinese": [
+    {
+      "pinyin": "wǒ yù yuē le",
+      "chinese": "我预约了",
+      "english": "I have a reservation"
+    },
+    {
+      "pinyin": "wǒ xiǎng zuò bǐng gān",
+      "chinese": "我想做饼干",
+      "english": "I'd like to make cookies"
+    },
+    {
+      "pinyin": "wǒ xiǎng zuò dàn gāo",
+      "chinese": "我想做蛋糕",
+      "english": "I'd like to make a cake"
+    },
+    {
+      "pinyin": "bó jué hóng chá kǒu wèi",
+      "chinese": "伯爵红茶口味",
+      "english": "Earl Grey flavor"
+    },
+    {
+      "pinyin": "kě yǐ bāng wǒ pāi zhào ma?",
+      "chinese": "可以帮我拍照吗？",
+      "english": "Can you take a photo of me?"
+    },
+    {
+      "pinyin": "yǒu bīng dài ma?",
+      "chinese": "有冰袋吗？",
+      "english": "Do you have an ice pack?"
+    },
+    {
+      "pinyin": "bù yào tài tián",
+      "chinese": "不要太甜",
+      "english": "Not too sweet please"
+    }
+  ],
+
+  "pair_with": [
+    {
+      "suggestion": "Window-shop or grab coffee in Réel Mall and the Jing'an luxury shopping district",
+      "why": "You're already in one of Shanghai's best malls on West Nanjing Road. After baking, browse the shops downstairs or walk to the surrounding area — Jing'an Temple, high-end boutiques, and great cafes are all within a few minutes.",
+      "travel_time": "0 min (same building) to 10 min walk"
+    },
+    {
+      "suggestion": "Jing'an Temple (静安寺)",
+      "why": "A striking golden Buddhist temple surrounded by skyscrapers — a perfect Shanghai contrast photo and a 5-minute walk from the mall. Good for a quick visit before or after your baking session.",
+      "travel_time": "5 min walk"
+    },
+    {
+      "suggestion": "Explore the other DIY studios on the same floor",
+      "why": "Réel's 4th floor has multiple craft/DIY experiences. You could pair baking with another hands-on workshop for a full creative afternoon.",
+      "travel_time": "0 min (same floor)"
+    }
+  ],
+
+  "cultural_context": "DIY baking studios have exploded across Chinese cities in the past few years, driven by social media culture — the experience is designed as much for content creation as for the baking itself. The cute aprons, photo props, and Instagram-ready setups aren't afterthoughts; they're the core product. For Chinese young women in particular, these studios are a go-to activity for birthdays, friend dates, and couple outings. As a foreigner, you're stepping into a very current slice of urban Chinese leisure culture.",
+
+  "best_for": [
+    "couples",
+    "good-for-dates",
+    "rainy-day-option",
+    "no-Chinese-needed",
+    "Instagram-worthy"
+  ]
+}

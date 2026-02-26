@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getAllBlogPosts } from "@/lib/blog";
+import { getAllAttractionSlugs } from "@/lib/attractions";
 import { SITE_URL } from "@/lib/site";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -52,5 +53,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...blogRoutes];
+  const attractionSlugs = await getAllAttractionSlugs();
+  const attractionRoutes: MetadataRoute.Sitemap = attractionSlugs.map((slug) => ({
+    url: `${SITE_URL}/attractions/${slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...blogRoutes, ...attractionRoutes];
 }
