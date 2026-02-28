@@ -292,9 +292,9 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
       {/* ═══ HIGHLIGHTS (after When to Go — visual break) ═══ */}
       {highlights.length > 0 && (<><SH>What makes this special</SH>
         <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '0 20px 4px' }}>
-          {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); return (
-            <div key={i} style={{ minWidth: hl.image ? 280 : 240, maxWidth: 280, scrollSnapAlign: 'start', borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
-              {hl.image && <div style={{ width: '100%', height: 220, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${hl.image})` }} />}
+          {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); const hlImg = hl.image && !/^https?:\/\//.test(hl.image) ? `https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/${data.slug}/${hl.image}` : hl.image; return (
+            <div key={i} style={{ minWidth: hlImg ? 280 : 240, maxWidth: 280, scrollSnapAlign: 'start', borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
+              {hlImg && <div style={{ width: '100%', height: 220, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${hlImg})` }} />}
               <div style={{ padding: '12px 14px' }}>
                 <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, padding: '2px 7px', borderRadius: 4, marginBottom: 6, background: b.bg, color: b.color }}>{b.label}</span>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{hl.name}</div>
