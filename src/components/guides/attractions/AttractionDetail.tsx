@@ -317,19 +317,21 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
       </nav>
 
       {/* ═══ IMAGE GRID ═══ */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 340, paddingTop: 44 }}>
-        {[0,1,2,3].map(i => (
-          <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
-            style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative' }}>
-            {!images[i] && '📷'}
-            {i === 3 && images.length > 4 && (
-              <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
-                style={{ position: 'absolute', bottom: 8, right: 8, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,.92)', border: '1px solid rgba(0,0,0,.15)', fontSize: 12, fontWeight: 600, color: '#222', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
-                Show all
-              </button>
-            )}
-          </div>
-        ))}
+      <div style={{ padding: '44px 10px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, height: 290, borderRadius: 12, overflow: 'hidden' }}>
+          {[0,1,2,3].map(i => (
+            <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
+              style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative' }}>
+              {!images[i] && '📷'}
+              {i === 3 && images.length > 4 && (
+                <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
+                  style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="8.5" height="8.5" rx="1.5" stroke="#222" strokeWidth="1.5"/><path d="M6 4V2.5A1.5 1.5 0 017.5 1H13.5A1.5 1.5 0 0115 2.5V8.5A1.5 1.5 0 0113.5 10H12" stroke="#222" strokeWidth="1.5"/></svg>
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ═══ TITLE ═══ */}
