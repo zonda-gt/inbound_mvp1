@@ -317,11 +317,13 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
       </nav>
 
       {/* ═══ IMAGE GRID ═══ */}
-      <div style={{ padding: '44px 10px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 2, height: 290, borderRadius: 12, overflow: 'hidden' }}>
-          {[0,1,2,3].map(i => (
+      <div style={{ padding: '96px 10px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 290 }}>
+          {[0,1,2,3].map(i => {
+            const r = ['12px 2px 2px 2px', '2px 12px 2px 2px', '2px 2px 2px 12px', '2px 2px 12px 2px'][i];
+            return (
             <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
-              style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative' }}>
+              style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
               {!images[i] && '📷'}
               {i === 3 && images.length > 4 && (
                 <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
@@ -330,7 +332,7 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
                 </button>
               )}
             </div>
-          ))}
+          ); })}
         </div>
       </div>
 
