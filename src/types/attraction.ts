@@ -109,6 +109,9 @@ export interface AttractionData {
   strategy: Strategy;
   heads_up: HeadsUp[];
 
+  card_name?: string;
+  card_hook?: string;
+  card_type?: string;
   experience_type_secondary?: string;
   experience_format_note?: string;
   preparation?: Preparation;
@@ -119,4 +122,5 @@ export interface AttractionData {
   cultural_context?: string;
   photo_spots?: PhotoSpot[];
   best_for?: string[];
+  images?: string[];
 }

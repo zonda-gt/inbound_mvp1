@@ -1,24 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Playfair_Display, Source_Sans_3 } from "next/font/google";
-import PayNavbar from "@/components/guides/pay/PayNavbar";
-import PayFooter from "@/components/guides/pay/PayFooter";
-import AttractionDetail from "@/components/guides/attractions/AttractionDetail";
+import AttractionPageComponent from "@/components/guides/attractions/AttractionDetail";
 import { getAllAttractionSlugs, getAttractionBySlug } from "@/lib/attractions";
 import { SITE_URL } from "@/lib/site";
 import type { AttractionData } from "@/types/attraction";
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-pay-serif",
-  display: "swap",
-});
-
-const sourceSans = Source_Sans_3({
-  subsets: ["latin"],
-  variable: "--font-pay-sans",
-  display: "swap",
-});
+export const revalidate = 3600; // ISR: revalidate every hour
+export const dynamicParams = true; // allow slugs not in generateStaticParams
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -87,19 +75,7 @@ export default async function AttractionPage({ params }: Props) {
   return (
     <>
       <AttractionSchema data={data} />
-      <div
-        className={`${playfair.variable} ${sourceSans.variable} pay-guide min-h-screen`}
-      >
-        <PayNavbar
-          navLinks={[]}
-          brandIcon="景点"
-          brandLabel="HelloChina Guide"
-        />
-        <main>
-          <AttractionDetail data={data} />
-        </main>
-        <PayFooter />
-      </div>
+      <AttractionPageComponent data={data} />
     </>
   );
 }
