@@ -1,1009 +1,424 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import {
-  Clock,
-  MapPin,
-  Ticket,
-  Camera,
-  AlertTriangle,
-  MessageCircle,
-  ArrowRight,
-  Copy,
-  Check,
-  Compass,
-  ChevronDown,
-  Languages,
-  Sparkles,
-  Eye,
-  Lightbulb,
-  ShieldAlert,
-  CalendarDays,
-  Backpack,
-  Footprints,
-  Users,
-  BookOpen,
-  Navigation,
-  Star,
-} from "lucide-react";
-import type {
-  AttractionData,
-  ExperienceHighlight,
-  VisitorMiss,
-  Strategy,
-  HeadsUp,
-  GettingIn,
-  BestTime,
-  Preparation,
-  PhysicalAccessibility,
-  ConciergeOpportunity,
-  UsefulChinese,
-  PairWith,
-  PhotoSpot,
-} from "@/types/attraction";
+import { useState, useEffect, useCallback } from 'react';
 
-/* ── Helpers ── */
+// ════════════════════════════════════════════════════════════════
+// ATTRACTION PAGE v2 — Universal Template Engine
+//
+// <AttractionPage data={attractionJson} onAsk={fn} onNavigate={fn} />
+//
+// Section order (v2):
+//   Title → Hook → Stat Strip → Make-or-Break → Pricing →
+//   When to Go → ★ Highlights (visual break) → Where It Is →
+//   Friend's Take → Route → What Visitors Miss → Heads Up →
+//   Preparation → Phrases → Photo Spots → Nearby →
+//   Cultural Context → Best For
+// ════════════════════════════════════════════════════════════════
 
-function useCopyToClipboard() {
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+// —— Helpers ——
 
-  const copy = useCallback((text: string, key: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopiedKey(null), 1500);
-    });
-  }, []);
-
-  return { copiedKey, copy };
+function extractShortPrice(priceRmb: string | number | undefined): string | null {
+  if (priceRmb == null) return null;
+  const s = typeof priceRmb === 'number' ? `¥${priceRmb}` : String(priceRmb);
+  const m = s.match(/[~]?¥?[\d,.]+([\s]*[-–][\s]*[~]?¥?[\d,.]+)?/);
+  if (!m) return null;
+  let p = m[0].replace(/\s+/g, '');
+  if (!p.startsWith('¥')) p = '¥' + p;
+  return p;
 }
 
-function SectionHeading({
-  icon: Icon,
-  title,
-  id,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  id?: string;
-}) {
-  return (
-    <div className="flex items-center gap-2.5 mb-5" id={id}>
-      <div className="w-8 h-8 rounded-full bg-[#FFD700]/15 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-[#FFD700]" />
-      </div>
-      <h2 className="text-xl sm:text-2xl font-bold text-foreground">{title}</h2>
+function langInfo(rating: string | number | undefined) {
+  if (rating == null) return null;
+  const s = String(rating);
+  if (s.includes('no-chinese-needed')) return { text: 'No Chinese needed', color: '#008A05' };
+  if (s.includes('some-chinese-helps')) return { text: 'Some Chinese helps', color: '#484848' };
+  if (s.includes('chinese-required') || s.includes('chinese-essential')) return { text: 'Chinese required', color: '#D0021B' };
+  const n = s.match(/^(\d+)(\/10)?/);
+  if (n) { const v = parseInt(n[1]); if (v <= 3) return { text: 'No Chinese needed', color: '#008A05' }; if (v <= 6) return { text: 'Some Chinese helps', color: '#484848' }; return { text: 'Chinese helps a lot', color: '#D0021B' }; }
+  return null;
+}
+
+function badge(appeal: string | number | undefined) {
+  if (appeal == null) return { bg: '#F0F5FE', color: '#1a56db', label: 'HIGHLIGHT' };
+  const a = '' + appeal;
+  if (/^high$/i.test(a)) return { bg: '#FEF0F0', color: '#D0021B', label: "DON'T MISS" };
+  if (/^medium$/i.test(a)) return { bg: '#F0F5FE', color: '#1a56db', label: 'WORTH SEEING' };
+  if (/^low$/i.test(a)) return { bg: '#FFF8E6', color: '#946800', label: 'IF YOU HAVE TIME' };
+  if (/chinese/i.test(a)) return { bg: '#FEF0F0', color: '#D0021B', label: 'UNIQUELY CHINESE' };
+  if (/universal/i.test(a)) return { bg: '#F0F5FE', color: '#1a56db', label: 'UNIVERSAL APPEAL' };
+  if (/cultural/i.test(a)) return { bg: '#FFF8E6', color: '#946800', label: 'CULTURALLY INTERESTING' };
+  return { bg: '#F0F5FE', color: '#1a56db', label: 'HIGHLIGHT' };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildStats(data: any) {
+  const s: { value: string; label: string }[] = [];
+  const gi = data.getting_in || {};
+  const tn = data.time_needed || {};
+  const p = extractShortPrice(gi.price_rmb);
+  if (p) s.push({ value: p, label: 'per person' });
+  if (tn.recommended) {
+    const dm = String(tn.recommended).match(/([\d.]+[-–][\d.]+\s*hours?|[\d.]+\s*hours?)/i);
+    if (dm) s.push({ value: dm[0], label: 'duration' });
+  }
+  const types = [data.experience_type, data.experience_type_secondary].filter(Boolean);
+  const icons: Record<string, string> = { social: '🎵', immersive: '🎭', activity: '🏃', cultural: '🏛️', aesthetic: '📸', nightlife: '🌃', family: '👨‍👩‍👧‍👦' };
+  if (types.length > 0 && s.length < 3) s.push({ value: icons[String(types[0])] || '✦', label: types.map((t) => { const ts = String(t); return ts.charAt(0).toUpperCase() + ts.slice(1); }).join(' · ') });
+  return s.slice(0, 3);
+}
+
+const W_ICO = ['⚠️','🔊','🚬','💰','🎵','🪑','🌡️','⏰','📱','🚗'];
+const P_ICO = ['🎯','🏠','📸','🎭','🏛️','🌳','✨','🎪'];
+const T_ICO = ['🎯','🏷️','🧠','💡','⏰'];
+const M_ICO = ['🔮','💡','🌅','👀','🔑'];
+
+// —— Sub-components ——
+
+function Divider() { return <><div style={{ height: 32 }} /><div style={{ height: 1, background: '#ebebeb', margin: '0 20px' }} /><div style={{ height: 32 }} /></>; }
+
+function SH({ children }: { children: React.ReactNode }) { return <div style={{ padding: '0 20px' }}><div className="dm-serif" style={{ fontSize: 22, color: '#222', lineHeight: 1.25, marginBottom: 16 }}>{children}</div></div>; }
+
+function Coll({ title, children, open: defaultOpen = false }: { title: string; children: React.ReactNode; open?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (<div style={{ borderTop: '1px solid #f5f5f5' }}>
+    <div onClick={() => setOpen(!open)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', cursor: 'pointer' }}>
+      <h3 style={{ fontSize: 14, fontWeight: 600, color: '#222', margin: 0 }}>{title}</h3>
+      <span style={{ fontSize: 12, color: '#717171', transition: 'transform .3s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
     </div>
-  );
+    <div style={{ maxHeight: open ? 2000 : 0, overflow: 'hidden', transition: 'max-height .4s ease' }}>{children}</div>
+  </div>);
 }
 
-function LanguageBadge({ rating }: { rating: string }) {
-  const config: Record<string, { label: string; color: string; bg: string }> = {
-    "no-chinese-needed": {
-      label: "No Chinese needed",
-      color: "text-[#16a34a]",
-      bg: "bg-[#16a34a]/10",
-    },
-    "some-chinese-helps": {
-      label: "Some Chinese helps",
-      color: "text-[#d97706]",
-      bg: "bg-[#d97706]/10",
-    },
-    "chinese-essential": {
-      label: "Chinese essential",
-      color: "text-[#dc2626]",
-      bg: "bg-[#dc2626]/10",
-    },
-  };
-  const c = config[rating] || config["some-chinese-helps"];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full ${c.bg} ${c.color}`}
-    >
-      <Languages className="w-3 h-3" />
-      {c.label}
-    </span>
-  );
+function RM({ text, lines = 5 }: { text: string; lines?: number }) {
+  const [exp, setExp] = useState(false);
+  return (<>
+    <div style={exp ? {} : { display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>{text}</div>
+    <button onClick={() => setExp(!exp)} style={{ display: 'inline-block', marginTop: 8, fontSize: 13, fontWeight: 600, color: '#222', textDecoration: 'underline', cursor: 'pointer', border: 'none', background: 'none', padding: 0, textUnderlineOffset: 3 }}>{exp ? 'Show less' : 'Show more'}</button>
+  </>);
 }
 
-function IntensityBadge({ level }: { level: string }) {
-  const config: Record<string, { label: string; color: string; bg: string }> = {
-    low: { label: "Low intensity", color: "text-[#16a34a]", bg: "bg-[#16a34a]/10" },
-    moderate: { label: "Moderate intensity", color: "text-[#d97706]", bg: "bg-[#d97706]/10" },
-    high: { label: "High intensity", color: "text-[#ea580c]", bg: "bg-[#ea580c]/10" },
-    extreme: { label: "Extreme intensity", color: "text-[#dc2626]", bg: "bg-[#dc2626]/10" },
-  };
-  const c = config[level] || config["moderate"];
-  return (
-    <span
-      className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${c.bg} ${c.color}`}
-    >
-      <Footprints className="w-3.5 h-3.5" />
-      {c.label}
-    </span>
-  );
-}
-
-function shouldShowFormatNote(note?: string): boolean {
-  if (!note) return false;
-  return !note.toLowerCase().trim().startsWith("standard format");
-}
-
-/* ── Section 1: Hero ── */
-
-function HeroSection({ data }: { data: AttractionData }) {
-  const { copiedKey, copy } = useCopyToClipboard();
-  const isCopied = copiedKey === "hero-cn";
-
-  return (
-    <section className="relative pt-14 md:pt-16">
-      <div
-        className="px-4 pt-12 pb-10 sm:pt-20 sm:pb-14"
-        style={{ background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)" }}
-      >
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Type badge */}
-          <span className="inline-block text-[10px] font-bold uppercase tracking-widest text-[#FFD700] bg-[#FFD700]/10 px-3 py-1 rounded-full mb-4">
-            {data.experience_type}
-            {data.experience_type_secondary ? ` / ${data.experience_type_secondary}` : ""}
-          </span>
-
-          {/* English name */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
-            {data.attraction_name_en}
-          </h1>
-
-          {/* Chinese name — tap to copy */}
-          <button
-            onClick={() => copy(data.attraction_name_cn, "hero-cn")}
-            className="mt-2 inline-flex items-center gap-1.5 text-white/50 hover:text-white/70 transition-colors group"
-          >
-            <span className="text-base sm:text-lg">{data.attraction_name_cn}</span>
-            {isCopied ? (
-              <Check className="w-3.5 h-3.5 text-[#07C160]" />
-            ) : (
-              <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-            )}
-          </button>
-          {isCopied && (
-            <p className="text-[10px] text-[#07C160] mt-0.5">Copied!</p>
-          )}
-
-          {/* Hook */}
-          <p className="mt-6 text-base sm:text-lg text-white/80 leading-relaxed max-w-2xl mx-auto italic">
-            &ldquo;{data.hook}&rdquo;
-          </p>
-
-          {/* Quick stats */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-white/60 bg-white/[0.07] px-3 py-1.5 rounded-full">
-              <Clock className="w-3.5 h-3.5" />
-              {data.time_needed.recommended.split("—")[0].trim()}
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-white/60 bg-white/[0.07] px-3 py-1.5 rounded-full">
-              <Ticket className="w-3.5 h-3.5" />
-              {data.getting_in.price_usd.split(";")[0].trim()}
-            </span>
-            <LanguageBadge rating={data.getting_in.language_barrier_rating} />
-          </div>
-
-          {/* Vibe */}
-          <p className="mt-5 text-xs sm:text-sm text-white/40 italic max-w-xl mx-auto">
-            {data.vibe}
-          </p>
-
-          {/* Scroll indicator */}
-          <div className="mt-8 animate-bounce">
-            <ChevronDown className="w-5 h-5 text-white/30 mx-auto" />
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 2: Local Friend's Take ── */
-
-function LocalFriendsTake({ text }: { text: string }) {
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={MessageCircle} title="Your Local Friend's Take" />
-        <div className="border-l-4 border-[#FFD700] bg-card rounded-r-lg p-5 sm:p-6">
-          <p className="text-sm sm:text-base text-foreground/80 leading-relaxed whitespace-pre-line">
-            {text}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 3: Make-or-Break Question ── */
-
-function MakeOrBreakQuestion({ q, a }: { q: string; a: string }) {
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Lightbulb} title="The Make-or-Break Question" />
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="bg-[#C84032]/5 border-b border-[#C84032]/10 px-5 py-4">
-            <p className="text-sm sm:text-base font-semibold text-[#C84032]">
-              &ldquo;{q}&rdquo;
-            </p>
-          </div>
-          <div className="px-5 py-4 sm:py-5">
-            <p className="text-sm sm:text-base text-foreground/80 leading-relaxed">
-              {a}
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 4: How It Works ── */
-
-function HowItWorks({ note }: { note: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const isLong = note.length > 300;
-  const displayText = isLong && !expanded ? note.slice(0, 300) + "..." : note;
-
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Compass} title="How It Works" />
-        <div className="bg-[#FFD700]/5 border border-[#FFD700]/15 rounded-xl p-5 sm:p-6">
-          <p className="text-sm sm:text-base text-foreground/80 leading-relaxed whitespace-pre-line">
-            {displayText}
-          </p>
-          {isLong && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="mt-3 text-xs font-semibold text-[#C84032] hover:underline"
-            >
-              {expanded ? "Show less" : "Read more"}
-            </button>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 5: Highlights ── */
-
-function HighlightCard({ item }: { item: ExperienceHighlight }) {
-  return (
-    <div className="bg-card border border-border rounded-xl p-5 flex-shrink-0 w-[280px] sm:w-auto snap-start">
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-sm sm:text-base font-bold text-foreground leading-snug">
-          {item.name}
-        </h3>
-        <span className="text-[10px] font-semibold whitespace-nowrap bg-[#16a34a]/10 text-[#16a34a] px-1.5 py-0.5 rounded">
-          {item.foreigner_appeal.replace(/🟢\s*/, "")}
-        </span>
-      </div>
-      <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed mb-3">
-        {item.description}
-      </p>
-      {item.foreigner_note && (
-        <p className="text-[11px] text-muted-foreground leading-relaxed mb-2 italic">
-          {item.foreigner_note}
-        </p>
-      )}
-      <div className="flex items-start gap-1.5 bg-[#FFD700]/5 rounded-lg px-3 py-2">
-        <Lightbulb className="w-3.5 h-3.5 text-[#FFD700] flex-shrink-0 mt-0.5" />
-        <p className="text-[11px] sm:text-xs text-foreground/70 leading-relaxed">
-          {item.tip}
-        </p>
-      </div>
+function Info({ icon, title, desc }: { icon: string; title?: string; desc: string }) {
+  return (<div style={{ display: 'flex', gap: 14, padding: '14px 20px', alignItems: 'flex-start', borderTop: '1px solid #f5f5f5' }}>
+    <div style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0, marginTop: 1 }}>{icon}</div>
+    <div style={{ flex: 1, minWidth: 0 }}>
+      {title && <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 1 }}>{title}</div>}
+      <div style={{ fontSize: 13, color: '#717171', lineHeight: 1.5 }}>{desc}</div>
     </div>
-  );
+  </div>);
 }
 
-function HighlightsSection({ highlights }: { highlights: ExperienceHighlight[] }) {
-  if (!highlights?.length) return null;
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Star} title="Highlights" />
+interface PhraseData { pinyin: string; chinese: string; english: string }
 
-        {/* Mobile: horizontal scroll */}
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 sm:hidden scrollbar-hide">
-          {highlights.map((item, i) => (
-            <HighlightCard key={i} item={item} />
-          ))}
+function Phrase({ phrase, onLongPress }: { phrase: PhraseData; onLongPress: (p: PhraseData) => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => { navigator.clipboard.writeText(phrase.chinese).catch(() => {}); setCopied(true); setTimeout(() => setCopied(false), 1200); };
+  return (<div onClick={copy} onContextMenu={(e) => { e.preventDefault(); onLongPress(phrase); }}
+    style={{ padding: 12, background: '#f7f7f7', borderRadius: 10, cursor: 'pointer', transition: 'all .15s', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ fontSize: 16, fontWeight: 700, color: '#222', marginBottom: 1 }}>{phrase.chinese}</div>
+    <div style={{ fontSize: 10, color: '#717171', marginBottom: 4 }}>{phrase.pinyin}</div>
+    <div style={{ fontSize: 11, color: '#484848', fontWeight: 500, lineHeight: 1.3 }}>{phrase.english}</div>
+    {copied && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,138,5,.9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 600, borderRadius: 10 }}>Copied ✓</div>}
+  </div>);
+}
+
+function StaffOverlay({ phrase, onClose }: { phrase: PhraseData | null; onClose: () => void }) {
+  if (!phrase) return null;
+  return (<div style={{ position: 'fixed', inset: 0, background: '#fff', zIndex: 300, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 30px', textAlign: 'center' }}>
+    <div style={{ fontSize: 48, fontWeight: 700, color: '#222', lineHeight: 1.3, marginBottom: 8 }}>{phrase.chinese}</div>
+    <div style={{ fontSize: 16, color: '#717171', marginBottom: 4 }}>{phrase.pinyin}</div>
+    <div style={{ fontSize: 14, color: '#484848', marginBottom: 32 }}>{phrase.english}</div>
+    <button onClick={onClose} style={{ padding: '12px 32px', borderRadius: 10, background: '#222', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}>Done</button>
+    <div style={{ fontSize: 11, color: '#b0b0b0', marginTop: 16 }}>Show this screen to the person you&apos;re talking to</div>
+  </div>);
+}
+
+function SmartRoute({ text }: { text: string }) {
+  if (!text) return null;
+  if (text.includes('→')) {
+    const steps = text.split(/\s*→\s*/);
+    return (<div style={{ padding: '0 20px' }}>{steps.map((s, i) => (
+      <div key={i} style={{ display: 'flex', gap: 12, paddingBottom: i < steps.length - 1 ? 16 : 0, position: 'relative' }}>
+        <div style={{ position: 'relative', flexShrink: 0, width: 28, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: i === 0 ? '#D0021B' : '#222', zIndex: 1, flexShrink: 0, marginTop: 5 }} />
+          {i < steps.length - 1 && <div style={{ position: 'absolute', top: 17, left: '50%', transform: 'translateX(-50%)', width: 1, bottom: 0, background: '#e0e0e0' }} />}
         </div>
-
-        {/* Desktop: grid */}
-        <div className="hidden sm:grid sm:grid-cols-2 gap-4">
-          {highlights.map((item, i) => (
-            <HighlightCard key={i} item={item} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+        <div style={{ flex: 1, fontSize: 13, color: '#484848', lineHeight: 1.55 }}>{s.trim()}</div>
+      </div>))}</div>);
+  }
+  if (/^\d+[.)]\s/m.test(text)) {
+    const steps = text.split(/(?=\d+[.)]\s)/).filter(s => s.trim());
+    return (<div style={{ padding: '0 20px' }}>{steps.map((s, i) => (
+      <div key={i} style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+        <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#f7f7f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#222', flexShrink: 0, marginTop: 1 }}>{i + 1}</div>
+        <div style={{ flex: 1, fontSize: 13, color: '#484848', lineHeight: 1.55 }}>{s.replace(/^\d+[.)]\s*/, '').trim()}</div>
+      </div>))}</div>);
+  }
+  return <div style={{ padding: '0 20px', fontSize: 13, color: '#484848', lineHeight: 1.55 }}>{text}</div>;
 }
 
-/* ── Section 6: Strategy & Hidden Gems ── */
+// —— Main Component ——————————————————————————————————————————————
 
-function StrategySection({
-  strategy,
-  misses,
-}: {
-  strategy: Strategy;
-  misses: VisitorMiss[];
-}) {
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Navigation} title="Strategy & Hidden Gems" />
-
-        {/* Smart route */}
-        <div className="mb-6">
-          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5 text-[#FFD700]" />
-            Suggested Route
-          </h3>
-          <p className="text-sm text-foreground/80 leading-relaxed bg-card border border-border rounded-lg p-4">
-            {strategy.smart_route}
-          </p>
-        </div>
-
-        {/* Pro tips */}
-        {strategy.pro_tips?.length > 0 && (
-          <div className="mb-6">
-            <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
-              <Lightbulb className="w-3.5 h-3.5 text-[#FFD700]" />
-              Pro Tips
-            </h3>
-            <ul className="space-y-2">
-              {strategy.pro_tips.map((tip, i) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2 text-sm text-foreground/80"
-                >
-                  <span className="text-[#FFD700] font-bold mt-0.5">+</span>
-                  <span className="leading-relaxed">{tip}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* What to skip */}
-        <div className="mb-6">
-          <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
-            <span className="text-sm">&#9197;&#65039;</span>
-            What to Skip
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed bg-secondary/50 rounded-lg p-4">
-            {strategy.what_to_skip}
-          </p>
-        </div>
-
-        {/* Hidden gems */}
-        {misses?.length > 0 && (
-          <div>
-            <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-[#FFD700]" />
-              What Most Visitors Miss
-            </h3>
-            <div className="space-y-3">
-              {misses.map((item, i) => (
-                <div
-                  key={i}
-                  className="bg-[#FFD700]/5 border border-[#FFD700]/15 rounded-lg p-4"
-                >
-                  <p className="text-sm font-semibold text-foreground mb-1">
-                    {item.what}
-                  </p>
-                  <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed">
-                    {item.why}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 7: Heads Up ── */
-
-function HeadsUpSection({ items }: { items: HeadsUp[] }) {
-  if (!items?.length) return null;
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={AlertTriangle} title="Heads Up" />
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div
-              key={i}
-              className="bg-[#d97706]/5 border border-[#d97706]/15 rounded-xl p-4 sm:p-5"
-            >
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-4 h-4 text-[#d97706] flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground mb-1">
-                    {item.warning}
-                  </p>
-                  <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed">
-                    {item.advice}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 8: Getting In ── */
-
-function GettingInSection({ info }: { info: GettingIn }) {
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Ticket} title="Getting In" />
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {/* Price header */}
-          <div
-            className="px-5 py-4 sm:py-5"
-            style={{ background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)" }}
-          >
-            <p className="text-xs text-white/50 uppercase tracking-wider font-semibold mb-1">
-              Price
-            </p>
-            <p className="text-base sm:text-lg font-bold text-white">
-              {info.price_rmb}
-            </p>
-            <p className="text-xs text-white/50 mt-0.5">
-              {info.price_usd}
-            </p>
-          </div>
-
-          {/* Info rows */}
-          <div className="divide-y divide-border">
-            <InfoRow label="Booking" value={info.booking_required} />
-            <InfoRow label="How to Book" value={info.booking_method} />
-            <InfoRow label="Passport Entry" value={info.passport_accepted} />
-            <InfoRow label="Queue" value={info.queue_situation} />
-            <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28 flex-shrink-0">
-                Language
-              </span>
-              <LanguageBadge rating={info.language_barrier_rating} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="px-5 py-3.5 flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3">
-      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-28 flex-shrink-0">
-        {label}
-      </span>
-      <p className="text-sm text-foreground/80 leading-relaxed">{value}</p>
-    </div>
-  );
-}
-
-/* ── Section 9: Best Time ── */
-
-function BestTimeSection({ bestTime }: { bestTime: BestTime }) {
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={CalendarDays} title="Best Time to Visit" />
-        <div className="space-y-4">
-          <TimeCard
-            label="Best Time"
-            text={bestTime.best_time_of_day}
-            accent="border-[#16a34a]/20 bg-[#16a34a]/5"
-          />
-          <TimeCard
-            label="Worst Time"
-            text={bestTime.worst_time}
-            accent="border-[#dc2626]/20 bg-[#dc2626]/5"
-          />
-          <TimeCard
-            label="Seasonal Notes"
-            text={bestTime.seasonal_notes}
-            accent="border-border bg-card"
-          />
-          {/* Pro tip highlighted */}
-          <div className="bg-[#FFD700]/5 border border-[#FFD700]/20 rounded-xl p-4 sm:p-5">
-            <div className="flex items-start gap-2.5">
-              <Lightbulb className="w-4 h-4 text-[#FFD700] flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-bold text-[#FFD700] uppercase tracking-wider mb-1">
-                  Pro Tip
-                </p>
-                <p className="text-sm text-foreground/80 leading-relaxed">
-                  {bestTime.pro_tip}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TimeCard({
-  label,
-  text,
-  accent,
-}: {
-  label: string;
-  text: string;
-  accent: string;
-}) {
-  return (
-    <div className={`border rounded-xl p-4 ${accent}`}>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-        {label}
-      </p>
-      <p className="text-sm text-foreground/80 leading-relaxed">{text}</p>
-    </div>
-  );
-}
-
-/* ── Section 10: Preparation ── */
-
-function PreparationSection({ prep }: { prep: Preparation }) {
-  const items = [
-    { label: "What to Wear", text: prep.what_to_wear, icon: "👔" },
-    { label: "What to Bring", text: prep.what_to_bring, icon: "🎒" },
-    { label: "What NOT to Bring", text: prep.what_not_to_bring, icon: "🚫" },
-  ].filter((item) => item.text);
-
-  if (!items.length) return null;
-
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Backpack} title="Preparation" />
-        <div className="space-y-3">
-          {items.map((item, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-4 sm:p-5">
-              <div className="flex items-start gap-2.5">
-                <span className="text-base flex-shrink-0 mt-0.5">{item.icon}</span>
-                <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
-                    {item.label}
-                  </p>
-                  <p className="text-sm text-foreground/80 leading-relaxed">
-                    {item.text}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 11: Physical & Accessibility ── */
-
-function PhysicalSection({
-  accessibility,
-}: {
-  accessibility: PhysicalAccessibility;
-}) {
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Footprints} title="Physical & Accessibility" />
-        <div className="bg-card border border-border rounded-xl p-5 sm:p-6">
-          <div className="mb-4">
-            <IntensityBadge level={accessibility.physical_intensity} />
-          </div>
-          <p className="text-sm text-foreground/80 leading-relaxed mb-3">
-            {accessibility.physical_details}
-          </p>
-          {accessibility.age_notes && (
-            <p className="text-xs text-muted-foreground leading-relaxed mb-2">
-              <strong>Age notes:</strong> {accessibility.age_notes}
-            </p>
-          )}
-          {accessibility.health_warnings && (
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <strong>Health:</strong> {accessibility.health_warnings}
-            </p>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 12: Useful Chinese ── */
-
-function UsefulChineseSection({ phrases }: { phrases: UsefulChinese[] }) {
-  const { copiedKey, copy } = useCopyToClipboard();
-
-  if (!phrases?.length) return null;
-
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Languages} title="Useful Chinese" />
-        <p className="text-xs text-muted-foreground mb-4">
-          Tap any phrase to copy the Chinese characters — show them to locals
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {phrases.map((phrase, i) => {
-            const key = `phrase-${i}`;
-            const isCopied = copiedKey === key;
-            return (
-              <button
-                key={i}
-                onClick={() => copy(phrase.chinese, key)}
-                className="text-left bg-card border border-border rounded-lg p-4 hover:border-[#FFD700]/40 active:scale-[0.98] transition-all"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-lg font-bold text-foreground">
-                    {phrase.chinese}
-                  </span>
-                  {isCopied ? (
-                    <Check className="w-4 h-4 text-[#07C160]" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground">{phrase.pinyin}</p>
-                <p className="text-sm text-foreground/70 mt-1">{phrase.english}</p>
-                {isCopied && (
-                  <span className="text-[10px] font-medium text-[#07C160] mt-1 block">
-                    Copied to clipboard
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 13: Pair With ── */
-
-function PairWithSection({ suggestions }: { suggestions: PairWith[] }) {
-  if (!suggestions?.length) return null;
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={MapPin} title="Pair With" />
-        <div className="space-y-3">
-          {suggestions.map((item, i) => (
-            <div
-              key={i}
-              className="bg-card border border-border rounded-xl p-4 sm:p-5 flex items-start gap-3"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-foreground">
-                    {item.suggestion}
-                  </h3>
-                  <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full whitespace-nowrap">
-                    {item.travel_time}
-                  </span>
-                </div>
-                <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed">
-                  {item.why}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 14: Cultural Context ── */
-
-function CulturalContextSection({ text }: { text: string }) {
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={BookOpen} title="Cultural Context" />
-        <div className="border-l-4 border-[#C84032]/30 bg-secondary/30 rounded-r-lg p-5 sm:p-6">
-          <p className="text-sm text-foreground/70 leading-relaxed">{text}</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 15: Photo Spots ── */
-
-function PhotoSpotsSection({ spots }: { spots: PhotoSpot[] }) {
-  if (!spots?.length) return null;
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Camera} title="Photo Spots" />
-        <div className="space-y-3">
-          {spots.map((spot, i) => (
-            <div key={i} className="bg-card border border-border rounded-xl p-4 sm:p-5">
-              <div className="flex items-start gap-2.5">
-                <Camera className="w-4 h-4 text-[#C84032] flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-sm font-bold text-foreground mb-1">
-                    {spot.location}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-foreground/70 leading-relaxed mb-1">
-                    {spot.tip}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground italic">
-                    {spot.why}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 16: Concierge Opportunities ── */
-
-function ConciergeSection({
-  opportunities,
-  attractionName,
-}: {
-  opportunities: ConciergeOpportunity[];
-  attractionName: string;
-}) {
-  if (!opportunities?.length) return null;
-
-  const chatPrompt = encodeURIComponent(
-    `Help me with visiting ${attractionName}`,
-  );
-
-  return (
-    <section className="py-10 sm:py-14 bg-background">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div
-          className="rounded-xl p-6 sm:p-8"
-          style={{ background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)" }}
-        >
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-8 h-8 rounded-full bg-[#FFD700]/15 flex items-center justify-center">
-              <Users className="w-4 h-4 text-[#FFD700]" />
-            </div>
-            <h2 className="text-xl sm:text-2xl font-bold text-white">
-              We Can Help With This
-            </h2>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            {opportunities.map((item, i) => (
-              <div
-                key={i}
-                className="bg-white/[0.07] border border-white/10 rounded-lg p-4"
-              >
-                <p className="text-sm font-semibold text-white mb-1">
-                  {item.action}
-                </p>
-                <p className="text-xs text-white/50 mb-1.5">
-                  via {item.platform}
-                </p>
-                <p className="text-xs sm:text-sm text-white/70 leading-relaxed">
-                  {item.value_to_user}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <Link
-            href={`/chat?prompt=${chatPrompt}`}
-            className="inline-flex items-center gap-2 bg-[#FFD700] text-[#1A1A1A] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#FFD700]/90 transition-colors text-sm active:scale-95"
-          >
-            Ask Your AI Local Friend
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 17: Best For Tags ── */
-
-function BestForTags({ tags }: { tags: string[] }) {
-  if (!tags?.length) return null;
-
-  const formatTag = (tag: string) =>
-    tag
-      .split("-")
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-
-  return (
-    <section className="py-10 sm:py-14 bg-secondary/30">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <SectionHeading icon={Eye} title="Best For" />
-        <div className="flex flex-wrap gap-2">
-          {tags.map((tag, i) => (
-            <span
-              key={i}
-              className="text-xs font-medium text-foreground/70 bg-card border border-border px-3 py-1.5 rounded-full"
-            >
-              {formatTag(tag)}
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ── Section 18: Sticky Bottom Bar ── */
-
-function StickyBottomBar({
-  priceUsd,
-  name,
-  bookingRequired,
-}: {
-  priceUsd: string;
-  name: string;
-  bookingRequired: string;
-}) {
-  const [visible, setVisible] = useState(false);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default function AttractionPage({ data, onAsk, onNavigate }: { data: any; onAsk?: () => void; onNavigate?: () => void }) {
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [toast, setToast] = useState('');
+  const [staffPhrase, setStaffPhrase] = useState<PhraseData | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setVisible(window.scrollY > window.innerHeight * 0.8);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    const fn = () => setNavScrolled(window.scrollY > 200);
+    window.addEventListener('scroll', fn, { passive: true });
+    return () => window.removeEventListener('scroll', fn);
   }, []);
 
-  const chatPrompt = encodeURIComponent(`Help me plan a visit to ${name}`);
-  const needsBooking = bookingRequired.toLowerCase().startsWith("yes");
+  const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); }, []);
+  const copyText = useCallback((text: string, msg?: string) => { navigator.clipboard.writeText(text).catch(() => {}); showToast(msg || 'Copied!'); }, [showToast]);
+
+  if (!data) return null;
+
+  const gi = data.getting_in || {};
+  const tn = data.time_needed || {};
+  const bt = data.best_time || {};
+  const prep = data.preparation || {};
+  const pa = data.physical_accessibility || {};
+  const strat = data.strategy || {};
+  const highlights = data.highlights || data.experience_highlights || [];
+  const headsUp = data.heads_up || [];
+  const phrases = data.useful_chinese || [];
+  const photoSpots = data.photo_spots || [];
+  const pairWith = data.pair_with || [];
+  const missItems = data.what_visitors_miss || [];
+  const bestFor = data.best_for || [];
+  const priceBreakdown = gi.price_breakdown || [];
+  const images = data.images || [];
+
+  const stats = buildStats(data);
+  const lang = langInfo(gi.language_barrier_rating);
+  const shortPrice = extractShortPrice(gi.price_rmb);
+  const types = [data.experience_type, data.experience_type_secondary].filter(Boolean).map(String);
+  const taxiText = `${data.attraction_name_cn} ${data.address_cn || ''}`.trim();
+
+  const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
+  const handleNav = onNavigate || (() => {
+    const dest = encodeURIComponent(`${data.attraction_name_cn} ${data.address_cn || ''}`.trim());
+    window.open(`https://uri.amap.com/search?keyword=${dest}&callnative=1`, '_blank');
+  });
 
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          className="fixed bottom-0 left-0 right-0 z-50 px-4 pb-4 sm:pb-5 pointer-events-none"
-        >
-          <div className="max-w-2xl mx-auto pointer-events-auto">
-            <div
-              className="relative flex items-center justify-between gap-3 rounded-xl px-4 py-3 sm:px-5 sm:py-3.5 shadow-lg border border-white/10"
-              style={{
-                background: "linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)",
-              }}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <Ticket className="w-4 h-4 text-[#FFD700] flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white">
-                    {priceUsd.split(";")[0].trim()}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={`/chat?prompt=${chatPrompt}`}
-                className="flex-shrink-0 bg-[#FFD700] text-[#1A1A1A] font-semibold text-xs px-3.5 py-2 rounded-lg hover:bg-[#FFD700]/90 transition-colors active:scale-95"
-              >
-                {needsBooking ? "Plan Your Visit" : "Get Directions"}
-              </Link>
-            </div>
+    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');.dm-serif{font-family:'DM Serif Display',Georgia,serif}.hl-scroll::-webkit-scrollbar{display:none}.hl-scroll{scrollbar-width:none}`}</style>
+
+      {/* ═══ NAV ═══ */}
+      <nav style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 16px 10px', zIndex: 100, transition: 'background .3s, box-shadow .3s', ...(navScrolled ? { background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 1px 0 rgba(0,0,0,.06)' } : {}) }}>
+        <button onClick={() => window.history.back()} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
+        <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 600, color: '#222', opacity: navScrolled ? 1 : 0, transition: 'opacity .3s', whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.attraction_name_en}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>⤴</button>
+          <button onClick={() => { setSaved(!saved); showToast(saved ? 'Removed' : 'Saved to your trip'); }} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: saved ? '#D0021B' : '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>{saved ? '♥' : '♡'}</button>
+        </div>
+      </nav>
+
+      {/* ═══ IMAGE GRID ═══ */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 340, paddingTop: 44 }}>
+        {[0,1,2,3].map(i => (<div key={i} style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24 }}>{!images[i] && '📷'}</div>))}
+      </div>
+
+      {/* ═══ TITLE ═══ */}
+      <div style={{ padding: '24px 20px 0' }}>
+        {types.length > 0 && <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>{types.map((t: string, i: number) => <span key={i} style={{ fontSize: 11, fontWeight: 600, color: '#717171', background: '#f7f7f7', padding: '4px 10px', borderRadius: 20, letterSpacing: .3, textTransform: 'capitalize' }}>{t}</span>)}</div>}
+        <h1 className="dm-serif" style={{ fontSize: 26, fontWeight: 400, color: '#222', lineHeight: 1.2, letterSpacing: -.2, marginBottom: 4 }}>{data.attraction_name_en}</h1>
+        <p style={{ fontSize: 13, color: '#717171', marginBottom: 0 }}>{data.attraction_name_cn}</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, fontSize: 13, color: '#484848', fontWeight: 500 }}>
+          {tn.recommended && <><span>{String(tn.recommended).split('—')[0].trim()}</span><span style={{ color: '#c0c0c0', margin: '0 2px' }}>·</span></>}
+          {lang && <span style={{ color: lang.color, fontWeight: 600 }}>{lang.text}</span>}
+        </div>
+      </div>
+      <Divider />
+
+      {/* ═══ HOOK ═══ */}
+      {data.hook && (<><div style={{ padding: '0 20px' }}>
+        <p className="dm-serif" style={{ fontSize: 18, fontStyle: 'italic', color: '#222', lineHeight: 1.5 }}>&ldquo;{data.hook}&rdquo;</p>
+        {data.vibe && <p style={{ fontSize: 13, color: '#717171', marginTop: 10, lineHeight: 1.55 }}>{data.vibe}</p>}
+      </div></>)}
+
+      {/* ═══ STAT STRIP ═══ */}
+      {stats.length > 0 && (<div style={{ display: 'flex', margin: '20px 20px 0', border: '1px solid #e0e0e0', borderRadius: 12, overflow: 'hidden' }}>
+        {stats.map((s, i) => (<div key={i} style={{ flex: 1, textAlign: 'center', padding: '12px 6px', borderRight: i < stats.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+          <div className="dm-serif" style={{ fontSize: 17, color: '#222' }}>{s.value}</div>
+          <div style={{ fontSize: 10, color: '#717171', fontWeight: 500, marginTop: 2, letterSpacing: .2 }}>{s.label}</div>
+        </div>))}
+      </div>)}
+      <Divider />
+
+      {/* ═══ MAKE-OR-BREAK ═══ */}
+      {data.foreigner_top_question && (<><div style={{ margin: '0 20px', padding: 18, background: '#f7f7f7', borderRadius: 12 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#D0021B', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Make-or-Break Question</div>
+        <div className="dm-serif" style={{ fontSize: 17, color: '#222', marginBottom: 10, lineHeight: 1.3 }}>&ldquo;{data.foreigner_top_question}&rdquo;</div>
+        <div style={{ fontSize: 14, color: '#484848', lineHeight: 1.6 }}><RM text={data.foreigner_top_answer} lines={3} /></div>
+      </div>
+      {data.experience_format_note && <Coll title="How it works"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>{data.experience_format_note}</div></Coll>}
+      <Divider /></>)}
+
+      {/* ═══ PRICING ═══ */}
+      {gi.price_rmb && (<><SH>Pricing &amp; booking</SH>
+        <div style={{ margin: '0 20px', padding: 16, background: '#222', borderRadius: 12, color: '#fff', marginBottom: priceBreakdown.length ? 0 : 14 }}>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,.5)', marginBottom: 2 }}>Realistic budget</div>
+          <div className="dm-serif" style={{ fontSize: 24 }}>{shortPrice || String(gi.price_rmb).split('.')[0]}</div>
+          {gi.price_usd && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginTop: 2 }}>{typeof gi.price_usd === 'number' ? `~$${gi.price_usd}` : gi.price_usd}</div>}
+        </div>
+        {priceBreakdown.length > 0 && priceBreakdown.map((row: { item: string; price: string; highlight?: boolean }, i: number) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 20px', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
+            <span style={{ fontSize: 13, color: '#717171' }}>{row.item}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: row.highlight ? '#008A05' : '#222' }}>{row.price}</span>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
+        ))}
+        <div style={{ padding: '8px 20px 0', textAlign: 'right' }}><span style={{ fontSize: 10, color: '#999', fontWeight: 500 }}>Prices checked Feb 2026</span></div>
+        <Coll title="Booking & reservation"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>
+          {gi.booking_required && <><strong>Booking: </strong>{typeof gi.booking_required === 'string' ? gi.booking_required : 'Required'}<br /><br /></>}
+          {gi.booking_method && <><strong>How: </strong>{gi.booking_method}<br /><br /></>}
+          {gi.passport_accepted !== undefined && <><strong>ID: </strong>{typeof gi.passport_accepted === 'string' ? gi.passport_accepted : gi.passport_accepted ? 'Passport accepted' : 'No ID needed'}<br /><br /></>}
+          {gi.queue_situation && <><strong>Queue: </strong>{gi.queue_situation}</>}
+        </div></Coll>
+      <Divider /></>)}
 
-/* ── Main Export ── */
+      {/* ═══ WHEN TO GO ═══ */}
+      {(bt.best_time_of_day || bt.worst_time) && (<><SH>When to go</SH>
+        {bt.best_time_of_day && <Info icon="✓" title="Best time" desc={bt.best_time_of_day} />}
+        {bt.worst_time && <Info icon="✗" title="Worst time" desc={bt.worst_time} />}
+        {bt.pro_tip && <Info icon="💡" title="Pro tip" desc={bt.pro_tip} />}
+        {bt.seasonal_notes && <Info icon="🍂" title="Seasonal" desc={bt.seasonal_notes} />}
+      <Divider /></>)}
 
-export default function AttractionDetail({ data }: { data: AttractionData }) {
-  return (
-    <>
-      {/* 1. Hero */}
-      <HeroSection data={data} />
+      {/* ═══ HIGHLIGHTS (after When to Go — visual break) ═══ */}
+      {highlights.length > 0 && (<><SH>What makes this special</SH>
+        <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '0 20px 4px' }}>
+          {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); return (
+            <div key={i} style={{ minWidth: hl.image ? 280 : 240, maxWidth: 280, scrollSnapAlign: 'start', borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
+              {hl.image && <div style={{ width: '100%', height: 220, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${hl.image})` }} />}
+              <div style={{ padding: '12px 14px' }}>
+                <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, padding: '2px 7px', borderRadius: 4, marginBottom: 6, background: b.bg, color: b.color }}>{b.label}</span>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{hl.name}</div>
+                <div style={{ fontSize: 12, color: '#717171', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>{hl.description}</div>
+                {hl.tip && <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #f0f0f0', fontSize: 11, color: '#484848', lineHeight: 1.45 }}><strong style={{ color: '#222' }}>Tip:</strong> {hl.tip}</div>}
+              </div>
+            </div>); })}
+        </div>
+      <Divider /></>)}
 
-      {/* 2. Local Friend's Take */}
-      <LocalFriendsTake text={data.honest_description} />
+      {/* ═══ WHERE IT IS ═══ */}
+      {data.address_cn && (<><SH>Where it is</SH>
+        <div style={{ padding: '0 20px' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>{data.address_cn}</div>
+          <div style={{ marginTop: 14, padding: 14, border: '1.5px dashed #d0d0d0', borderRadius: 10, textAlign: 'center' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#717171', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 4 }}>Show this to your taxi driver</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#222', marginBottom: 2 }}>{data.attraction_name_cn}</div>
+            <div style={{ fontSize: 11, color: '#717171', marginBottom: 10 }}>{data.address_cn}</div>
+            <button onClick={() => copyText(taxiText, 'Address copied!')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 8, background: '#222', color: '#fff', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>📋 Copy address</button>
+          </div>
+        </div>
+      <Divider /></>)}
 
-      {/* 3. Make-or-Break Question */}
-      <MakeOrBreakQuestion
-        q={data.foreigner_top_question}
-        a={data.foreigner_top_answer}
-      />
+      {/* ═══ FRIEND'S TAKE (with bottom-line TLDR) ═══ */}
+      {data.honest_description && (<><div style={{ padding: '0 20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #D0021B, #ff4757)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>HC</div>
+          <div><div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>HelloChina AI Guide</div><div style={{ fontSize: 11, color: '#717171' }}>Local knowledge · Updated Feb 2026</div></div>
+        </div>
+        {data.vibe && <div style={{ padding: '12px 14px', background: '#f7f7f7', borderRadius: 10, marginBottom: 12 }}><strong style={{ fontSize: 13, color: '#222' }}>Bottom line: </strong><span style={{ fontSize: 13, color: '#484848' }}>{data.vibe}</span></div>}
+        <div style={{ fontSize: 15, color: '#484848', lineHeight: 1.65 }}><RM text={data.honest_description} lines={4} /></div>
+      </div><Divider /></>)}
 
-      {/* 4. How It Works */}
-      {shouldShowFormatNote(data.experience_format_note) && (
-        <HowItWorks note={data.experience_format_note!} />
-      )}
+      {/* ═══ ROUTE ═══ */}
+      {strat.smart_route && (<><SH>Your best route</SH>
+        <SmartRoute text={strat.smart_route} />
+        {strat.pro_tips?.length > 0 && (<><div style={{ padding: '16px 20px 8px' }}><span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>Pro tips</span></div>
+          {strat.pro_tips.map((t: string, i: number) => <Info key={i} icon={T_ICO[i % 5]} desc={t} />)}</>)}
+        {strat.what_to_skip && <Coll title="What to skip"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>{strat.what_to_skip}</div></Coll>}
+      <Divider /></>)}
 
-      {/* 5. Highlights */}
-      <HighlightsSection highlights={data.experience_highlights} />
+      {/* ═══ WHAT VISITORS MISS ═══ */}
+      {missItems.length > 0 && (<><SH>What most visitors miss</SH>
+        {missItems.map((m: { what: string; why: string }, i: number) => <Info key={i} icon={M_ICO[i % 5]} title={m.what} desc={m.why} />)}
+      <Divider /></>)}
 
-      {/* 6. Strategy & Hidden Gems */}
-      <StrategySection strategy={data.strategy} misses={data.what_visitors_miss} />
+      {/* ═══ HEADS UP ═══ */}
+      {headsUp.length > 0 && (<><SH>Things to know</SH>
+        {headsUp.map((h: { warning: string; advice: string }, i: number) => { const item = typeof h === 'object' && h ? h : { warning: '', advice: String(h ?? '') }; return <Info key={i} icon={W_ICO[i % 10]} title={item.warning} desc={item.advice} />; })}
+      <Divider /></>)}
 
-      {/* 7. Heads Up */}
-      <HeadsUpSection items={data.heads_up} />
+      {/* ═══ PREPARATION ═══ */}
+      {(prep.what_to_wear || prep.what_to_bring) && (<Coll title="What to wear & bring">
+        {prep.what_to_wear && <Info icon="👔" title="Wear" desc={prep.what_to_wear} />}
+        {prep.what_to_bring && <Info icon="🎒" title="Bring" desc={prep.what_to_bring} />}
+        {prep.what_not_to_bring && <Info icon="🚫" title="Don't bring" desc={prep.what_not_to_bring} />}
+      </Coll>)}
+      {pa.physical_intensity && (<Coll title="Physical & accessibility"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>
+        <strong>{String(pa.physical_intensity).charAt(0).toUpperCase() + String(pa.physical_intensity).slice(1)} intensity</strong>
+        {pa.physical_details && <> — {pa.physical_details}</>}<br /><br />
+        {pa.age_notes && <><strong>Age: </strong>{pa.age_notes}<br /><br /></>}
+        {pa.health_warnings && <><strong>Health: </strong>{pa.health_warnings}</>}
+      </div></Coll>)}
+      {(prep.what_to_wear || prep.what_to_bring || pa.physical_intensity) && <Divider />}
 
-      {/* 8. Getting In */}
-      <GettingInSection info={data.getting_in} />
+      {/* ═══ PHRASES ═══ */}
+      {phrases.length > 0 && (<><SH>Useful Chinese</SH>
+        <div style={{ padding: '0 20px 12px', fontSize: 12, color: '#717171' }}>Tap to copy · Long-press to show full screen</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: '0 20px' }}>
+          {phrases.map((p: PhraseData, i: number) => <Phrase key={i} phrase={p} onLongPress={setStaffPhrase} />)}
+        </div>
+      <Divider /></>)}
 
-      {/* 9. Best Time */}
-      <BestTimeSection bestTime={data.best_time} />
+      {/* ═══ PHOTO SPOTS ═══ */}
+      {photoSpots.length > 0 && (<><SH>Best photo spots</SH>
+        {photoSpots.map((s: { location: string; tip: string; why?: string }, i: number) => (<div key={i} style={{ padding: '12px 20px', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none' }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 3 }}>📸 {s.location}</div>
+          <div style={{ fontSize: 13, color: '#717171', lineHeight: 1.5, marginBottom: 4 }}>{s.tip}</div>
+          {s.why && <div style={{ fontSize: 12, color: '#484848', fontStyle: 'italic' }}>{s.why}</div>}
+        </div>))}
+      <Divider /></>)}
 
-      {/* 10. Preparation */}
-      {data.preparation && <PreparationSection prep={data.preparation} />}
+      {/* ═══ NEARBY ═══ */}
+      {pairWith.length > 0 && (<><SH>Nearby</SH>
+        {pairWith.map((p: { suggestion: string; why: string; travel_time?: string }, i: number) => (<div key={i} style={{ display: 'flex', gap: 12, padding: '14px 20px', alignItems: 'flex-start', borderTop: i > 0 ? '1px solid #f5f5f5' : 'none', cursor: 'pointer' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 10, background: '#f7f7f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{P_ICO[i % 8]}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 1 }}>{p.suggestion}</div>
+            {p.travel_time && <div style={{ fontSize: 11, color: '#717171', marginBottom: 3 }}>{p.travel_time}</div>}
+            <div style={{ fontSize: 12, color: '#717171', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const, overflow: 'hidden' }}>{p.why}</div>
+          </div>
+          <div style={{ color: '#b0b0b0', fontSize: 14, flexShrink: 0, marginTop: 4 }}>›</div>
+        </div>))}
+      <Divider /></>)}
 
-      {/* 11. Physical & Accessibility */}
-      {data.physical_accessibility && (
-        <PhysicalSection accessibility={data.physical_accessibility} />
-      )}
+      {/* ═══ CULTURAL CONTEXT ═══ */}
+      {data.cultural_context && (<><SH>Why this matters</SH>
+        <div style={{ padding: '0 20px', fontSize: 14, color: '#484848', lineHeight: 1.65 }}><RM text={data.cultural_context} lines={4} /></div>
+      <Divider /></>)}
 
-      {/* 12. Useful Chinese */}
-      {data.useful_chinese && (
-        <UsefulChineseSection phrases={data.useful_chinese} />
-      )}
+      {/* ═══ BEST FOR ═══ */}
+      {bestFor.length > 0 && (<>
+        <div style={{ padding: '0 20px 8px' }}><span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>Best for</span></div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '0 20px 24px' }}>
+          {bestFor.map((t: string, i: number) => <span key={i} onClick={() => showToast(`Browsing ${String(t).replace(/-/g, ' ')} attractions...`)} style={{ padding: '6px 14px', borderRadius: 20, border: '1px solid #e0e0e0', fontSize: 12, fontWeight: 500, color: '#484848', textTransform: 'capitalize', cursor: 'pointer', transition: 'all .15s' }}>{String(t).replace(/-/g, ' ')}</span>)}
+        </div>
+      </>)}
 
-      {/* 13. Pair With */}
-      {data.pair_with && <PairWithSection suggestions={data.pair_with} />}
+      <div style={{ height: 60 }} />
 
-      {/* 14. Cultural Context */}
-      {data.cultural_context && (
-        <CulturalContextSection text={data.cultural_context} />
-      )}
+      {/* ═══ STICKY BOTTOM (dual CTA) ═══ */}
+      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid #ebebeb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 100 }}>
+        <div style={{ fontSize: 10, color: '#717171' }}><strong style={{ fontSize: 15, fontWeight: 700, color: '#222', display: 'block' }}>{shortPrice || 'See pricing'}</strong>per person</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleAsk} style={{ padding: '10px 14px', borderRadius: 10, background: '#fff', color: '#222', fontSize: 13, fontWeight: 600, border: '1.5px solid #222', cursor: 'pointer', whiteSpace: 'nowrap' }}>💬 Ask</button>
+          <button onClick={handleNav} style={{ padding: '10px 14px', borderRadius: 10, background: '#D0021B', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>🧭 Go</button>
+        </div>
+      </div>
 
-      {/* 15. Photo Spots */}
-      {data.photo_spots && <PhotoSpotsSection spots={data.photo_spots} />}
+      {/* ═══ TOAST ═══ */}
+      {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#222', color: '#fff', padding: '8px 18px', borderRadius: 20, fontSize: 12, fontWeight: 600, zIndex: 200 }}>{toast}</div>}
 
-      {/* 16. Concierge */}
-      {data.concierge_opportunities && (
-        <ConciergeSection
-          opportunities={data.concierge_opportunities}
-          attractionName={data.attraction_name_en}
-        />
-      )}
-
-      {/* 17. Best For Tags */}
-      {data.best_for && <BestForTags tags={data.best_for} />}
-
-      {/* 18. Sticky Bottom Bar */}
-      <StickyBottomBar
-        priceUsd={data.getting_in.price_usd}
-        name={data.attraction_name_en}
-        bookingRequired={data.getting_in.booking_required}
-      />
-    </>
+      {/* ═══ SHOW-TO-STAFF OVERLAY ═══ */}
+      <StaffOverlay phrase={staffPhrase} onClose={() => setStaffPhrase(null)} />
+    </div>
   );
 }
