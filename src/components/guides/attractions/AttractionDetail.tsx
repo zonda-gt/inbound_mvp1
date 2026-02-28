@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ════════════════════════════════════════════════════════════════
 // ATTRACTION PAGE v2 — Universal Template Engine
@@ -156,6 +157,92 @@ function SmartRoute({ text }: { text: string }) {
   return <div style={{ padding: '0 20px', fontSize: 13, color: '#484848', lineHeight: 1.55 }}>{text}</div>;
 }
 
+// —— Gallery Components ——
+
+function ImageViewer({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [current, setCurrent] = useState(startIndex);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = startIndex * window.innerWidth;
+  }, [startIndex]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(() => { setCurrent(Math.round(el.scrollLeft / window.innerWidth)); ticking = false; }); }
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, []);
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 310, background: '#000', display: 'flex', flexDirection: 'column' }}>
+      {/* Top bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '52px 16px 12px', flexShrink: 0 }}>
+        <button onClick={() => { try { navigator.share({ url: window.location.href }); } catch { navigator.clipboard.writeText(window.location.href); } }}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⤴</button>
+        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{current + 1} / {images.length}</span>
+        <button onClick={onClose}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+      </div>
+      {/* Swipable strip */}
+      <div ref={scrollRef} className="img-viewer-scroll"
+        style={{ flex: 1, display: 'flex', overflowX: 'scroll', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+        {images.map((src, i) => (
+          <div key={i} style={{ width: '100vw', flexShrink: 0, scrollSnapAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
+            {Math.abs(i - current) <= 5 ? (
+              <img src={src} alt="" loading={Math.abs(i - current) <= 1 ? 'eager' : 'lazy'}
+                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 4 }} />
+            ) : <div style={{ width: '100%', height: 300 }} />}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function ImageGrid({ images, onClose, onImageTap }: { images: string[]; onClose: () => void; onImageTap: (index: number) => void }) {
+  const even = images.filter((_, i) => i % 2 === 0);
+  const odd = images.filter((_, i) => i % 2 === 1);
+
+  return (
+    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 310, background: '#fff', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+      {/* Sticky top bar */}
+      <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '52px 16px 12px', borderBottom: '1px solid #ebebeb' }}>
+        <button onClick={onClose}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.05)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+        <span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>{images.length} photos</span>
+        <button onClick={() => { try { navigator.share({ url: window.location.href }); } catch { navigator.clipboard.writeText(window.location.href); } }}
+          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.05)', border: 'none', color: '#222', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⤴</button>
+      </div>
+      {/* Two-column masonry */}
+      <div style={{ display: 'flex', gap: 4, padding: 4 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {even.map((src, ci) => {
+            const origIdx = ci * 2;
+            return <img key={origIdx} src={src} alt="" loading="lazy" onClick={() => onImageTap(origIdx)}
+              style={{ width: '100%', borderRadius: 2, cursor: 'pointer', display: 'block' }} />;
+          })}
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {odd.map((src, ci) => {
+            const origIdx = ci * 2 + 1;
+            return <img key={origIdx} src={src} alt="" loading="lazy" onClick={() => onImageTap(origIdx)}
+              style={{ width: '100%', borderRadius: 2, cursor: 'pointer', display: 'block' }} />;
+          })}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // —— Main Component ——————————————————————————————————————————————
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -164,12 +251,23 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState('');
   const [staffPhrase, setStaffPhrase] = useState<PhraseData | null>(null);
+  const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const gallerySource = useRef<'hero' | 'grid'>('hero');
 
   useEffect(() => {
     const fn = () => setNavScrolled(window.scrollY > 200);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  // Lock body scroll when gallery is open
+  useEffect(() => {
+    if (galleryMode !== 'closed') {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [galleryMode]);
 
   const showToast = useCallback((msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); }, []);
   const copyText = useCallback((text: string, msg?: string) => { navigator.clipboard.writeText(text).catch(() => {}); showToast(msg || 'Copied!'); }, [showToast]);
@@ -206,7 +304,7 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');.dm-serif{font-family:'DM Serif Display',Georgia,serif}.hl-scroll::-webkit-scrollbar{display:none}.hl-scroll{scrollbar-width:none}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');.dm-serif{font-family:'DM Serif Display',Georgia,serif}.hl-scroll::-webkit-scrollbar{display:none}.hl-scroll{scrollbar-width:none}.img-viewer-scroll::-webkit-scrollbar{display:none}.img-viewer-scroll{scrollbar-width:none}`}</style>
 
       {/* ═══ NAV ═══ */}
       <nav style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 16px 10px', zIndex: 100, transition: 'background .3s, box-shadow .3s', ...(navScrolled ? { background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 1px 0 rgba(0,0,0,.06)' } : {}) }}>
@@ -220,7 +318,18 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ IMAGE GRID ═══ */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 340, paddingTop: 44 }}>
-        {[0,1,2,3].map(i => (<div key={i} style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24 }}>{!images[i] && '📷'}</div>))}
+        {[0,1,2,3].map(i => (
+          <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
+            style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative' }}>
+            {!images[i] && '📷'}
+            {i === 3 && images.length > 4 && (
+              <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
+                style={{ position: 'absolute', bottom: 8, right: 8, padding: '5px 12px', borderRadius: 8, background: 'rgba(255,255,255,.92)', border: '1px solid rgba(0,0,0,.15)', fontSize: 12, fontWeight: 600, color: '#222', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                Show all
+              </button>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* ═══ TITLE ═══ */}
@@ -291,9 +400,9 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ HIGHLIGHTS (after When to Go — visual break) ═══ */}
       {highlights.length > 0 && (<><SH>What makes this special</SH>
-        <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: '0 20px 4px' }}>
+        <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 4px' }}>
           {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); const hlImg = hl.image && !/^https?:\/\//.test(hl.image) ? `https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/${data.slug}/${hl.image}` : hl.image; return (
-            <div key={i} style={{ minWidth: hlImg ? 280 : 240, maxWidth: 280, scrollSnapAlign: 'start', borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
+            <div key={i} style={{ minWidth: hlImg ? 280 : 240, maxWidth: 280, borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
               {hlImg && <div style={{ width: '100%', height: 220, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${hlImg})` }} />}
               <div style={{ padding: '12px 14px' }}>
                 <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, padding: '2px 7px', borderRadius: 4, marginBottom: 6, background: b.bg, color: b.color }}>{b.label}</span>
@@ -416,6 +525,18 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ TOAST ═══ */}
       {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#222', color: '#fff', padding: '8px 18px', borderRadius: 20, fontSize: 12, fontWeight: 600, zIndex: 200 }}>{toast}</div>}
+
+      {/* ═══ IMAGE GALLERY OVERLAYS ═══ */}
+      <AnimatePresence>
+        {galleryMode === 'viewer' && images.length > 0 && (
+          <ImageViewer images={images} startIndex={viewerIndex}
+            onClose={() => { if (gallerySource.current === 'grid') setGalleryMode('grid'); else setGalleryMode('closed'); }} />
+        )}
+        {galleryMode === 'grid' && images.length > 0 && (
+          <ImageGrid images={images} onClose={() => setGalleryMode('closed')}
+            onImageTap={(idx) => { gallerySource.current = 'grid'; setViewerIndex(idx); setGalleryMode('viewer'); }} />
+        )}
+      </AnimatePresence>
 
       {/* ═══ SHOW-TO-STAFF OVERLAY ═══ */}
       <StaffOverlay phrase={staffPhrase} onClose={() => setStaffPhrase(null)} />
