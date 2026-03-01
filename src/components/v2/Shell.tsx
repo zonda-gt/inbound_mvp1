@@ -126,6 +126,24 @@ export default function Shell() {
         )}
       </div>
 
+      {/* Floating Camera FAB — visible on all screens except Photo AI and onboarding */}
+      {!showOnboarding && activeScreen !== 'photo' && !selectedAttraction && (
+        <button
+          onClick={() => setActiveScreen('photo')}
+          style={{
+            position: 'fixed', bottom: 90, right: 20, zIndex: 150,
+            width: 52, height: 52, borderRadius: '50%',
+            background: '#D0021B', border: 'none',
+            boxShadow: '0 4px 14px rgba(208,2,27,.4)',
+            color: '#fff', fontSize: 22, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          aria-label="Open Camera Scan"
+        >
+          📷
+        </button>
+      )}
+
       {/* Bottom Nav */}
       {!showOnboarding && (
         <nav className="v2-bottom-nav">
