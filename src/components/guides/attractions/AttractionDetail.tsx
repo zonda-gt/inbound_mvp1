@@ -246,7 +246,7 @@ function ImageGrid({ images, onClose, onImageTap }: { images: string[]; onClose:
 // —— Main Component ——————————————————————————————————————————————
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export default function AttractionPage({ data, onAsk, onNavigate }: { data: any; onAsk?: () => void; onNavigate?: () => void }) {
+export default function AttractionPage({ data, onAsk, onNavigate, onBack, layoutId, scrollRef }: { data: any; onAsk?: () => void; onNavigate?: () => void; onBack?: () => void; layoutId?: string; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
   const [navScrolled, setNavScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState('');
@@ -256,10 +256,16 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
   const gallerySource = useRef<'hero' | 'grid'>('hero');
 
   useEffect(() => {
+    const container = scrollRef?.current;
+    if (container) {
+      const fn = () => setNavScrolled(container.scrollTop > 200);
+      container.addEventListener('scroll', fn, { passive: true });
+      return () => container.removeEventListener('scroll', fn);
+    }
     const fn = () => setNavScrolled(window.scrollY > 200);
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
-  }, []);
+  }, [scrollRef]);
 
   // Lock body scroll when gallery is open
   useEffect(() => {
@@ -308,7 +314,7 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ NAV ═══ */}
       <nav style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 16px 10px', zIndex: 100, transition: 'background .3s, box-shadow .3s', ...(navScrolled ? { background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 1px 0 rgba(0,0,0,.06)' } : {}) }}>
-        <button onClick={() => window.history.back()} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
+        <button onClick={onBack || (() => window.history.back())} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
         <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 600, color: '#222', opacity: navScrolled ? 1 : 0, transition: 'opacity .3s', whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.card_name || data.attraction_name_en}</span>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>⤴</button>
@@ -318,13 +324,17 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ IMAGE GRID ═══ */}
       <div style={{ padding: '96px 10px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 290 }}>
+        <motion.div
+          layoutId={layoutId}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 290, borderRadius: 12, overflow: 'hidden' }}
+        >
           {[0,1,2,3].map(i => {
             const r = ['12px 3px 3px 3px', '3px 12px 3px 3px', '3px 3px 3px 12px', '3px 3px 12px 3px'][i];
             return (
             <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
               style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
-              {!images[i] && '📷'}
+              {!images[i] && '\uD83D\uDCF7'}
               {i === 3 && images.length > 4 && (
                 <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
                   style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
@@ -333,9 +343,14 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
               )}
             </div>
           ); })}
-        </div>
+        </motion.div>
       </div>
 
+      <motion.div
+        initial={layoutId ? { opacity: 0, y: 30 } : false}
+        animate={layoutId ? { opacity: 1, y: 0 } : undefined}
+        transition={layoutId ? { delay: 0.15, duration: 0.4, ease: 'easeOut' } : undefined}
+      >
       {/* ═══ TITLE ═══ */}
       <div style={{ padding: '24px 20px 0' }}>
         {types.length > 0 && <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>{types.map((t: string, i: number) => <span key={i} style={{ fontSize: 11, fontWeight: 600, color: '#717171', background: '#f7f7f7', padding: '4px 10px', borderRadius: 20, letterSpacing: .3, textTransform: 'capitalize' }}>{t}</span>)}</div>}
@@ -529,6 +544,8 @@ export default function AttractionPage({ data, onAsk, onNavigate }: { data: any;
 
       {/* ═══ TOAST ═══ */}
       {toast && <div style={{ position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)', background: '#222', color: '#fff', padding: '8px 18px', borderRadius: 20, fontSize: 12, fontWeight: 600, zIndex: 200 }}>{toast}</div>}
+
+      </motion.div>
 
       {/* ═══ IMAGE GALLERY OVERLAYS ═══ */}
       <AnimatePresence>

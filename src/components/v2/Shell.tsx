@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import AttractionPage from '../guides/attractions/AttractionDetail';
 import OnboardingScreen from './screens/OnboardingScreen';
 import HomeScreen from './screens/HomeScreen';
 import DiscoverScreen from './screens/DiscoverScreen';
@@ -49,6 +51,34 @@ export default function Shell() {
     setActiveScreen(screen as Screen);
   }, []);
 
+  // Attraction detail overlay
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedAttraction, setSelectedAttraction] = useState<{ slug: string; heroImage: string } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [attractionData, setAttractionData] = useState<any>(null);
+  const overlayScrollRef = useRef<HTMLDivElement>(null);
+
+  const handleOpenAttraction = useCallback((slug: string, heroImage: string) => {
+    setSelectedAttraction({ slug, heroImage });
+    setAttractionData(null);
+    fetch(`/api/attractions?slug=${slug}`)
+      .then(res => res.json())
+      .then(json => setAttractionData(json.attraction))
+      .catch(() => {});
+  }, []);
+
+  const handleCloseAttraction = useCallback(() => {
+    setSelectedAttraction(null);
+    setAttractionData(null);
+  }, []);
+
+  useEffect(() => {
+    if (selectedAttraction) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [selectedAttraction]);
+
   const isActive = (screen: Screen) => !showOnboarding && activeScreen === screen;
   const isCollectionScreen = COLLECTION_IDS.includes(activeScreen);
 
@@ -92,7 +122,7 @@ export default function Shell() {
       {/* Collection Detail — data-driven, renders whichever collection is active */}
       <div className={`v2-screen ${isCollectionScreen ? 'active' : ''}`}>
         {isCollectionScreen && (
-          <CollectionDetailScreen collectionId={activeScreen} onNavigate={handleNavigate} />
+          <CollectionDetailScreen collectionId={activeScreen} onNavigate={handleNavigate} onOpenAttraction={handleOpenAttraction} selectedSlug={selectedAttraction?.slug || null} />
         )}
       </div>
 
@@ -114,6 +144,48 @@ export default function Shell() {
           ))}
         </nav>
       )}
+      {/* Attraction Detail Overlay */}
+      <AnimatePresence>
+        {selectedAttraction && (
+          <motion.div
+            key="attraction-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#fff' }}
+          >
+            <div ref={overlayScrollRef} style={{ height: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+              {attractionData ? (
+                <AttractionPage
+                  data={attractionData}
+                  onBack={handleCloseAttraction}
+                  layoutId={`attraction-hero-${selectedAttraction.slug}`}
+                  scrollRef={overlayScrollRef}
+                />
+              ) : (
+                <div>
+                  <div style={{ paddingTop: 96, paddingLeft: 10, paddingRight: 10 }}>
+                    <motion.div
+                      layoutId={`attraction-hero-${selectedAttraction.slug}`}
+                      style={{ height: 290, borderRadius: 12, backgroundImage: `url(${selectedAttraction.heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    />
+                  </div>
+                  <div style={{ padding: '24px 20px' }}>
+                    <div style={{ height: 12, width: '30%', background: '#f0f0f0', borderRadius: 6, marginBottom: 14 }} />
+                    <div style={{ height: 22, width: '65%', background: '#f0f0f0', borderRadius: 8, marginBottom: 10 }} />
+                    <div style={{ height: 12, width: '45%', background: '#f0f0f0', borderRadius: 6, marginBottom: 20 }} />
+                    <div style={{ height: 1, background: '#ebebeb', marginBottom: 20 }} />
+                    <div style={{ height: 60, width: '100%', background: '#f0f0f0', borderRadius: 8, marginBottom: 12 }} />
+                    <div style={{ height: 14, width: '55%', background: '#f0f0f0', borderRadius: 6 }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

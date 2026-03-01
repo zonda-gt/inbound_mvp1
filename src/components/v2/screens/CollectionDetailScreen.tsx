@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { COLLECTIONS, getThemeStyles } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
 import type { AttractionData } from '@/types/attraction';
@@ -8,9 +9,11 @@ import type { AttractionData } from '@/types/attraction';
 interface CollectionDetailScreenProps {
   onNavigate: (screen: string) => void;
   collectionId: string;
+  onOpenAttraction?: (slug: string, heroImage: string) => void;
+  selectedSlug?: string | null;
 }
 
-export default function CollectionDetailScreen({ onNavigate, collectionId }: CollectionDetailScreenProps) {
+export default function CollectionDetailScreen({ onNavigate, collectionId, onOpenAttraction, selectedSlug }: CollectionDetailScreenProps) {
   const def = COLLECTIONS[collectionId];
   const theme = useMemo(() => getThemeStyles(def), [def]);
   const { attractions, loading } = useCollectionData(def.slugs);
@@ -39,7 +42,7 @@ export default function CollectionDetailScreen({ onNavigate, collectionId }: Col
       {loading ? (
         <LoadingSkeleton isDark={def.isDark} />
       ) : hero ? (
-        <HeroCard attraction={hero} theme={theme} />
+        <HeroCard attraction={hero} theme={theme} onOpenAttraction={onOpenAttraction} />
       ) : null}
 
       {/* SUPPORTING CARDS */}
@@ -53,19 +56,19 @@ export default function CollectionDetailScreen({ onNavigate, collectionId }: Col
       ) : (
         rest.map((a, i) => {
           if (i === 0) {
-            return <FullCard key={a.slug} attraction={a} theme={theme} isDark={def.isDark} />;
+            return <FullCard key={a.slug} attraction={a} theme={theme} isDark={def.isDark} onOpenAttraction={onOpenAttraction} selectedSlug={selectedSlug} />;
           }
           if (i === 1) {
             const next = rest[i + 1];
             return (
               <div key={a.slug} className="v2-fg-card-row">
-                <HalfCard attraction={a} theme={theme} isDark={def.isDark} />
-                {next && <HalfCard attraction={next} theme={theme} isDark={def.isDark} />}
+                <HalfCard attraction={a} theme={theme} isDark={def.isDark} onOpenAttraction={onOpenAttraction} selectedSlug={selectedSlug} />
+                {next && <HalfCard attraction={next} theme={theme} isDark={def.isDark} onOpenAttraction={onOpenAttraction} selectedSlug={selectedSlug} />}
               </div>
             );
           }
           if (i === 2) return null; // rendered in the row above
-          return <FullCard key={a.slug} attraction={a} theme={theme} isDark={def.isDark} />;
+          return <FullCard key={a.slug} attraction={a} theme={theme} isDark={def.isDark} onOpenAttraction={onOpenAttraction} selectedSlug={selectedSlug} />;
         })
       )}
 
@@ -128,8 +131,16 @@ function getPriceTags(attraction: AttractionData, theme: ThemeStyles): { label: 
   return tags;
 }
 
-function HeroCard({ attraction, theme }: { attraction: AttractionData; theme: ThemeStyles }) {
+function HeroCard({ attraction, theme, onOpenAttraction }: { attraction: AttractionData; theme: ThemeStyles; onOpenAttraction?: (slug: string, heroImage: string) => void }) {
   const tags = getPriceTags(attraction, theme);
+  const handleExplore = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (onOpenAttraction) {
+      onOpenAttraction(attraction.slug, attraction.images?.[0] || '');
+    } else {
+      window.location.href = `/attractions/${attraction.slug}`;
+    }
+  };
   return (
     <div className="v2-fg-hero-card" style={theme.heroCardStyle}>
       <div className="v2-fg-hero-hook" style={theme.heroHookStyle}>{attraction.card_hook || shortHook(attraction.hook)}</div>
@@ -144,18 +155,30 @@ function HeroCard({ attraction, theme }: { attraction: AttractionData; theme: Th
         ))}
       </div>
       <div className="v2-fg-hero-actions">
-        <a href={`/attractions/${attraction.slug}`} className="v2-fg-explore-btn" style={{ ...theme.exploreStyle, textDecoration: 'none' }}>{"Explore \u2192"}</a>
+        <button onClick={handleExplore} className="v2-fg-explore-btn" style={{ ...theme.exploreStyle, textDecoration: 'none', cursor: 'pointer', border: 'none', font: 'inherit' }}>{"Explore \u2192"}</button>
         <div className="v2-fg-save-btn">{"\uD83E\uDD0D"}</div>
       </div>
     </div>
   );
 }
 
-function FullCard({ attraction, theme, isDark }: { attraction: AttractionData; theme: ThemeStyles; isDark: boolean }) {
+function FullCard({ attraction, theme, isDark, onOpenAttraction, selectedSlug }: { attraction: AttractionData; theme: ThemeStyles; isDark: boolean; onOpenAttraction?: (slug: string, heroImage: string) => void; selectedSlug?: string | null }) {
   const tags = getPriceTags(attraction, theme);
+  const handleClick = () => {
+    if (onOpenAttraction) {
+      onOpenAttraction(attraction.slug, attraction.images?.[0] || '');
+    } else {
+      window.location.href = `/attractions/${attraction.slug}`;
+    }
+  };
   return (
-    <a href={`/attractions/${attraction.slug}`} className="v2-fg-card v2-fg-card-full" style={{ ...theme.cardStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-      <div className="v2-fg-card-img v2-fg-card-img-full" style={getImageStyle(attraction.images)} />
+    <div onClick={handleClick} className="v2-fg-card v2-fg-card-full" style={{ ...theme.cardStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+      <motion.div
+        layoutId={onOpenAttraction ? `attraction-hero-${attraction.slug}` : undefined}
+        className="v2-fg-card-img v2-fg-card-img-full"
+        style={{ ...getImageStyle(attraction.images), opacity: selectedSlug === attraction.slug ? 0 : 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      />
       <div className="v2-fg-card-body" style={isDark ? {} : { background: 'white' }}>
         <div className="v2-fg-card-hook" style={theme.cardHookStyle}>{attraction.card_hook || shortHook(attraction.hook)}</div>
         <div className="v2-fg-card-name" style={theme.cardNameStyle}>
@@ -165,15 +188,27 @@ function FullCard({ attraction, theme, isDark }: { attraction: AttractionData; t
           {tags.map((t, j) => <span key={j} className="v2-fg-tag" style={t.style}>{t.label}</span>)}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
-function HalfCard({ attraction, theme, isDark }: { attraction: AttractionData; theme: ThemeStyles; isDark: boolean }) {
+function HalfCard({ attraction, theme, isDark, onOpenAttraction, selectedSlug }: { attraction: AttractionData; theme: ThemeStyles; isDark: boolean; onOpenAttraction?: (slug: string, heroImage: string) => void; selectedSlug?: string | null }) {
   const tags = getPriceTags(attraction, theme);
+  const handleClick = () => {
+    if (onOpenAttraction) {
+      onOpenAttraction(attraction.slug, attraction.images?.[0] || '');
+    } else {
+      window.location.href = `/attractions/${attraction.slug}`;
+    }
+  };
   return (
-    <a href={`/attractions/${attraction.slug}`} className="v2-fg-card v2-fg-card-half" style={{ ...theme.cardStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-      <div className="v2-fg-card-img v2-fg-card-img-half" style={getImageStyle(attraction.images)} />
+    <div onClick={handleClick} className="v2-fg-card v2-fg-card-half" style={{ ...theme.cardStyle, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+      <motion.div
+        layoutId={onOpenAttraction ? `attraction-hero-${attraction.slug}` : undefined}
+        className="v2-fg-card-img v2-fg-card-img-half"
+        style={{ ...getImageStyle(attraction.images), opacity: selectedSlug === attraction.slug ? 0 : 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+      />
       <div className="v2-fg-card-body" style={isDark ? {} : { background: 'white' }}>
         <div className="v2-fg-card-hook" style={theme.cardHookStyle}>{attraction.card_hook || shortHook(attraction.hook)}</div>
         <div className="v2-fg-card-name" style={theme.cardNameStyle}>
@@ -183,7 +218,7 @@ function HalfCard({ attraction, theme, isDark }: { attraction: AttractionData; t
           {tags.map((t, j) => <span key={j} className="v2-fg-tag" style={t.style}>{t.label}</span>)}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
