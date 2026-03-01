@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAMap } from '@/hooks/useAMap';
 
 // ════════════════════════════════════════════════════════════════
 // ATTRACTION PAGE v2 — Universal Template Engine
@@ -10,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 //
 // Section order (v2):
 //   Title → Hook → Stat Strip → Make-or-Break → Pricing →
-//   When to Go → ★ Highlights (visual break) → Where It Is →
+//   ★ Highlights → Where It Is → When to Go (collapsible) →
 //   Friend's Take → Route → What Visitors Miss → Heads Up →
 //   Preparation → Phrases → Photo Spots → Nearby →
 //   Cultural Context → Best For
@@ -157,6 +158,174 @@ function SmartRoute({ text }: { text: string }) {
   return <div style={{ padding: '0 20px', fontSize: 13, color: '#484848', lineHeight: 1.55 }}>{text}</div>;
 }
 
+// —— Location Map (Airbnb-style with Amap) ——
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name: string; onNav: () => void }) {
+  const { AMap, loaded } = useAMap();
+  const [fullscreen, setFullscreen] = useState(false);
+  const inlineRef = useRef<HTMLDivElement>(null);
+  const fullRef = useRef<HTMLDivElement>(null);
+  const inlineMapInst = useRef<any>(null);
+  const fullMapInst = useRef<any>(null);
+
+  // Marker factories
+  const addMarker = useCallback((map: any, AMapLib: any, showLabel = false) => {
+    const markerContent = document.createElement('div');
+    markerContent.innerHTML = showLabel
+      ? `<div style="display:flex;flex-direction:column;align-items:center">
+          <div style="width:28px;height:28px;background:#222;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)">
+            <div style="width:8px;height:8px;background:#fff;border-radius:50%"></div>
+          </div>
+          <div style="margin-top:4px;font-size:13px;font-weight:700;color:#222;white-space:nowrap;font-family:'Inter',-apple-system,sans-serif;text-shadow:0 0 4px #fff,0 0 4px #fff">${name}</div>
+        </div>`
+      : `<div style="width:28px;height:28px;background:#222;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)">
+          <div style="width:8px;height:8px;background:#fff;border-radius:50%"></div>
+        </div>`;
+    new AMapLib.Marker({
+      position: [lng, lat],
+      content: markerContent,
+      offset: new AMapLib.Pixel(-14, -14),
+      map,
+    });
+  }, [lng, lat, name]);
+
+  // Inline map
+  useEffect(() => {
+    if (!loaded || !AMap || !inlineRef.current) return;
+    if (inlineMapInst.current) return;
+    const map = new AMap.Map(inlineRef.current, {
+      center: [lng, lat],
+      zoom: 13,
+      mapStyle: 'amap://styles/normal',
+      dragEnable: false,
+      zoomEnable: false,
+      touchZoom: false,
+      scrollWheel: false,
+      doubleClickZoom: false,
+      keyboardEnable: false,
+      showIndoorMap: false,
+      viewMode: '2D',
+    });
+    addMarker(map, AMap, false);
+    inlineMapInst.current = map;
+    return () => { map.destroy(); inlineMapInst.current = null; };
+  }, [loaded, AMap, lng, lat, addMarker]);
+
+  // Fullscreen map
+  useEffect(() => {
+    if (!fullscreen || !loaded || !AMap || !fullRef.current) return;
+    let map: any;
+    const timer = setTimeout(() => {
+      if (!fullRef.current) return;
+      map = new AMap.Map(fullRef.current, {
+        center: [lng, lat],
+        zoom: 12,
+        mapStyle: 'amap://styles/normal',
+        showIndoorMap: false,
+        viewMode: '2D',
+      });
+      addMarker(map, AMap, true);
+      // Show user's current location
+      AMap.plugin('AMap.Geolocation', () => {
+        const geolocation = new AMap.Geolocation({
+          enableHighAccuracy: true,
+          showButton: false,
+          showMarker: true,
+          showCircle: true,
+          markerOptions: {
+            content: '<div style="width:14px;height:14px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(66,133,244,.5)"></div>',
+            offset: new AMap.Pixel(-7, -7),
+          },
+          circleOptions: {
+            fillColor: 'rgba(66,133,244,0.1)',
+            strokeColor: 'rgba(66,133,244,0.3)',
+            strokeWeight: 1,
+          },
+        });
+        map.addControl(geolocation);
+        geolocation.getCurrentPosition();
+      });
+      fullMapInst.current = map;
+    }, 50);
+    return () => { clearTimeout(timer); if (map) { map.destroy(); fullMapInst.current = null; } };
+  }, [fullscreen, loaded, AMap, lng, lat, addMarker]);
+
+  // Lock body scroll when fullscreen
+  useEffect(() => {
+    if (fullscreen) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [fullscreen]);
+
+  if (!loaded) return <div style={{ aspectRatio: '1', borderRadius: 16, background: '#f5f5f5', margin: '16px 0' }} />;
+
+  return (
+    <>
+      <style>{`.amap-logo,.amap-copyright,.amap-mcode{display:none!important}`}</style>
+      {/* Inline map */}
+      <div style={{ margin: '16px 0', borderRadius: 16, overflow: 'hidden', aspectRatio: '1', position: 'relative' }}>
+        <div ref={inlineRef} style={{ width: '100%', height: '100%' }} />
+        <button
+          onClick={() => setFullscreen(true)}
+          style={{
+            position: 'absolute', top: 12, right: 12, zIndex: 10,
+            width: 36, height: 36, borderRadius: 8,
+            background: 'rgba(255,255,255,.92)', border: '1px solid rgba(0,0,0,.08)',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 1px 4px rgba(0,0,0,.12)',
+          }}
+          aria-label="Expand map"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" stroke="#222" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* Fullscreen overlay */}
+      <AnimatePresence>
+        {fullscreen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, zIndex: 310, background: '#000', display: 'flex', flexDirection: 'column' }}
+          >
+            {/* Top bar */}
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '52px 16px 12px',
+            }}>
+              <button onClick={onNav} style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,255,255,.92)', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 1px 4px rgba(0,0,0,.15)',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="7" stroke="#222" strokeWidth="2"/><path d="M16 16l5 5" stroke="#222" strokeWidth="2" strokeLinecap="round"/></svg>
+              </button>
+              <button onClick={() => setFullscreen(false)} style={{
+                width: 40, height: 40, borderRadius: '50%',
+                background: 'rgba(255,255,255,.92)', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, color: '#222',
+                boxShadow: '0 1px 4px rgba(0,0,0,.15)',
+              }}>✕</button>
+            </div>
+            {/* Map */}
+            <div ref={fullRef} style={{ flex: 1 }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 // —— Gallery Components ——
 
 function ImageViewer({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
@@ -254,6 +423,17 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
   const gallerySource = useRef<'hero' | 'grid'>('hero');
+  const [mapCoords, setMapCoords] = useState<{ lng: number; lat: number } | null>(null);
+
+  // Geocode the attraction address for the map
+  useEffect(() => {
+    if (!data?.attraction_name_cn) return;
+    const q = `${data.attraction_name_cn} ${data.address_cn || ''}`.trim();
+    fetch(`/api/geocode?q=${encodeURIComponent(q)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.lng && d?.lat) setMapCoords(d); })
+      .catch(() => {});
+  }, [data?.attraction_name_cn, data?.address_cn]);
 
   useEffect(() => {
     const container = scrollRef?.current;
@@ -300,8 +480,6 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const lang = langInfo(gi.language_barrier_rating);
   const shortPrice = extractShortPrice(gi.price_rmb);
   const types = [data.experience_type, data.experience_type_secondary].filter(Boolean).map(String);
-  const taxiText = `${data.attraction_name_cn} ${data.address_cn || ''}`.trim();
-
   const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
   const handleNav = onNavigate || (() => {
     const dest = encodeURIComponent(`${data.attraction_name_cn} ${data.address_cn || ''}`.trim());
@@ -409,15 +587,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         </div></Coll>
       <Divider /></>)}
 
-      {/* ═══ WHEN TO GO ═══ */}
-      {(bt.best_time_of_day || bt.worst_time) && (<><SH>When to go</SH>
-        {bt.best_time_of_day && <Info icon="✓" title="Best time" desc={bt.best_time_of_day} />}
-        {bt.worst_time && <Info icon="✗" title="Worst time" desc={bt.worst_time} />}
-        {bt.pro_tip && <Info icon="💡" title="Pro tip" desc={bt.pro_tip} />}
-        {bt.seasonal_notes && <Info icon="🍂" title="Seasonal" desc={bt.seasonal_notes} />}
-      <Divider /></>)}
-
-      {/* ═══ HIGHLIGHTS (after When to Go — visual break) ═══ */}
+      {/* ═══ HIGHLIGHTS ═══ */}
       {highlights.length > 0 && (<><SH>What makes this special</SH>
         <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 4px' }}>
           {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); const hlImg = hl.image && !/^https?:\/\//.test(hl.image) ? `https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/${data.slug}/${hl.image}` : hl.image; return (
@@ -433,24 +603,30 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         </div>
       <Divider /></>)}
 
+
       {/* ═══ WHERE IT IS ═══ */}
       {data.address_cn && (<><SH>Where it is</SH>
         <div style={{ padding: '0 20px' }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>{data.address_cn}</div>
-          <div style={{ marginTop: 14, padding: 14, border: '1.5px dashed #d0d0d0', borderRadius: 10, textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#717171', textTransform: 'uppercase', letterSpacing: .8, marginBottom: 4 }}>Show this to your taxi driver</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#222', marginBottom: 2 }}>{data.attraction_name_cn}</div>
-            <div style={{ fontSize: 11, color: '#717171', marginBottom: 10 }}>{data.address_cn}</div>
-            <button onClick={() => copyText(taxiText, 'Address copied!')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '8px 16px', borderRadius: 8, background: '#222', color: '#fff', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>📋 Copy address</button>
-          </div>
+          <div style={{ fontSize: 13, color: '#717171' }}>{data.address_cn}</div>
+          {mapCoords && <LocationMap lng={mapCoords.lng} lat={mapCoords.lat} name={data.attraction_name_cn || data.attraction_name_en} onNav={handleNav} />}
         </div>
+      <Divider /></>)}
+
+      {/* ═══ WHEN TO GO (collapsible) ═══ */}
+      {(bt.best_time_of_day || bt.worst_time) && (<>
+        <Coll title="When to go">
+          {bt.best_time_of_day && <Info icon="✓" title="Best time" desc={bt.best_time_of_day} />}
+          {bt.worst_time && <Info icon="✗" title="Worst time" desc={bt.worst_time} />}
+          {bt.pro_tip && <Info icon="💡" title="Pro tip" desc={bt.pro_tip} />}
+          {bt.seasonal_notes && <Info icon="🍂" title="Seasonal" desc={bt.seasonal_notes} />}
+        </Coll>
       <Divider /></>)}
 
       {/* ═══ FRIEND'S TAKE (with bottom-line TLDR) ═══ */}
       {data.honest_description && (<><div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #D0021B, #ff4757)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>HC</div>
-          <div><div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>HelloChina AI Guide</div><div style={{ fontSize: 11, color: '#717171' }}>Local knowledge · Updated Feb 2026</div></div>
+          <div><div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>HelloChina AI Guide</div><div style={{ fontSize: 11, color: '#717171' }}>Local knowledge · Updated Mar 2026</div></div>
         </div>
         {data.vibe && <div style={{ padding: '12px 14px', background: '#f7f7f7', borderRadius: 10, marginBottom: 12 }}><strong style={{ fontSize: 13, color: '#222' }}>Bottom line: </strong><span style={{ fontSize: 13, color: '#484848' }}>{data.vibe}</span></div>}
         <div style={{ fontSize: 15, color: '#484848', lineHeight: 1.65 }}><RM text={data.honest_description} lines={4} /></div>

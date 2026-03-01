@@ -34,7 +34,7 @@ function loadAMapScript(): Promise<any> {
     }
 
     const script = document.createElement("script");
-    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}&plugin=AMap.Scale`;
+    script.src = `https://webapi.amap.com/maps?v=2.0&key=${key}&plugin=AMap.Scale&lang=en`;
     script.onload = () => resolve(window.AMap);
     script.onerror = () => reject(new Error("Failed to load Amap JS API"));
     document.head.appendChild(script);
