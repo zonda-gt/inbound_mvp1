@@ -106,7 +106,7 @@ export default function Shell() {
 
       {/* Photo AI */}
       <div className={`v2-screen v2-photo ${isActive('photo') ? 'active' : ''}`}>
-        <PhotoScreen onNavigate={handleNavigate} />
+        <PhotoScreen onNavigate={handleNavigate} isActive={isActive('photo')} />
       </div>
 
       {/* Journal */}
