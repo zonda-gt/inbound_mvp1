@@ -79,50 +79,30 @@ function haversineDistance(
   return R * c;
 }
 
-const CITY_ADDRESS_ALIASES: Record<string, string[]> = {
-  上海: ["上海", "上海市", "shanghai"],
-  北京: ["北京", "北京市", "beijing"],
-  广州: ["广州", "广州市", "guangzhou", "canton"],
-  深圳: ["深圳", "深圳市", "shenzhen"],
-  成都: ["成都", "成都市", "chengdu"],
-  杭州: ["杭州", "杭州市", "hangzhou"],
-  重庆: ["重庆", "重庆市", "chongqing"],
-  天津: ["天津", "天津市", "tianjin"],
-  西安: ["西安", "西安市", "xian", "xi'an"],
-  苏州: ["苏州", "苏州市", "suzhou"],
-  南京: ["南京", "南京市", "nanjing"],
-  武汉: ["武汉", "武汉市", "wuhan"],
+const CITY_NAME_MAP: Record<string, string> = {
+  上海: "shanghai",
+  北京: "beijing",
+  广州: "guangzhou",
+  深圳: "shenzhen",
+  成都: "chengdu",
+  杭州: "hangzhou",
+  重庆: "chongqing",
+  天津: "tianjin",
+  西安: "xian",
+  苏州: "suzhou",
+  南京: "nanjing",
+  武汉: "wuhan",
 };
 
-function normalizeCity(city: string): string {
-  return city
-    .toLowerCase()
-    .replace(/市$/u, "")
-    .replace(/\bcity\b/g, "")
-    .replace(/['’\s_-]/g, "")
-    .trim();
-}
-
-function resolveCityAddressTokens(city: string): string[] {
-  const normalized = normalizeCity(city);
-  const entry = Object.entries(CITY_ADDRESS_ALIASES).find(([cn, aliases]) => {
-    if (normalizeCity(cn) === normalized) return true;
-    return aliases.some((alias) => normalizeCity(alias) === normalized);
-  });
-
-  if (!entry) {
-    return [city.toLowerCase()];
+/** Normalize any city input (Chinese or English) to the lowercase English key used in the DB */
+function normalizeCityKey(city: string): string {
+  const trimmed = city.trim().replace(/市$/u, "");
+  if (CITY_NAME_MAP[trimmed]) return CITY_NAME_MAP[trimmed];
+  const lower = trimmed.toLowerCase().replace(/\bcity\b/g, "").replace(/['\s_-]/g, "");
+  for (const eng of Object.values(CITY_NAME_MAP)) {
+    if (eng === lower) return eng;
   }
-
-  const [cn, aliases] = entry;
-  return Array.from(new Set([cn, `${cn}市`, ...aliases].map((token) => token.toLowerCase())));
-}
-
-function addressMatchesCity(address: string | null | undefined, city: string): boolean {
-  if (!address) return false;
-  const loweredAddress = address.toLowerCase();
-  const tokens = resolveCityAddressTokens(city);
-  return tokens.some((token) => loweredAddress.includes(token));
+  return lower;
 }
 
 export async function searchCuratedRestaurants(filters: {
@@ -153,6 +133,11 @@ export async function searchCuratedRestaurants(filters: {
 
   if (filters.best_for) {
     q = q.contains("best_for", [filters.best_for]);
+  }
+
+  if (filters.city) {
+    const normalizedCity = normalizeCityKey(filters.city);
+    q = q.eq("city", normalizedCity);
   }
 
   if (filters.query) {
@@ -189,11 +174,6 @@ export async function searchCuratedRestaurants(filters: {
   }
 
   let results = (data || []) as CuratedRestaurant[];
-
-  const cityFilter = filters.city;
-  if (cityFilter) {
-    results = results.filter((r) => addressMatchesCity(r.address, cityFilter));
-  }
 
   // Proximity filter + sort if coordinates provided
   if (filters.near_lat != null && filters.near_lng != null) {
@@ -265,29 +245,22 @@ export async function searchCuratedRestaurantsHybrid(filters: {
 
   let results = (data || []) as CuratedRestaurantHybridResult[];
 
-  // Hybrid RPC currently does not include city filtering. Apply a post-filter on
-  // the matched rows so city-specific queries (e.g. "food in Beijing") do not
-  // return Shanghai-only curated restaurants.
+  // Post-filter by city column
   if (filters.city && results.length > 0) {
+    const normalizedCity = normalizeCityKey(filters.city);
     const slugs = results.map((r) => r.slug).filter(Boolean);
     if (slugs.length > 0) {
       const { data: cityRows, error: cityError } = await supabase
         .from("restaurants")
-        .select("slug,address")
-        .in("slug", slugs);
+        .select("slug,city")
+        .in("slug", slugs)
+        .eq("city", normalizedCity);
 
       if (cityError) {
-        console.error("[CuratedHybrid] City post-filter fetch error:", cityError);
+        console.error("[CuratedHybrid] City post-filter error:", cityError);
       } else {
         const allowedSlugs = new Set(
-          (cityRows || [])
-            .filter((row) =>
-              addressMatchesCity(
-                (row as { address?: string | null }).address,
-                filters.city!,
-              ),
-            )
-            .map((row) => (row as { slug: string }).slug),
+          (cityRows || []).map((row) => (row as { slug: string }).slug),
         );
         results = results.filter((row) => allowedSlugs.has(row.slug));
       }
@@ -314,6 +287,70 @@ export function toSummary(r: CuratedRestaurant): CuratedRestaurantSummary {
     longitude: r.longitude,
     hero_image_url: heroImage?.url || null,
   };
+}
+
+/** Fetch a single restaurant from restaurants_v2 by slug */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getRestaurantBySlug(slug: string): Promise<any | null> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from("restaurants_v2")
+    .select("*")
+    .eq("slug", slug)
+    .single();
+
+  if (error || !data) return null;
+
+  // Return all columns as-is — the component handles any shape
+  return { ...data, images: data.images || [] };
+}
+
+/** Get all restaurant slugs from restaurants_v2 */
+export async function getAllRestaurantSlugsWithProfile(): Promise<string[]> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("restaurants_v2")
+    .select("slug");
+
+  if (error || !data) return [];
+  return data.map((row) => row.slug);
+}
+
+/** Fetch featured restaurants from restaurants_v2 for discover screen cards */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getFeaturedRestaurants(limit = 8): Promise<any[]> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("restaurants_v2")
+    .select("slug, name_en, name_cn, images, profile")
+    .not("profile", "is", null)
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  return data.map((r) => {
+    const card = r.profile?.layer1_card || {};
+    const identity = card.identity || {};
+    const price = card.price || {};
+    const tags = card.tags || {};
+    const imgs = r.images || [];
+    return {
+      slug: r.slug,
+      name_en: r.name_en,
+      name_cn: r.name_cn,
+      cuisine: identity.cuisine_type || "",
+      price_cny: price.price_per_person_cny || null,
+      rating: tags.rating_adjusted || tags.rating || null,
+      verdict: (card.verdict || "").slice(0, 80),
+      image: imgs[0] || null,
+    };
+  });
 }
 
 /** Fetch full restaurant profiles by slugs (for frontend card rendering) */

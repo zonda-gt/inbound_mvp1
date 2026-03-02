@@ -16,6 +16,15 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
 
+  // Fetch featured restaurants from restaurants_v2
+  const [featuredRestaurants, setFeaturedRestaurants] = useState<any[]>([]);
+  useEffect(() => {
+    fetch('/api/restaurants-v2')
+      .then(r => r.json())
+      .then(d => setFeaturedRestaurants(d.restaurants || []))
+      .catch(() => {});
+  }, []);
+
   // Pick a hero attraction based on time of day
   const heroAttraction = useMemo(() => {
     if (featuredAttractions.length === 0) return null;
@@ -33,14 +42,18 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
     <div className="v2-scroll-body">
       {/* Masthead Hero */}
       <div className="v2-sh-masthead">
-        <div
-          className="v2-sh-masthead-img"
-          style={
-            heroAttraction?.images?.[0]
-              ? { backgroundImage: `url(${heroAttraction.images[0]})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: 'linear-gradient(135deg, #1a0508, #0a0a1a)' }
-          }
-        />
+        {heroAttraction?.images?.[0] ? (
+          <img
+            className="v2-sh-masthead-img"
+            src={heroAttraction.images[0]}
+            alt=""
+          />
+        ) : (
+          <div
+            className="v2-sh-masthead-img"
+            style={{ background: 'linear-gradient(135deg, #1a0508, #0a0a1a)' }}
+          />
+        )}
         <div className="v2-sh-masthead-overlay" />
         <div className="v2-sh-masthead-content">
           <div className="v2-sh-hero-message">{heroAttraction?.card_hook ? `\u201C${heroAttraction.card_hook}\u201D` : ''}</div>
@@ -116,11 +129,14 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
           <div className="v2-sh-see-all">See all &rarr;</div>
         </div>
         <div className="v2-sh-hscroll">
-          <FoodCard bg="#e8d8c8" emoji="🍜" name="Xun Yu Ji Wok Noodles" hook="Flames leap from the wok while you watch" price="¥38/pp" rating="4.4" openStatus="● Open now · 320m" />
-          <FoodCard bg="#e8d0c0" emoji="🥟" name="Yang&apos;s Fried Dumplings" hook="Crispy bottoms, soup inside — locals queue 30 mins" price="¥20/pp" rating="4.6" openStatus="● Open now · 1.2km" />
-          <FoodCard bg="#d8c8b8" emoji="🏙️" name="COMMUNE Reserve" hook="Skyline views, English menu, never crowded at lunch" price="¥130/pp" rating="4.7" openStatus="● Open · until 2AM" />
-          <FoodCard bg="#c8b8a8" emoji="🥩" name="BELLOCO Korean Fusion" hook="Seoul meets Shanghai — the bulgogi hotpot is unmissable" price="¥130/pp" rating="4.7" openStatus="● Open now · 2.1km" />
-          <FoodCard bg="#b8a898" emoji="🥟" name="Jia Jia Tang Bao" hook="The best soup dumplings in the city — arrive early" price="¥25/pp" rating="4.8" openStatus="● Opens 7:30 AM" />
+          {featuredRestaurants.length > 0 ? featuredRestaurants.map((r: any) => (
+            <FoodCard key={r.slug} slug={r.slug} image={r.image} name={r.name_en} hook={r.verdict} price={r.price_cny ? `¥${r.price_cny}/pp` : ''} rating={r.rating ? String(r.rating) : ''} cuisine={r.cuisine} />
+          )) : (
+            <>
+              <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
+              <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
+            </>
+          )}
         </div>
       </div>
 
@@ -272,25 +288,42 @@ function NeighbourhoodCard({ bg, name, desc, count }: { bg: string; name: string
   );
 }
 
-function FoodCard({ bg, emoji, name, hook, price, rating, openStatus }: {
-  bg: string; emoji: string; name: string; hook: string; price: string; rating: string; openStatus: string;
+function FoodCard({ slug, image, name, price, rating, cuisine }: {
+  slug: string; image: string | null; name: string; hook: string; price: string; rating: string; cuisine: string;
 }) {
-  return (
+  const [saved, setSaved] = useState(false);
+  const card = (
     <div className="v2-sh-food-card">
-      <div className="v2-sh-food-img" style={{ background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40 }}>
-        {emoji}
+      <div className="v2-sh-food-img-wrap">
+        {image ? (
+          <img className="v2-sh-food-img" src={image} alt={name} />
+        ) : (
+          <div className="v2-sh-food-img v2-sh-food-img-placeholder">🍽️</div>
+        )}
+        <button
+          className="v2-sh-food-fav"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved(!saved); }}
+          aria-label="Save"
+        >
+          <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+            <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+          </svg>
+        </button>
       </div>
       <div className="v2-sh-food-body">
-        <div className="v2-sh-food-name">{name}</div>
-        <div className="v2-sh-food-hook">{hook}</div>
-        <div className="v2-sh-food-meta">
-          <span className="v2-sh-food-price">{price}</span>
-          <span className="v2-sh-food-rating"><span className="v2-sh-food-star">★</span> {rating}</span>
+        <div className="v2-sh-food-row">
+          <div className="v2-sh-food-name">{name}</div>
+          {rating && <div className="v2-sh-food-rating">★ {rating}</div>}
         </div>
-        <div className="v2-sh-food-open">{openStatus}</div>
+        <div className="v2-sh-food-meta">
+          {price && <span className="v2-sh-food-price">{price}</span>}
+        </div>
+        {cuisine && <div className="v2-sh-food-cuisine">{cuisine}</div>}
       </div>
     </div>
   );
+  if (!slug) return card;
+  return <a href={`/restaurants/${slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>{card}</a>;
 }
 
 function PlanCard({ bg, tag, title, stops }: { bg: string; tag: string; title: string; stops: string[]; }) {
