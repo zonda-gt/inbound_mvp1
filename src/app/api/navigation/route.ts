@@ -3,8 +3,10 @@ import {
   resolvePlace,
   getTransitRoute,
   getWalkingRoute,
+  getDrivingRoute,
   TransitRoute,
   WalkingRoute,
+  DrivingRoute,
 } from "@/lib/amap";
 
 const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
@@ -16,8 +18,10 @@ export type NavigationResult = {
     address: string;
     location: string;
   };
+  origin: string;
   transit: TransitRoute | null;
   walking: WalkingRoute | null;
+  driving: DrivingRoute | null;
   summary: string;
 };
 
@@ -83,9 +87,10 @@ export async function POST(request: NextRequest) {
 
     const originCoords = origin || DEFAULT_ORIGIN;
 
-    const [transit, walking] = await Promise.all([
+    const [transit, walking, driving] = await Promise.all([
       getTransitRoute(originCoords, place.location, city),
       getWalkingRoute(originCoords, place.location),
+      getDrivingRoute(originCoords, place.location),
     ]);
 
     const result: NavigationResult = {
@@ -95,8 +100,10 @@ export async function POST(request: NextRequest) {
         address: place.formatted_address,
         location: place.location,
       },
+      origin: originCoords,
       transit,
       walking,
+      driving,
       summary: buildSummary(place.name, transit, walking),
     };
 

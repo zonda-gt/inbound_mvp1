@@ -1,5 +1,6 @@
 const AMAP_KEY = process.env.AMAP_API_KEY || "";
-const BASE = "https://restapi.amap.com/v3";
+const BASE_V3 = "https://restapi.amap.com/v3";
+const BASE_V5 = "https://restapi.amap.com/v5";
 const PLACE_SHOW_FIELDS = "business,photos,navi,indoor";
 
 export type GeoResult = {
@@ -52,7 +53,7 @@ export async function reverseGeocode(
       key: AMAP_KEY,
       output: "JSON",
     });
-    const res = await fetch(`${BASE}/geocode/regeo?${params}`);
+    const res = await fetch(`${BASE_V3}/geocode/regeo?${params}`);
     const data = await res.json();
 
     if (data.status !== "1" || !data.regeocode) return null;
@@ -101,7 +102,7 @@ export async function geocode(
       output: "JSON",
     });
     if (city) params.set("city", city);
-    const res = await fetch(`${BASE}/geocode/geo?${params}`);
+    const res = await fetch(`${BASE_V3}/geocode/geo?${params}`);
     const data = await res.json();
 
     if (data.status !== "1" || !data.geocodes?.length) return null;
@@ -133,7 +134,7 @@ export async function searchPlace(
       output: "JSON",
     });
     if (city) params.set("city", city);
-    const res = await fetch(`${BASE}/place/text?${params}`);
+    const res = await fetch(`${BASE_V3}/place/text?${params}`);
     const data = await res.json();
 
     if (data.status !== "1" || !data.pois?.length) return null;
@@ -158,15 +159,17 @@ export async function getTransitRoute(
   city?: string,
 ): Promise<TransitRoute | null> {
   try {
+    const cityVal = city || "上海";
     const params = new URLSearchParams({
       origin,
       destination,
       key: AMAP_KEY,
       strategy: "0",
-      output: "JSON",
+      city1: cityVal,
+      city2: cityVal,
+      show_fields: "cost,polyline",
     });
-    if (city) params.set("city", city);
-    const res = await fetch(`${BASE}/direction/transit/integrated?${params}`);
+    const res = await fetch(`${BASE_V5}/direction/transit/integrated?${params}`);
     const data = await res.json();
 
     if (
@@ -189,7 +192,7 @@ export async function getTransitRoute(
         segments.push({
           type: "walking",
           distance: Number(seg.walking.distance),
-          duration: Math.round(Number(seg.walking.duration) / 60),
+          duration: Math.round(Number(seg.walking.cost?.duration || seg.walking.duration || 0) / 60),
           polyline: walkPolyline || undefined,
         });
       }
@@ -211,12 +214,16 @@ export async function getTransitRoute(
       }
     }
 
+    // v5 may put duration in cost object
+    const totalDurationSec = Number(transit.cost?.duration || transit.duration || 0);
+    const fare = transit.cost?.transit_fee || transit.cost || null;
+
     return {
-      totalDuration: Math.round(Number(transit.duration) / 60),
+      totalDuration: Math.round(totalDurationSec / 60),
       totalWalkingDistance: Number(transit.walking_distance || 0),
       transferCount,
       segments,
-      cost: transit.cost ? `¥${Math.ceil(Number(transit.cost))}` : "¥3-5",
+      cost: fare ? `¥${Math.ceil(Number(fare))}` : "¥3-5",
     };
   } catch (err) {
     console.error("Amap transit error:", err);
@@ -235,9 +242,9 @@ export async function getWalkingRoute(
       origin,
       destination,
       key: AMAP_KEY,
-      output: "JSON",
+      show_fields: "cost,polyline",
     });
-    const res = await fetch(`${BASE}/direction/walking?${params}`);
+    const res = await fetch(`${BASE_V5}/direction/walking?${params}`);
     const data = await res.json();
 
     if (data.status !== "1" || !data.route?.paths?.length) return null;
@@ -247,13 +254,60 @@ export async function getWalkingRoute(
       .map((s: Record<string, string>) => s.polyline)
       .filter(Boolean)
       .join(";");
+    const durationSec = Number(path.cost?.duration || path.duration || 0);
     return {
       distance: Number(path.distance),
-      duration: Math.round(Number(path.duration) / 60),
+      duration: Math.round(durationSec / 60),
       polyline: walkPolyline || undefined,
     };
   } catch (err) {
     console.error("Amap walking error:", err);
+    return null;
+  }
+}
+
+// --------------- Driving Route (Taxi) ---------------
+
+export type DrivingRoute = {
+  distance: number; // meters
+  duration: number; // minutes
+  taxiFare: number; // yuan
+  polyline?: string;
+};
+
+export async function getDrivingRoute(
+  origin: string,
+  destination: string,
+): Promise<DrivingRoute | null> {
+  try {
+    const params = new URLSearchParams({
+      origin,
+      destination,
+      key: AMAP_KEY,
+      strategy: "32",
+      show_fields: "cost,polyline",
+    });
+    const res = await fetch(`${BASE_V5}/direction/driving?${params}`);
+    const data = await res.json();
+
+    if (data.status !== "1" || !data.route?.paths?.length) return null;
+
+    const path = data.route.paths[0];
+    const taxiFare = Number(data.route.taxi_cost || 0);
+    const distMeters = Number(path.distance);
+    const durationSec = Number(path.cost?.duration || path.duration || 0);
+    const drivePolyline = (path.steps || [])
+      .map((s: Record<string, string>) => s.polyline)
+      .filter(Boolean)
+      .join(";");
+    return {
+      distance: distMeters,
+      duration: Math.round(durationSec / 60),
+      taxiFare: taxiFare || Math.max(14, Math.round(14 + Math.max(0, distMeters / 1000 - 3) * 2.5)),
+      polyline: drivePolyline || undefined,
+    };
+  } catch (err) {
+    console.error("Amap driving error:", err);
     return null;
   }
 }
@@ -375,7 +429,7 @@ export async function searchNearbyRestaurants(
     if (keyword) params.keywords = keyword;
 
     const res = await fetch(
-      `${BASE}/place/around?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/around?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];
@@ -406,7 +460,7 @@ export async function searchNearbyAttractions(
     if (keyword) params.keywords = keyword;
 
     const res = await fetch(
-      `${BASE}/place/around?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/around?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];
@@ -438,7 +492,7 @@ export async function searchNearbyPOI(
     if (types) params.types = types;
 
     const res = await fetch(
-      `${BASE}/place/around?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/around?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];
@@ -471,7 +525,7 @@ export async function searchCityRestaurants(
     else params.keywords = "餐厅";
 
     const res = await fetch(
-      `${BASE}/place/text?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/text?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];
@@ -502,7 +556,7 @@ export async function searchCityAttractions(
     else params.keywords = "景点";
 
     const res = await fetch(
-      `${BASE}/place/text?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/text?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];
@@ -533,7 +587,7 @@ export async function searchCityPOI(
     if (types) params.types = types;
 
     const res = await fetch(
-      `${BASE}/place/text?${new URLSearchParams(params)}`,
+      `${BASE_V3}/place/text?${new URLSearchParams(params)}`,
     );
     const data = await res.json();
     if (data.status !== "1" || !data.pois?.length) return [];

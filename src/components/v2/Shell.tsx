@@ -6,7 +6,7 @@ import AttractionPage from '../guides/attractions/AttractionDetail';
 import OnboardingScreen from './screens/OnboardingScreen';
 import HomeScreen from './screens/HomeScreen';
 import DiscoverScreen from './screens/DiscoverScreen';
-import NavigateScreen from './screens/NavigateScreen';
+import NavigateScreen, { type NavigateDestination } from './screens/NavigateScreen';
 import PhotoScreen from './screens/PhotoScreen';
 import JournalScreen from './screens/JournalScreen';
 import ShanghaiAllScreen from './screens/ShanghaiAllScreen';
@@ -49,6 +49,13 @@ export default function Shell() {
 
   const handleNavigate = useCallback((screen: string) => {
     setActiveScreen(screen as Screen);
+  }, []);
+
+  // Navigate screen destination
+  const [navigateDestination, setNavigateDestination] = useState<NavigateDestination | null>(null);
+  const handleNavigateToDestination = useCallback((dest: NavigateDestination) => {
+    setNavigateDestination(dest);
+    setActiveScreen('navigate');
   }, []);
 
   // Attraction detail overlay
@@ -101,7 +108,7 @@ export default function Shell() {
 
       {/* Navigate */}
       <div className={`v2-screen v2-navigate ${isActive('navigate') ? 'active' : ''}`}>
-        <NavigateScreen onNavigate={handleNavigate} />
+        <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} />
       </div>
 
       {/* Photo AI */}
@@ -185,6 +192,14 @@ export default function Shell() {
                 <AttractionPage
                   data={attractionData}
                   onBack={handleCloseAttraction}
+                  onNavigate={() => {
+                    handleCloseAttraction();
+                    handleNavigateToDestination({
+                      name: attractionData.attraction_name_cn || attractionData.attraction_name_en,
+                      chineseName: attractionData.attraction_name_cn,
+                      address: attractionData.address_cn || attractionData.address_en,
+                    });
+                  }}
                   layoutId={`attraction-hero-${selectedAttraction.slug}`}
                   scrollRef={overlayScrollRef}
                 />
