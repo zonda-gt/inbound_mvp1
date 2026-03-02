@@ -154,6 +154,51 @@
   border: 2px solid white;
 }
 
+/* ===== LENS NAV BUTTON (elevated center tab) ===== */
+.v2-nav-btn-lens {
+  position: relative;
+  margin-top: -18px;
+  padding: 0 14px 6px;
+}
+.v2-nav-btn-lens:active { transform: scale(0.93); }
+.v2-nav-lens-bubble {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 0 3px white;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.v2-nav-btn-lens.active .v2-nav-lens-bubble {
+  background: linear-gradient(135deg, #C9444C, #8B0000);
+  box-shadow: 0 4px 24px rgba(201,68,76,0.5), 0 0 0 3px white;
+}
+.v2-nav-lens-spark {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 11px;
+  color: #FFD700;
+  text-shadow: 0 0 8px rgba(255,215,0,0.8);
+  animation: v2-lensSparkle 1.8s ease-in-out infinite;
+}
+@keyframes v2-lensSparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+.v2-nav-lens-label {
+  color: var(--text-2);
+  font-weight: 600;
+  margin-top: 4px;
+}
+.v2-nav-btn-lens.active .v2-nav-lens-label {
+  color: var(--red);
+}
+
 /* ===== ONBOARDING ===== */
 .v2-onboard { background: var(--dark); }
 .v2-ob-wrap {
