@@ -566,118 +566,175 @@
 .v2-sec-title { font-size: 19px; font-weight: 800; color: var(--text-1); letter-spacing: -0.3px; }
 .v2-sec-link { font-size: 13px; font-weight: 600; color: var(--red); cursor: pointer; }
 
-/* Today's Pick */
+/* Picks for you — unified section */
 .v2-todays-pick { padding: 20px 20px 0; }
-.v2-attraction-pick { padding: 14px 20px 0; }
+
+/* Header: title + pill tabs */
+.v2-pick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.v2-pick-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1, #1a1a1a);
+  letter-spacing: -0.3px;
+}
+.v2-pick-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.v2-pick-pill {
+  padding: 7px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: transparent;
+  color: rgba(0,0,0,0.55);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease, border-color 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-pick-pill.active {
+  background: #1a1a1a;
+  color: #fff;
+  border-color: #1a1a1a;
+}
+.v2-pick-pill:active {
+  transform: scale(0.96);
+}
+
+/* Card */
 .v2-pick-card {
-  border-radius: var(--r-xl); overflow: hidden; position: relative;
-  height: 200px; cursor: pointer; box-shadow: var(--shadow-lg);
+  border-radius: 16px; overflow: hidden; position: relative;
+  height: 260px; cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,0.06),
+    0 4px 12px rgba(0,0,0,0.08),
+    0 12px 32px rgba(0,0,0,0.06);
   transition: transform 0.2s ease;
 }
 .v2-pick-card:active { transform: scale(0.98); }
-.v2-pick-static-frame{
-  box-shadow:none;
-  border:1px solid rgba(0,0,0,0.06);
+.v2-pick-static-frame {
+  box-shadow: none;
+  border: 1px solid rgba(0,0,0,0.06);
 }
-.v2-pick-static-frame:active{
+.v2-pick-static-frame:active {
   transform: none;
 }
-.v2-pick-track{
-  display:flex;
-  width:100%;
-  height:100%;
-  touch-action:pan-y;
-  will-change:transform;
+
+/* Track & slides */
+.v2-pick-track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+  will-change: transform;
 }
-.v2-pick-slide{
-  position:relative;
-  width:100%;
-  height:100%;
-  flex:0 0 100%;
+.v2-pick-slide {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: 0 0 100%;
 }
 .v2-pick-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.v2-lazy-img{
-  opacity:0;
-  transform:scale(1.015);
-  transition:opacity .34s cubic-bezier(.22,.61,.36,1), transform .42s cubic-bezier(.22,.61,.36,1);
-  position:relative;
+
+/* Image loading */
+.v2-lazy-img {
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity .34s cubic-bezier(.22,.61,.36,1), transform .42s cubic-bezier(.22,.61,.36,1);
+  position: relative;
 }
-.v2-lazy-img.loaded{
-  opacity:1;
-  transform:scale(1);
+.v2-lazy-img.loaded {
+  opacity: 1;
+  transform: scale(1);
 }
-.v2-img-skel{
-  position:absolute;
-  inset:0;
-  background:linear-gradient(90deg,#e9e9ea 25%,#f4f4f5 50%,#e9e9ea 75%);
-  background-size:200% 100%;
-  animation:v2-skel-shimmer 1.25s ease-in-out infinite;
-  opacity:1;
-  transition:opacity .24s ease;
+.v2-img-skel {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,#e9e9ea 25%,#f4f4f5 50%,#e9e9ea 75%);
+  background-size: 200% 100%;
+  animation: v2-skel-shimmer 1.25s ease-in-out infinite;
+  opacity: 1;
+  transition: opacity .24s ease;
 }
-.v2-img-skel.loaded{
-  opacity:0;
-  pointer-events:none;
+.v2-img-skel.loaded {
+  opacity: 0;
+  pointer-events: none;
 }
 .v2-pick-card-img-ph {
   width: 100%; height: 100%;
   background: linear-gradient(135deg, #1a0508 0%, #3d0f18 50%, #1a0508 100%);
   display: flex; align-items: center; justify-content: center; font-size: 70px;
 }
+
+/* Cinematic gradient overlay */
 .v2-pick-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(0deg, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 55%, transparent 100%);
+  background: linear-gradient(0deg, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 50%, rgba(0,0,0,0.03) 100%);
   z-index: 1;
 }
+
+/* Frosted glass badge (Apple-style) */
 .v2-pick-badge {
   position: absolute; top: 14px; left: 14px;
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: var(--r-full);
-  background: rgba(208,2,27,0.85); backdrop-filter: blur(8px);
-  font-size: 11px; font-weight: 700; color: white;
+  padding: 5px 11px; border-radius: var(--r-full);
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.92);
   letter-spacing: 0.3px; text-transform: uppercase;
   z-index: 2;
 }
-.v2-pick-badge-alt {
-  background: rgba(0,122,255,0.82);
-}
+
+/* Refined dot indicators */
 .v2-pick-dots {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   padding: 12px 0 0;
 }
 .v2-pick-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   padding: 0;
   border-radius: var(--r-full);
   border: none;
-  background: rgba(18,18,22,0.26);
+  background: rgba(0,0,0,0.15);
   cursor: pointer;
-  transition: width .22s ease, background-color .22s ease, transform .14s ease, opacity .22s ease;
-  opacity: .9;
+  transition: width .22s ease, background-color .22s ease, transform .14s ease;
 }
 .v2-pick-dot.active {
-  width: 20px;
-  background: rgba(18,18,22,0.76);
+  width: 18px;
+  background: rgba(0,0,0,0.5);
 }
 .v2-pick-dot:active {
   transform: scale(.92);
 }
-.v2-pick-body { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 16px; z-index: 2; }
+
+/* Card content */
+.v2-pick-body {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 16px 18px; z-index: 2;
+}
 .v2-pick-name {
-  font-size: 20px; font-weight: 800; color: white;
-  letter-spacing: -0.4px; line-height: 1.1; margin-bottom: 4px;
+  font-size: 22px; font-weight: 700; color: white;
+  letter-spacing: -0.4px; line-height: 1.12; margin-bottom: 5px;
 }
 .v2-pick-meta { display: flex; align-items: center; gap: 8px; }
 .v2-pick-meta-item {
   display: flex; align-items: center; gap: 4px;
-  font-size: 12px; color: rgba(255,255,255,0.8); font-weight: 500;
+  font-size: 12px; color: rgba(255,255,255,0.85); font-weight: 500;
 }
 .v2-pick-ai-reason {
-  margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.65);
+  margin-top: 8px; font-size: 12.5px; color: rgba(255,255,255,0.75);
   line-height: 1.4; font-style: italic;
 }
 
