@@ -880,7 +880,6 @@ export default function RestaurantDetail({ data }: { data: any }) {
                   display: 'block',
                   marginBottom: 4,
                   breakInside: 'avoid',
-                  WebkitColumnBreakInside: 'avoid',
                 }}
                 aria-label={`Open photo ${idx + 1}`}
               >
