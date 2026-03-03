@@ -12,6 +12,22 @@ interface DiscoverScreenProps {
 // Grab a diverse mix of attraction slugs across collections for the "Only in Shanghai" scroll
 const featuredSlugs = COLLECTION_LIST.flatMap((col) => col.slugs.slice(0, 2)).slice(0, 12);
 
+function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      <div className={`v2-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />
+      <img
+        className={`${className} v2-lazy-img ${loaded ? 'loaded' : ''}`}
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+      />
+    </>
+  );
+}
+
 export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
@@ -43,11 +59,7 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
       {/* Masthead Hero */}
       <div className="v2-sh-masthead">
         {heroAttraction?.images?.[0] ? (
-          <img
-            className="v2-sh-masthead-img"
-            src={heroAttraction.images[0]}
-            alt=""
-          />
+          <SmoothImage key={`discover-hero-${heroAttraction.images[0]}`} className="v2-sh-masthead-img" src={heroAttraction.images[0]} alt="" />
         ) : (
           <div
             className="v2-sh-masthead-img"
@@ -246,12 +258,13 @@ function shortHook(hook?: string): string {
 function AttractionCoverCard({ attraction }: { attraction: import('@/types/attraction').AttractionData }) {
   const [saved, setSaved] = useState(false);
   const img = attraction.images?.[0];
-  const imgStyle: React.CSSProperties = img
-    ? { backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: 'linear-gradient(135deg,#1a1a2d,#2d2d4a)' };
   return (
     <a href={`/attractions/${attraction.slug}`} className="v2-sh-cover-card" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
-      <div className="v2-sh-cover-img" style={imgStyle} />
+      {img ? (
+        <SmoothImage key={`${attraction.slug}-${img}`} className="v2-sh-cover-img" src={img} alt={attraction.card_name || attraction.attraction_name_en} />
+      ) : (
+        <div className="v2-sh-cover-img" style={{ background: 'linear-gradient(135deg,#1a1a2d,#2d2d4a)' }} />
+      )}
       <div className="v2-sh-cover-overlay" />
       <button
         className="v2-sh-food-fav"

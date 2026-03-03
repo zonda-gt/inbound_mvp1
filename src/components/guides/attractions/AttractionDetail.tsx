@@ -185,7 +185,7 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
     new AMapLib.Marker({
       position: [lng, lat],
       content: markerContent,
-      offset: new AMapLib.Pixel(-14, -14),
+      anchor: 'center',
       map,
     });
   }, [lng, lat, name]);
@@ -259,13 +259,13 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
     }
   }, [fullscreen]);
 
-  if (!loaded) return <div style={{ aspectRatio: '1', borderRadius: 16, background: '#f5f5f5', margin: '16px 0' }} />;
+  if (!loaded) return <div style={{ aspectRatio: '4/3.5', borderRadius: 20, background: '#f5f5f5', margin: '16px 0' }} />;
 
   return (
     <>
       <style>{`.amap-logo,.amap-copyright,.amap-mcode{display:none!important}`}</style>
       {/* Inline map */}
-      <div style={{ margin: '16px 0', borderRadius: 16, overflow: 'hidden', aspectRatio: '1', position: 'relative' }}>
+      <div style={{ margin: '16px 0', borderRadius: 20, overflow: 'hidden', aspectRatio: '4/3.5', position: 'relative' }}>
         <div ref={inlineRef} style={{ width: '100%', height: '100%' }} />
         <button
           onClick={() => setFullscreen(true)}
@@ -326,6 +326,36 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+function DetailSmoothImage({
+  src,
+  alt,
+  wrapperStyle,
+  imgStyle,
+  loading = 'lazy',
+}: {
+  src: string;
+  alt: string;
+  wrapperStyle?: React.CSSProperties;
+  imgStyle?: React.CSSProperties;
+  loading?: 'lazy' | 'eager';
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', ...wrapperStyle }}>
+      <div className={`at-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />
+      <img
+        src={src}
+        alt={alt}
+        loading={loading}
+        className={`at-img ${loaded ? 'loaded' : ''}`}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+        style={imgStyle}
+      />
+    </div>
+  );
+}
+
 // —— Gallery Components ——
 
 function ImageViewer({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
@@ -365,8 +395,13 @@ function ImageViewer({ images, startIndex, onClose }: { images: string[]; startI
         {images.map((src, i) => (
           <div key={i} style={{ width: '100vw', flexShrink: 0, scrollSnapAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
             {Math.abs(i - current) <= 5 ? (
-              <img src={src} alt="" loading={Math.abs(i - current) <= 1 ? 'eager' : 'lazy'}
-                style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 4 }} />
+              <DetailSmoothImage
+                src={src}
+                alt=""
+                loading={Math.abs(i - current) <= 1 ? 'eager' : 'lazy'}
+                wrapperStyle={{ width: '100%', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                imgStyle={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 4 }}
+              />
             ) : <div style={{ width: '100%', height: 300 }} />}
           </div>
         ))}
@@ -488,7 +523,18 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
 
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');.dm-serif{font-family:'DM Serif Display',Georgia,serif}.hl-scroll::-webkit-scrollbar{display:none}.hl-scroll{scrollbar-width:none}.img-viewer-scroll::-webkit-scrollbar{display:none}.img-viewer-scroll{scrollbar-width:none}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
+      .dm-serif{font-family:'DM Serif Display',Georgia,serif}
+      .hl-scroll::-webkit-scrollbar{display:none}
+      .hl-scroll{scrollbar-width:none}
+      .img-viewer-scroll::-webkit-scrollbar{display:none}
+      .img-viewer-scroll{scrollbar-width:none}
+      .at-img{opacity:0;transform:scale(1.015);transition:opacity .34s cubic-bezier(.22,.61,.36,1),transform .42s cubic-bezier(.22,.61,.36,1);position:relative;z-index:1}
+      .at-img.loaded{opacity:1;transform:scale(1)}
+      .at-img-skel{position:absolute;inset:0;background:linear-gradient(90deg,#ececee 25%,#f6f6f7 50%,#ececee 75%);background-size:200% 100%;animation:at-skel-shimmer 1.25s ease-in-out infinite;opacity:1;transition:opacity .24s ease}
+      .at-img-skel.loaded{opacity:0;pointer-events:none}
+      @keyframes at-skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+      `}</style>
 
       {/* ═══ NAV ═══ */}
       <nav style={{ position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '48px 16px 10px', zIndex: 100, transition: 'background .3s, box-shadow .3s', ...(navScrolled ? { background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 1px 0 rgba(0,0,0,.06)' } : {}) }}>
@@ -511,7 +557,16 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
             const r = ['12px 3px 3px 3px', '3px 12px 3px 3px', '3px 3px 3px 12px', '3px 3px 12px 3px'][i];
             return (
             <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
-              style={{ backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#e8e8e8', backgroundImage: images[i] ? `url(${images[i]})` : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
+              style={{ backgroundColor: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
+              {images[i] && (
+                <DetailSmoothImage
+                  src={images[i]}
+                  alt=""
+                  loading={i < 2 ? 'eager' : 'lazy'}
+                  wrapperStyle={{ width: '100%', height: '100%' }}
+                  imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              )}
               {!images[i] && '\uD83D\uDCF7'}
               {i === 3 && images.length > 4 && (
                 <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
@@ -592,7 +647,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         <div className="hl-scroll" style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 4px' }}>
           {highlights.map((hl: { name: string; description: string; foreigner_appeal?: string; foreigner_note?: string; tip?: string; image?: string }, i: number) => { const b = badge(hl.foreigner_appeal); const hlImg = hl.image && !/^https?:\/\//.test(hl.image) ? `https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/${data.slug}/${hl.image}` : hl.image; return (
             <div key={i} style={{ minWidth: hlImg ? 280 : 240, maxWidth: 280, borderRadius: 12, overflow: 'hidden', background: '#fff', border: '1px solid #ebebeb', flexShrink: 0 }}>
-              {hlImg && <div style={{ width: '100%', height: 220, backgroundSize: 'cover', backgroundPosition: 'center', backgroundImage: `url(${hlImg})` }} />}
+              {hlImg && <DetailSmoothImage src={hlImg} alt={hl.name} wrapperStyle={{ width: '100%', height: 220 }} imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               <div style={{ padding: '12px 14px' }}>
                 <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: .6, padding: '2px 7px', borderRadius: 4, marginBottom: 6, background: b.bg, color: b.color }}>{b.label}</span>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 4, lineHeight: 1.3 }}>{hl.name}</div>
@@ -608,7 +663,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       {data.address_cn && (<><SH>Where it is</SH>
         <div style={{ padding: '0 20px' }}>
           <div style={{ fontSize: 13, color: '#717171' }}>{data.address_cn}</div>
-          {mapCoords && <LocationMap lng={mapCoords.lng} lat={mapCoords.lat} name={data.attraction_name_cn || data.attraction_name_en} onNav={handleNav} />}
+          {mapCoords && <LocationMap lng={mapCoords.lng} lat={mapCoords.lat} name={data.card_name || data.attraction_name_en} onNav={handleNav} />}
         </div>
       <Divider /></>)}
 

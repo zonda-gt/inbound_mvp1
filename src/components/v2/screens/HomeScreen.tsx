@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { type TouchEvent, useRef, useState } from 'react';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { useCollectionData } from '../hooks/useCollectionData';
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -69,6 +70,42 @@ const ATTRACTION_PICK = {
   image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/fotografiska-shanghai/review_212_0.jpeg',
 };
 
+const ORIGINAL_ATTRACTIONS = [
+  {
+    slug: 'the-mckinnon-hotel',
+    label: 'Original',
+    title: 'Sleep No More Shanghai',
+    subtitle: 'Beijing West Rd, Jing’an',
+    meta: 'From ¥520 / guest',
+    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    slug: 'xtreme-play-sports-entertainment-world',
+    label: 'Original',
+    title: 'Extreme PLAY Sports World',
+    subtitle: 'Baoshan District, Shanghai',
+    meta: 'From ¥98 / guest',
+    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    slug: 'mengtian-music-livehouse',
+    label: 'Original',
+    title: 'Mengtian LiveHouse at Paramount',
+    subtitle: "Jing'an Temple, Shanghai",
+    meta: 'From ¥200 / guest',
+    image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    slug: 'shanghai-haichang-ocean-park',
+    label: 'Original',
+    title: 'Shanghai Haichang Ocean Park',
+    subtitle: 'Lingang, Pudong',
+    meta: 'From ¥299 / guest',
+    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
+  },
+];
+const ORIGINAL_ATTRACTION_SLUGS = ORIGINAL_ATTRACTIONS.map((item) => item.slug);
+
 function parseLocation(location: string): { lng: number; lat: number } | null {
   const [lngText, latText] = location.split(',');
   const lng = Number(lngText);
@@ -99,12 +136,34 @@ function formatDistance(meters: number): string {
   return `${Math.round(km)}km away`;
 }
 
+function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <>
+      <div className={`v2-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />
+      <img
+        className={`${className} v2-lazy-img ${loaded ? 'loaded' : ''}`}
+        src={src}
+        alt={alt}
+        onLoad={() => setLoaded(true)}
+        onError={() => setLoaded(true)}
+      />
+    </>
+  );
+}
+
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
   const [pickIndex, setPickIndex] = useState(0);
   const [savedBySlug, setSavedBySlug] = useState<Record<string, boolean>>({});
   const [savedAttraction, setSavedAttraction] = useState(false);
-  const pickCarouselRef = useRef<HTMLDivElement | null>(null);
+  const [savedOriginalBySlug, setSavedOriginalBySlug] = useState<Record<string, boolean>>({});
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
+  const [isSwipingPick, setIsSwipingPick] = useState(false);
+  const pickTouchStartX = useRef(0);
+  const pickDidDrag = useRef(false);
   const { location: userLocation, city, isDemo } = useGeolocation();
+  const { attractions: originalAttractionsData } = useCollectionData(ORIGINAL_ATTRACTION_SLUGS);
   const coords = parseLocation(userLocation);
   const canShowDistance = !isDemo && !!coords && isShanghaiCity(city);
   const openTodayPick = (slug: string) => {
@@ -114,20 +173,43 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     window.location.assign(`/attractions/${ATTRACTION_PICK.slug}`);
   };
 
-  const handlePickScroll = () => {
-    const el = pickCarouselRef.current;
-    if (!el || el.clientWidth <= 0) return;
-    const nextIndex = Math.round(el.scrollLeft / el.clientWidth);
-    if (nextIndex !== pickIndex && nextIndex >= 0 && nextIndex < TODAY_PICKS.length) {
-      setPickIndex(nextIndex);
-    }
+  const handlePickTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    pickTouchStartX.current = e.touches[0]?.clientX ?? 0;
+    pickDidDrag.current = false;
+    setIsSwipingPick(true);
   };
 
-  const scrollToPick = (index: number) => {
-    const el = pickCarouselRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * el.clientWidth, behavior: 'smooth' });
+  const handlePickTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    if (!isSwipingPick) return;
+    const currentX = e.touches[0]?.clientX ?? pickTouchStartX.current;
+    const dx = currentX - pickTouchStartX.current;
+    if (Math.abs(dx) > 8) pickDidDrag.current = true;
+    setDragOffsetPx(dx);
+  };
+
+  const handlePickTouchEnd = () => {
+    if (!isSwipingPick) return;
+    const thresholdPx = 46;
+    let next = pickIndex;
+    if (dragOffsetPx <= -thresholdPx) next = Math.min(TODAY_PICKS.length - 1, pickIndex + 1);
+    if (dragOffsetPx >= thresholdPx) next = Math.max(0, pickIndex - 1);
+    setPickIndex(next);
+    setDragOffsetPx(0);
+    setIsSwipingPick(false);
+  };
+
+  const onPickCardClick = (slug: string) => {
+    if (pickDidDrag.current) {
+      pickDidDrag.current = false;
+      return;
+    }
+    openTodayPick(slug);
+  };
+
+  const jumpToPick = (index: number) => {
     setPickIndex(index);
+    setDragOffsetPx(0);
+    setIsSwipingPick(false);
   };
 
   return (
@@ -197,51 +279,63 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       {/* 4. Today's Pick */}
       <div className="v2-todays-pick v2-fade-up v2-d2">
         <div className="v2-section-label">✦ Today&apos;s Pick for you</div>
-        <div className="v2-pick-carousel" ref={pickCarouselRef} onScroll={handlePickScroll}>
-          {TODAY_PICKS.map((pick) => {
-            const saved = !!savedBySlug[pick.slug];
-            const distanceLabel = canShowDistance && coords
-              ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
-              : null;
-            const pickMetaItems = [
-              distanceLabel ? `📍 ${distanceLabel}` : null,
-              pick.price,
-              pick.location,
-            ].filter(Boolean) as string[];
-            return (
-              <div key={pick.slug} className="v2-pick-card v2-pick-carousel-card" onClick={() => openTodayPick(pick.slug)}>
-                <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
-                <div className="v2-pick-overlay" />
-                <div className="v2-pick-badge">{pick.badge}</div>
-                <div className="v2-pick-body">
-                  <div className="v2-pick-name">{pick.name}</div>
-                  <div className="v2-pick-meta">
-                    {pickMetaItems.map((item, idx) => (
-                      <div className="v2-pick-meta-item" key={`${pick.slug}-meta-${idx}`}>
-                        {idx > 0 ? '· ' : ''}{item}
-                      </div>
-                    ))}
+        <div className="v2-pick-card v2-pick-static-frame">
+          <div
+            className="v2-pick-track"
+            style={{
+              transform: `translateX(calc(${-pickIndex * 100}% + ${dragOffsetPx}px))`,
+              transition: isSwipingPick ? 'none' : 'transform .34s cubic-bezier(.22,.61,.36,1)',
+            }}
+            onTouchStart={handlePickTouchStart}
+            onTouchMove={handlePickTouchMove}
+            onTouchEnd={handlePickTouchEnd}
+            onTouchCancel={handlePickTouchEnd}
+          >
+            {TODAY_PICKS.map((pick) => {
+              const saved = !!savedBySlug[pick.slug];
+              const distanceLabel = canShowDistance && coords
+                ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
+                : null;
+              const pickMetaItems = [
+                distanceLabel ? `📍 ${distanceLabel}` : null,
+                pick.price,
+                pick.location,
+              ].filter(Boolean) as string[];
+              return (
+                <div key={pick.slug} className="v2-pick-slide" onClick={() => onPickCardClick(pick.slug)}>
+                  <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
+                  <div className="v2-pick-overlay" />
+                  <div className="v2-pick-badge">{pick.badge}</div>
+                  <div className="v2-pick-body">
+                    <div className="v2-pick-name">{pick.name}</div>
+                    <div className="v2-pick-meta">
+                      {pickMetaItems.map((item, idx) => (
+                        <div className="v2-pick-meta-item" key={`${pick.slug}-meta-${idx}`}>
+                          {idx > 0 ? '· ' : ''}{item}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="v2-pick-ai-reason">
+                      &ldquo;{pick.reason}&rdquo;
+                    </div>
                   </div>
-                  <div className="v2-pick-ai-reason">
-                    &ldquo;{pick.reason}&rdquo;
-                  </div>
+                  <button
+                    type="button"
+                    className="v2-sh-food-fav"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
+                    }}
+                    aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
+                  >
+                    <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+                      <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                    </svg>
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="v2-sh-food-fav"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
-                  }}
-                  aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
-                >
-                  <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
-                    <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
-                  </svg>
-                </button>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
         <div className="v2-pick-dots" role="tablist" aria-label="Restaurant carousel position">
           {TODAY_PICKS.map((pick, idx) => (
@@ -249,7 +343,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               key={pick.slug}
               type="button"
               className={`v2-pick-dot ${idx === pickIndex ? 'active' : ''}`}
-              onClick={() => scrollToPick(idx)}
+              onClick={() => jumpToPick(idx)}
               aria-label={`Show ${pick.name}`}
               aria-current={idx === pickIndex ? 'true' : undefined}
             />
@@ -261,7 +355,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
       <div className="v2-attraction-pick v2-fade-up v2-d2">
         <div className="v2-section-label">✦ Attraction Pick for you</div>
         <div className="v2-pick-card" onClick={openAttractionPick}>
-          <img className="v2-pick-card-img" src={ATTRACTION_PICK.image} alt={ATTRACTION_PICK.name} />
+          <SmoothImage key={`attraction-pick-${ATTRACTION_PICK.image}`} src={ATTRACTION_PICK.image} alt={ATTRACTION_PICK.name} className="v2-pick-card-img" />
           <div className="v2-pick-overlay" />
           <div className="v2-pick-badge v2-pick-badge-alt">{ATTRACTION_PICK.badge}</div>
           <button
@@ -291,7 +385,53 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </div>
 
-      {/* 6. Dish Passport */}
+      {/* 6. Originals Rail */}
+      <div className="v2-orig-section v2-fade-up v2-d3">
+        <div className="v2-orig-header">
+          <div>
+            <div className="v2-orig-title">Attraction Originals</div>
+            <div className="v2-orig-subtitle">Hosted by Shanghai&apos;s most interesting places</div>
+          </div>
+          <button type="button" className="v2-orig-arrow" onClick={() => onNavigate('discover')} aria-label="See more attractions">
+            →
+          </button>
+        </div>
+        <div className="v2-orig-scroll">
+          {ORIGINAL_ATTRACTIONS.map((item) => {
+            const found = originalAttractionsData.find((a) => a.slug === item.slug);
+            const image = found?.images?.[0] || item.image;
+            const title = found?.card_name || found?.attraction_name_en || item.title;
+            const saved = !!savedOriginalBySlug[item.slug];
+            return (
+              <a key={item.slug} href={`/attractions/${item.slug}`} className="v2-orig-card">
+              <div className="v2-orig-image-wrap">
+                  <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" />
+                <div className="v2-orig-chip">🌾 {item.label}</div>
+                <button
+                  type="button"
+                  className="v2-sh-food-fav"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] }));
+                  }}
+                  aria-label={saved ? `Unsave ${title}` : `Save ${title}`}
+                >
+                  <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+                    <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                  </svg>
+                </button>
+              </div>
+                <div className="v2-orig-name">{title}</div>
+              <div className="v2-orig-loc">{item.subtitle}</div>
+              <div className="v2-orig-meta">{item.meta}</div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 7. Dish Passport */}
       <div className="v2-passport-section v2-fade-up v2-d3">
         <div className="v2-passport-card" onClick={() => onNavigate('discover')}>
           <div className="v2-passport-bg-pattern" />
@@ -319,7 +459,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </div>
 
-      {/* 7. Pocket Phrases */}
+      {/* 8. Pocket Phrases */}
       <div className="v2-phrase-section v2-fade-up v2-d3">
         <div className="v2-sec-hdr">
           <span className="v2-sec-title">Pocket Phrases</span>
@@ -353,7 +493,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </div>
 
-      {/* 8. Neighbourhood Vibes */}
+      {/* 9. Neighbourhood Vibes */}
       <div className="v2-vibes-section v2-fade-up v2-d3">
         <div className="v2-sec-hdr">
           <span className="v2-sec-title">Neighbourhood Vibes</span>
