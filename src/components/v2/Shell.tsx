@@ -30,13 +30,51 @@ const screenToTab: Record<string, NavTab> = {
   ...collectionScreenToTab,
 };
 
-const navItems: { id: NavTab; icon: string; label: string; badge?: number; isLens?: boolean }[] = [
-  { id: 'home', icon: '\uD83C\uDFE0', label: 'Home' },
-  { id: 'discover', icon: '\uD83D\uDDFA\uFE0F', label: 'Shanghai' },
-  { id: 'photo', icon: '', label: 'Lens', isLens: true },
-  { id: 'navigate', icon: '\uD83D\uDE87', label: 'Navigate' },
-  { id: 'journal', icon: '\uD83D\uDCD3', label: 'Journey', badge: 3 },
+const navItems: { id: NavTab; label: string; badge?: number; isLens?: boolean }[] = [
+  { id: 'home', label: 'Home' },
+  { id: 'discover', label: 'Shanghai' },
+  { id: 'photo', label: 'Lens', isLens: true },
+  { id: 'navigate', label: 'Navigate' },
+  { id: 'journal', label: 'Journey', badge: 3 },
 ];
+
+function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
+  const cls = `v2-nav-glyph ${active ? 'active' : ''}`;
+  const strokeWidth = active ? 2.15 : 1.95;
+
+  if (tab === 'home') {
+    return (
+      <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
+        <path d="M3.5 10.2 12 3.8l8.5 6.4v9a1 1 0 0 1-1 1h-5.2v-5.5H9.7v5.5H4.5a1 1 0 0 1-1-1z" strokeWidth={strokeWidth} />
+      </svg>
+    );
+  }
+
+  if (tab === 'discover') {
+    return (
+      <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
+        <path d="M12 21s6.5-5.6 6.5-10.8a6.5 6.5 0 1 0-13 0C5.5 15.4 12 21 12 21z" strokeWidth={strokeWidth} />
+        <circle cx="12" cy="10" r="2.4" strokeWidth={strokeWidth} />
+      </svg>
+    );
+  }
+
+  if (tab === 'navigate') {
+    return (
+      <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
+        <circle cx="12" cy="12" r="8.5" strokeWidth={strokeWidth} />
+        <path d="m10.3 10.3 5.9-2.2-2.2 5.9-5.9 2.2z" strokeWidth={strokeWidth} />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
+      <path d="M6 4.2h12.5v15.2H6.1A2.6 2.6 0 0 0 3.5 22V6.7A2.5 2.5 0 0 1 6 4.2z" strokeWidth={strokeWidth} />
+      <path d="M7.8 8h7m-7 3.3h7" strokeWidth={strokeWidth} />
+    </svg>
+  );
+}
 
 export default function Shell() {
   const [showOnboarding, setShowOnboarding] = useState(true);
@@ -59,7 +97,6 @@ export default function Shell() {
   }, []);
 
   // Attraction detail overlay
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedAttraction, setSelectedAttraction] = useState<{ slug: string; heroImage: string } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [attractionData, setAttractionData] = useState<any>(null);
@@ -167,7 +204,7 @@ export default function Shell() {
                 onClick={() => setActiveScreen(item.id)}
               >
                 <div className="v2-nav-btn-icon">
-                  {item.icon}
+                  <NavGlyph tab={item.id} active={isItemActive} />
                   {item.badge && <div className="v2-nav-badge">{item.badge}</div>}
                 </div>
                 <div className="v2-nav-btn-label">{item.label}</div>

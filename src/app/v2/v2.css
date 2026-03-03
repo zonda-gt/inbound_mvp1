@@ -91,7 +91,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 82px;
+  height: 84px;
   background: rgba(255,255,255,0.88);
   backdrop-filter: blur(24px) saturate(200%);
   -webkit-backdrop-filter: blur(24px) saturate(200%);
@@ -99,7 +99,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-around;
-  padding: 10px 8px 0;
+  padding: 9px 8px 0;
   z-index: 200;
 }
 .v2-nav-btn {
@@ -107,46 +107,61 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 6px 14px;
+  padding: 4px 12px 0;
   border-radius: var(--r-md);
   cursor: pointer;
   border: none;
   background: none;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-  min-width: 60px;
+  min-width: 64px;
 }
-.v2-nav-btn:active { transform: scale(0.9); }
+.v2-nav-btn:active { transform: scale(0.92); }
 .v2-nav-btn-icon {
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  line-height: 1;
-  transition: transform 0.2s ease;
+  border-radius: 11px;
+  color: #8f8f95;
+  transition: color 0.22s ease, background-color 0.22s ease, transform 0.22s ease;
   position: relative;
 }
-.v2-nav-btn.active .v2-nav-btn-icon { transform: scale(1.15); }
+.v2-nav-btn.active .v2-nav-btn-icon {
+  color: var(--red);
+  background: rgba(208,2,27,0.1);
+  transform: translateY(-1px);
+}
+.v2-nav-glyph {
+  width: 22px;
+  height: 22px;
+}
+.v2-nav-glyph path,
+.v2-nav-glyph circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .v2-nav-btn-label {
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 550;
   color: var(--text-3);
-  letter-spacing: 0.1px;
-  transition: color 0.2s ease;
+  letter-spacing: 0.12px;
+  transition: color 0.22s ease, transform 0.22s ease;
 }
-.v2-nav-btn.active .v2-nav-btn-label { color: var(--red); font-weight: 700; }
+.v2-nav-btn.active .v2-nav-btn-label { color: var(--red); font-weight: 700; transform: translateY(-1px); }
 .v2-nav-badge {
   position: absolute;
   top: -3px;
-  right: -6px;
-  width: 16px;
-  height: 16px;
+  right: -5px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--red);
   color: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
