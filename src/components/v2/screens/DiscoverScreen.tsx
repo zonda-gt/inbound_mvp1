@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getTimeAwareMessage, searchPlaces, getQuickActions } from '../data/discover-data';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
@@ -14,10 +14,15 @@ const featuredSlugs = COLLECTION_LIST.flatMap((col) => col.slugs.slice(0, 2)).sl
 
 function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
+
   return (
     <>
       <div className={`v2-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />
       <img
+        ref={imgRef}
         className={`${className} v2-lazy-img ${loaded ? 'loaded' : ''}`}
         src={src}
         alt={alt}
@@ -321,7 +326,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine }: {
     <div className="v2-sh-food-card">
       <div className="v2-sh-food-img-wrap">
         {image ? (
-          <img className="v2-sh-food-img" src={image} alt={name} />
+          <SmoothImage className="v2-sh-food-img" src={image} alt={name} />
         ) : (
           <div className="v2-sh-food-img v2-sh-food-img-placeholder">🍽️</div>
         )}

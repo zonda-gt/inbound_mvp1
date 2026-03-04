@@ -347,6 +347,7 @@ function DetailSmoothImage({
   const imgRef = useCallback((img: HTMLImageElement | null) => {
     if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
   }, []);
+  useEffect(() => { setLoaded(false); }, [src]);
   return (
     <div style={{ position: 'relative', overflow: 'hidden', ...wrapperStyle }}>
       <div className={`at-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />

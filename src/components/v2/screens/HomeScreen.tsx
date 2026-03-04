@@ -1,6 +1,6 @@
 'use client';
 
-import { type TouchEvent, useRef, useState, useEffect } from 'react';
+import { type TouchEvent, useRef, useState, useEffect, useCallback } from 'react';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 
@@ -172,6 +172,7 @@ const ORIGINAL_ATTRACTIONS = [
     image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
   },
 ];
+const ATTRACTION_PICK_SLUGS = ATTRACTION_PICKS.map((item) => item.slug);
 const ORIGINAL_ATTRACTION_SLUGS = ORIGINAL_ATTRACTIONS.map((item) => item.slug);
 
 function parseLocation(location: string): { lng: number; lat: number } | null {
@@ -206,11 +207,15 @@ function formatDistance(meters: number): string {
 
 function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
 
   return (
     <>
       <div className={`v2-img-skel ${loaded ? 'loaded' : ''}`} aria-hidden="true" />
       <img
+        ref={imgRef}
         className={`${className} v2-lazy-img ${loaded ? 'loaded' : ''}`}
         src={src}
         alt={alt}
@@ -237,6 +242,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
   const attrTouchStartX = useRef(0);
   const attrDidDrag = useRef(false);
   const { location: userLocation, city, isDemo } = useGeolocation();
+  const { attractions: attrPicksData } = useCollectionData(ATTRACTION_PICK_SLUGS);
   const { attractions: originalAttractionsData } = useCollectionData(ORIGINAL_ATTRACTION_SLUGS);
   const coords = parseLocation(userLocation);
   const canShowDistance = !isDemo && !!coords && isShanghaiCity(city);
@@ -380,7 +386,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               ].filter(Boolean) as string[];
               return (
                 <div key={pick.slug} className="v2-pick-slide" onClick={() => onPickCardClick(pick.slug)}>
-                  <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
+                  <SmoothImage src={pick.image} alt={pick.name} className="v2-pick-card-img" />
                   <div className="v2-pick-overlay" />
                   <div className="v2-pick-badge">{pick.badge}</div>
                   <div className="v2-pick-body">
@@ -490,13 +496,16 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           >
             {ATTRACTION_PICKS.map((pick) => {
               const saved = !!savedAttrBySlug[pick.slug];
+              const dbData = attrPicksData.find((a) => a.slug === pick.slug);
+              const image = dbData?.images?.[0] || pick.image;
+              const name = dbData?.card_name || dbData?.attraction_name_en || pick.name;
               return (
                 <div key={pick.slug} className="v2-pick-slide" onClick={() => onAttrCardClick(pick.slug)}>
-                  <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
+                  <SmoothImage src={image} alt={name} className="v2-pick-card-img" />
                   <div className="v2-pick-overlay" />
                   <div className="v2-pick-badge">{pick.badge}</div>
                   <div className="v2-pick-body">
-                    <div className="v2-pick-name">{pick.name}</div>
+                    <div className="v2-pick-name">{name}</div>
                     <div className="v2-pick-meta">
                       <div className="v2-pick-meta-item">⭐ {pick.rating}</div>
                       <div className="v2-pick-meta-item">· {pick.meta}</div>
@@ -608,7 +617,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
         <div className="v2-vibes-scroll">
           <div className="v2-vibe-card">
-            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" />
+            <SmoothImage src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" className="v2-vibe-bg-img" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">French Concession</div>
@@ -616,7 +625,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" />
+            <SmoothImage src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" className="v2-vibe-bg-img" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">The Bund</div>
@@ -624,7 +633,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" />
+            <SmoothImage src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" className="v2-vibe-bg-img" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">Xintiandi</div>
@@ -632,7 +641,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" />
+            <SmoothImage src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" className="v2-vibe-bg-img" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">People&apos;s Square</div>

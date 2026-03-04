@@ -57,6 +57,7 @@ function SmoothImage({
   const imgRef = useCallback((img: HTMLImageElement | null) => {
     if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
   }, []);
+  useEffect(() => { setLoaded(false); }, [src]);
 
   return (
     <div
