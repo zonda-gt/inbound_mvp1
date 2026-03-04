@@ -54,6 +54,9 @@ function SmoothImage({
   loading?: 'lazy' | 'eager';
 }) {
   const [loaded, setLoaded] = useState(false);
+  const imgRef = useCallback((img: HTMLImageElement | null) => {
+    if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
+  }, []);
 
   return (
     <div
@@ -62,6 +65,7 @@ function SmoothImage({
     >
       <div className="img-skeleton" />
       <img
+        ref={imgRef}
         src={src}
         alt={alt}
         loading={loading}

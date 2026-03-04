@@ -82,7 +82,7 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
       <div className="v2-sh-section v2-fade-up v2-d1">
         <div className="v2-sh-section-hdr">
           <div>
-            <div className="v2-sh-section-title">Experiences</div>
+            <div className="v2-sh-section-title">Local Experiences</div>
             <div className="v2-sh-section-sub">
               Experiences you won&apos;t find anywhere else
             </div>
@@ -109,29 +109,9 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
         </div>
       </div>
 
-      {/* SECTION 2: Explore by neighbourhood */}
-      <div className="v2-sh-section v2-fade-up v2-d2">
-        <div className="v2-sh-section-hdr">
-          <div>
-            <div className="v2-sh-section-title">Explore by neighbourhood</div>
-            <div className="v2-sh-section-sub">
-              Each area has its own personality
-            </div>
-          </div>
-          <div className="v2-sh-see-all">Map &rarr;</div>
-        </div>
-        <div className="v2-sh-hscroll">
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a0a,#2d2d1a)" name="French Concession" desc="Tree-lined lanes · Boutique cafes · Nightlife" count="14 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a0a0a,#2d1a1a)" name="Tianzifang" desc="Art alleyways · Craft shops · Street food" count="9 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#0a0a1a,#1a1a2d)" name="The Bund" desc="Art deco skyline · Rooftop bars · Iconic views" count="7 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a1a,#2d2d2d)" name="Xintiandi" desc="Shikumen heritage · Upscale dining · Galleries" count="11 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#0a1a0a,#1a2d1a)" name="Jing&apos;an" desc="Ancient temple · Luxury malls · Specialty coffee" count="8 places" />
-        </div>
-      </div>
-
       <div className="v2-sh-divider" />
 
-      {/* SECTION 3: What locals are eating */}
+      {/* SECTION 2: What locals are eating */}
       <div className="v2-sh-section v2-fade-up v2-d2">
         <div className="v2-sh-section-hdr">
           <div>
@@ -149,6 +129,28 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
               <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
             </>
           )}
+        </div>
+      </div>
+
+      <div className="v2-sh-divider" />
+
+      {/* SECTION 3: Explore by neighbourhood */}
+      <div className="v2-sh-section v2-fade-up v2-d2">
+        <div className="v2-sh-section-hdr">
+          <div>
+            <div className="v2-sh-section-title">Explore by neighbourhood</div>
+            <div className="v2-sh-section-sub">
+              Each area has its own personality
+            </div>
+          </div>
+          <div className="v2-sh-see-all">Map &rarr;</div>
+        </div>
+        <div className="v2-sh-hscroll">
+          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a0a,#2d2d1a)" name="French Concession" desc="Tree-lined lanes · Boutique cafes · Nightlife" count="14 places" />
+          <NeighbourhoodCard bg="linear-gradient(135deg,#1a0a0a,#2d1a1a)" name="Tianzifang" desc="Art alleyways · Craft shops · Street food" count="9 places" />
+          <NeighbourhoodCard bg="linear-gradient(135deg,#0a0a1a,#1a1a2d)" name="The Bund" desc="Art deco skyline · Rooftop bars · Iconic views" count="7 places" />
+          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a1a,#2d2d2d)" name="Xintiandi" desc="Shikumen heritage · Upscale dining · Galleries" count="11 places" />
+          <NeighbourhoodCard bg="linear-gradient(135deg,#0a1a0a,#1a2d1a)" name="Jing&apos;an" desc="Ancient temple · Luxury malls · Specialty coffee" count="8 places" />
         </div>
       </div>
 
