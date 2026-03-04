@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import ChatMessage, { Message, NavContext } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -35,33 +36,33 @@ const ACTION_BUTTONS = [
     label: "Navigate",
     icon: "🧭",
     message: "🧭 How do I get to The Bund?",
-    bg: "bg-indigo-50",
-    border: "border-indigo-200",
-    text: "text-indigo-700",
+    bg: "#FFF5F5",
+    border: "#FECACA",
+    text: "#B91C1C",
   },
   {
     label: "Find Food",
     icon: "🍴",
     message: "🍜 Find food near me",
-    bg: "bg-yellow-50",
-    border: "border-yellow-200",
-    text: "text-amber-700",
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    text: "#92400E",
   },
   {
     label: "Translate",
     icon: "📷",
     action: "camera", // Special action to trigger camera
-    bg: "bg-green-50",
-    border: "border-green-200",
-    text: "text-green-700",
+    bg: "#F0FDF4",
+    border: "#BBF7D0",
+    text: "#166534",
   },
   {
     label: "Setup Guide",
     icon: "📱",
     href: "/guides",
-    bg: "bg-blue-50",
-    border: "border-blue-200",
-    text: "text-blue-700",
+    bg: "#FFF7ED",
+    border: "#FED7AA",
+    text: "#9A3412",
   },
 ];
 
@@ -92,6 +93,18 @@ function parseSSE(raw: string): { events: Array<{ event: string; data: string }>
 }
 
 export default function ChatPage() {
+  return (
+    <Suspense>
+      <ChatPageInner />
+    </Suspense>
+  );
+}
+
+function ChatPageInner() {
+  const searchParams = useSearchParams();
+  const attractionSlug = searchParams.get("attraction");
+  const attractionHandledRef = useRef(false);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
@@ -197,6 +210,24 @@ export default function ChatPage() {
 
     return () => clearTimeout(hardTimeout);
   }, []);
+
+  // Auto-send message when arriving from an attraction page (?attraction=slug)
+  const [pendingAttractionMsg, setPendingAttractionMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!attractionSlug || attractionHandledRef.current) return;
+    attractionHandledRef.current = true;
+
+    fetch(`/api/attractions?slug=${encodeURIComponent(attractionSlug)}`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (body.attraction) {
+          const name = body.attraction.attraction_name_en || attractionSlug;
+          setPendingAttractionMsg(`Tell me more about ${name}`);
+        }
+      })
+      .catch(() => {});
+  }, [attractionSlug]);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = "auto") => {
     requestAnimationFrame(() => {
@@ -417,7 +448,8 @@ export default function ChatPage() {
                 if (
                   data.navigationData ||
                   (Array.isArray(data.placesData) && data.placesData.length > 0) ||
-                  (Array.isArray(data.curatedRestaurantSlugs) && data.curatedRestaurantSlugs.length > 0)
+                  (Array.isArray(data.curatedRestaurantSlugs) && data.curatedRestaurantSlugs.length > 0) ||
+                  (Array.isArray(data.attractionSlugs) && data.attractionSlugs.length > 0)
                 ) {
                   aiMsgHasVisibleOutput = true;
                 }
@@ -443,6 +475,40 @@ export default function ChatPage() {
                       setActiveTool(null);
                     })
                     .catch((err) => console.error("Failed to fetch curated restaurant profiles:", err));
+                } else if (data.attractionSlugs) {
+                  // Curated attractions: fetch summaries and render cards
+                  setToolStatus("Loading attractions...");
+                  Promise.all(
+                    (data.attractionSlugs as string[]).map((slug: string) =>
+                      fetch(`/api/attractions?slug=${slug}`)
+                        .then((r) => r.json())
+                        .then((body) => body.attraction ? {
+                          slug,
+                          name_en: body.attraction.attraction_name_en,
+                          name_cn: body.attraction.attraction_name_cn,
+                          hook: body.attraction.hook || "",
+                          experience_type: body.attraction.experience_type || "",
+                          image: body.attraction.images?.[0] || null,
+                        } : null)
+                        .catch(() => null),
+                    ),
+                  )
+                    .then((results) => {
+                      const attractions = results.filter((a): a is NonNullable<typeof a> => a !== null);
+                      if (attractions.length > 0) {
+                        setMessages((prev) =>
+                          prev.map((m) =>
+                            m.id === aiMsgId
+                              ? { ...m, attractionsData: attractions }
+                              : m,
+                          ),
+                        );
+                      }
+                    })
+                    .finally(() => {
+                      setToolStatus(null);
+                      setActiveTool(null);
+                    });
                 } else {
                   setToolStatus(null);
                   setActiveTool(null);
@@ -652,6 +718,13 @@ export default function ChatPage() {
     [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus, isDemoMode],
   );
 
+  // Trigger auto-send for attraction context once handleSend and location are ready
+  useEffect(() => {
+    if (!pendingAttractionMsg || !locationRequested) return;
+    handleSend(pendingAttractionMsg);
+    setPendingAttractionMsg(null);
+  }, [pendingAttractionMsg, locationRequested, handleSend]);
+
   const handleCameraCapture = useCallback(
     (image: { base64: string; mediaType: string; previewUrl: string }) => {
       handleSend("What does this say? Translate and help me understand it.", undefined, {
@@ -671,17 +744,24 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-dvh flex-col bg-white">
-      {/* Top bar */}
-      <header className="flex items-center border-b border-gray-100 px-4 py-3">
+      {/* Top bar — frosted glass */}
+      <header style={{
+        display: "flex", alignItems: "center", padding: "12px 16px",
+        background: "rgba(255,255,255,0.85)",
+        backdropFilter: "saturate(180%) blur(20px)",
+        WebkitBackdropFilter: "saturate(180%) blur(20px)",
+        borderBottom: "1px solid rgba(0,0,0,0.06)",
+        position: "relative", zIndex: 10,
+      }}>
         <Link
           href="/"
-          className="mr-3 text-lg text-gray-500 hover:text-gray-900"
+          style={{ marginRight: 12, fontSize: 18, color: "#999", textDecoration: "none" }}
           aria-label="Back to home"
         >
           ←
         </Link>
-        <h1 className="text-base font-semibold text-gray-900">
-          Hello<span className="text-[#2563EB]">China</span>
+        <h1 style={{ fontSize: 16, fontWeight: 600, color: "#1A1A1A", letterSpacing: "-0.01em" }}>
+          Hello<span style={{ color: "#D0021B" }}>China</span>
         </h1>
       </header>
 
@@ -714,17 +794,17 @@ export default function ChatPage() {
             </div>
 
             <div className="grid w-full max-w-sm grid-cols-2 gap-3">
-              {ACTION_BUTTONS.map((btn) =>
-                btn.href ? (
-                  <Link
-                    key={btn.label}
-                    href={btn.href}
-                    className={`flex flex-col items-center justify-center rounded-2xl border ${btn.border} ${btn.bg} px-3 py-8 transition-colors hover:opacity-80`}
-                  >
-                    <span className="text-3xl">{btn.icon}</span>
-                    <span className={`mt-3 text-sm font-bold ${btn.text}`}>
-                      {btn.label}
-                    </span>
+              {ACTION_BUTTONS.map((btn) => {
+                const cardStyle = {
+                  display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center",
+                  borderRadius: 16, border: `1px solid ${btn.border}`, background: btn.bg,
+                  padding: "28px 12px", transition: "opacity 150ms ease",
+                  textDecoration: "none",
+                };
+                return btn.href ? (
+                  <Link key={btn.label} href={btn.href} style={cardStyle}>
+                    <span style={{ fontSize: 28 }}>{btn.icon}</span>
+                    <span style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: btn.text }}>{btn.label}</span>
                   </Link>
                 ) : (
                   <button
@@ -736,21 +816,19 @@ export default function ChatPage() {
                         handleSend((btn as any).message!);
                       }
                     }}
-                    className={`flex flex-col items-center justify-center rounded-2xl border ${btn.border} ${btn.bg} px-3 py-8 transition-colors hover:opacity-80`}
+                    style={cardStyle}
                   >
-                    <span className="text-3xl">{btn.icon}</span>
-                    <span className={`mt-3 text-sm font-bold ${btn.text}`}>
-                      {btn.label}
-                    </span>
+                    <span style={{ fontSize: 28 }}>{btn.icon}</span>
+                    <span style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: btn.text }}>{btn.label}</span>
                   </button>
-                ),
-              )}
+                );
+              })}
             </div>
           </div>
         ) : (
           /* Chat messages */
           <div className="px-4 py-4">
-            <div className="mx-auto flex max-w-3xl flex-col gap-3">
+            <div className="mx-auto flex max-w-3xl flex-col gap-5">
               {messages.map((msg, i) => {
                 const prevRole = i > 0 ? messages[i - 1].role : null;
                 const isFirstInGroup = msg.role !== prevRole;
@@ -774,10 +852,19 @@ export default function ChatPage() {
               {toolStatus && <ToolStreamingIndicator label={toolStatus} tool={activeTool} />}
 
               {isReadingPhoto && (
-                <div className="flex items-start gap-2">
-                  <span className="text-lg leading-none">🤖</span>
-                  <div className="rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-500 italic">
-                    📷 Reading your photo...
+                <div className="flex items-start gap-2.5">
+                  <div className="mt-0.5 flex-shrink-0">
+                    <div style={{ width: 26, height: 26, borderRadius: 13, background: "#D0021B", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"/><path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="max-w-[88%] min-w-0 py-1">
+                    <div className="flex items-center gap-2 text-sm" style={{ color: "#666" }}>
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300" style={{ borderTopColor: "#D0021B" }} />
+                      <span className="font-medium">Reading your photo...</span>
+                    </div>
                   </div>
                 </div>
               )}

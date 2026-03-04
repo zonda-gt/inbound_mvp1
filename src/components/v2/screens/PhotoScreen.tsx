@@ -211,6 +211,13 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
     }
   }, [capturedImage, userMessage, activeMode]);
 
+  // Auto-trigger scan immediately after image capture
+  useEffect(() => {
+    if (capturedImage && !loading && !response && !error) {
+      handleScan();
+    }
+  }, [capturedImage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleReset = useCallback(() => {
     setCapturedImage(null);
     setImagePreview(null);
@@ -252,12 +259,12 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
       />
 
       {/* Captured image preview */}
-      {imagePreview && (
+      {imagePreview && !hasResult && (
         <div style={{
           position: "absolute", inset: 0, zIndex: 0,
           backgroundImage: `url(${imagePreview})`,
           backgroundSize: "cover", backgroundPosition: "center",
-          filter: hasResult ? "brightness(0.3)" : "brightness(0.8)",
+          filter: "brightness(0.8)",
           transition: "filter 0.3s",
         }} />
       )}
@@ -306,18 +313,20 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
         <button className="v2-cam-btn" style={{ opacity: 0.5 }}>⚡</button>
       </div>
 
-      {/* ───── Mode Selector ───── */}
-      <div className="v2-cam-modes">
-        {(["TRANSLATE", "IDENTIFY", "MENU"] as const).map((mode) => (
-          <button
-            key={mode}
-            className={`v2-cam-mode-opt${activeMode === mode ? " active" : ""}`}
-            onClick={() => setActiveMode(mode)}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
+      {/* ───── Mode Selector (only before capture) ───── */}
+      {!capturedImage && !hasResult && (
+        <div className="v2-cam-modes">
+          {(["TRANSLATE", "IDENTIFY", "MENU"] as const).map((mode) => (
+            <button
+              key={mode}
+              className={`v2-cam-mode-opt${activeMode === mode ? " active" : ""}`}
+              onClick={() => setActiveMode(mode)}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ───── Camera Controls (live feed, not captured) ───── */}
       {!capturedImage && !hasResult && (
@@ -330,137 +339,129 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
         </div>
       )}
 
-      {/* ───── Image captured, pre-send ───── */}
-      {capturedImage && !hasResult && (
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0,
-          background: "linear-gradient(transparent, rgba(0,0,0,.85) 40%)",
-          padding: "60px 16px 24px", zIndex: 10,
-          display: "flex", flexDirection: "column", gap: 12,
-        }}>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <input
-              type="text"
-              value={userMessage}
-              onChange={(e) => setUserMessage(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleScan(); }}
-              placeholder="Ask about this... (optional)"
-              style={{
-                flex: 1, padding: "10px 14px", borderRadius: 24,
-                border: "1px solid rgba(255,255,255,.2)",
-                background: "rgba(255,255,255,.1)",
-                color: "#fff", fontSize: 14, outline: "none",
-              }}
-            />
-            <button
-              onClick={handleScan}
-              style={{
-                width: 44, height: 44, borderRadius: "50%",
-                background: "#D0021B", border: "none",
-                color: "#fff", fontSize: 18, cursor: "pointer",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
-              ↑
-            </button>
-          </div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
-            <button onClick={handleReset} style={{
-              padding: "8px 20px", borderRadius: 20,
-              background: "rgba(255,255,255,.15)", border: "none",
-              color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-            }}>
-              ✕ Retake
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* ───── AI Result Panel ───── */}
+      {/* ───── AI Result — YouTube-style layout ───── */}
       {hasResult && (
-        <div
-          ref={resultRef}
-          style={{
-            position: "absolute", bottom: 0, left: 0, right: 0,
-            maxHeight: "70%", overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-            background: "rgba(0,0,0,.88)",
-            backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-            borderRadius: "20px 20px 0 0",
-            padding: "20px 16px 24px", zIndex: 10,
-          }}
-        >
-          <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
-            {imagePreview && (
-              <img src={imagePreview} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover" }} />
-            )}
-            <div>
-              <span style={{
-                fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                letterSpacing: 1, color: "#D0021B",
-                background: "rgba(208,2,27,.15)", padding: "3px 8px", borderRadius: 6,
-              }}>
-                ✦ {activeMode}
-              </span>
-              {userMessage && (
-                <div style={{ fontSize: 12, color: "rgba(255,255,255,.5)", marginTop: 4 }}>
-                  &ldquo;{userMessage}&rdquo;
+        <div style={{
+          position: "absolute", inset: 0, zIndex: 8,
+          display: "flex", flexDirection: "column",
+          background: "#0a0a0a",
+        }}>
+          {/* Image at top */}
+          {imagePreview && (
+            <div style={{ flexShrink: 0, width: "100%", maxHeight: "42%", overflow: "hidden", background: "#000" }}>
+              <img
+                src={imagePreview}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            </div>
+          )}
+
+          {/* Bottom sheet */}
+          <div
+            ref={resultRef}
+            style={{
+              flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch",
+              background: "#0a0a0a",
+              borderRadius: "16px 16px 0 0",
+              marginTop: -12,
+              position: "relative", zIndex: 1,
+            }}
+          >
+            {/* Grab handle */}
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,.25)" }} />
+            </div>
+
+            <div style={{ padding: "4px 16px 32px" }}>
+              {/* Profile row */}
+              <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
+                {imagePreview && (
+                  <img src={imagePreview} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: "cover", border: "2px solid rgba(255,255,255,.1)" }} />
+                )}
+                <span style={{
+                  fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                  letterSpacing: 1.2, color: "#D0021B",
+                  background: "rgba(208,2,27,.12)", padding: "4px 10px", borderRadius: 6,
+                }}>
+                  ✦ {activeMode}
+                </span>
+                <div style={{ flex: 1 }} />
+                {imagePreview && (
+                  <button
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = imagePreview;
+                      a.download = `photo-ai-${Date.now()}.jpg`;
+                      a.click();
+                    }}
+                    style={{
+                      width: 36, height: 36, borderRadius: 18,
+                      background: "rgba(255,255,255,.1)", border: "none",
+                      color: "#fff", fontSize: 16, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                    aria-label="Save photo"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                      <polyline points="7 10 12 15 17 10"/>
+                      <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* AI Response text */}
+              <div style={{ fontSize: 15, color: "#fff", lineHeight: 1.7 }}>
+                {response ? renderResponse(response) : (
+                  <div>
+                    <div style={{ height: 14, width: "80%", background: "rgba(255,255,255,.08)", borderRadius: 6, marginBottom: 12 }} />
+                    <div style={{ height: 14, width: "60%", background: "rgba(255,255,255,.08)", borderRadius: 6, marginBottom: 12 }} />
+                    <div style={{ height: 14, width: "70%", background: "rgba(255,255,255,.08)", borderRadius: 6, marginBottom: 12 }} />
+                    <div style={{ height: 14, width: "45%", background: "rgba(255,255,255,.08)", borderRadius: 6 }} />
+                  </div>
+                )}
+              </div>
+
+              {error && (
+                <div style={{
+                  marginTop: 12, padding: "10px 14px", borderRadius: 10,
+                  background: "rgba(208,2,27,.2)", color: "#ff6b6b", fontSize: 13,
+                }}>
+                  {error}
+                </div>
+              )}
+
+              {/* Continue to chat link */}
+              {!loading && response && (
+                <button
+                  onClick={() => {
+                    const msg = encodeURIComponent(response.slice(0, 500));
+                    window.location.href = `/chat?context=${msg}`;
+                  }}
+                  style={{
+                    marginTop: 20, padding: 0, border: "none", background: "none",
+                    color: "#D0021B", fontSize: 14, fontWeight: 500, cursor: "pointer",
+                    textDecoration: "underline", textUnderlineOffset: 3,
+                  }}
+                >
+                  Continue in chat →
+                </button>
+              )}
+
+              {loading && (
+                <div style={{ marginTop: 14, display: "flex", gap: 6, alignItems: "center" }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: "50%", background: "#D0021B",
+                    animation: "pulse 1s ease-in-out infinite",
+                  }} />
+                  <span style={{ fontSize: 12, color: "rgba(255,255,255,.4)" }}>Analyzing...</span>
                 </div>
               )}
             </div>
           </div>
-          <div style={{ fontSize: 14, color: "#fff", lineHeight: 1.65 }}>
-            {response ? renderResponse(response) : (
-              <div>
-                <div style={{ height: 14, width: "80%", background: "rgba(255,255,255,.1)", borderRadius: 6, marginBottom: 10 }} />
-                <div style={{ height: 14, width: "60%", background: "rgba(255,255,255,.1)", borderRadius: 6, marginBottom: 10 }} />
-                <div style={{ height: 14, width: "70%", background: "rgba(255,255,255,.1)", borderRadius: 6, marginBottom: 10 }} />
-                <div style={{ height: 14, width: "45%", background: "rgba(255,255,255,.1)", borderRadius: 6 }} />
-              </div>
-            )}
-          </div>
-          {error && (
-            <div style={{
-              marginTop: 12, padding: "10px 14px", borderRadius: 10,
-              background: "rgba(208,2,27,.2)", color: "#ff6b6b", fontSize: 13,
-            }}>
-              {error}
-            </div>
-          )}
-          {!loading && response && (
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button
-                onClick={handleReset}
-                style={{
-                  flex: 1, padding: "12px 0", borderRadius: 12,
-                  background: "rgba(255,255,255,.12)", border: "none",
-                  color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                }}
-              >
-                📷 Scan again
-              </button>
-              <button
-                onClick={() => { navigator.clipboard.writeText(response).catch(() => {}); }}
-                style={{
-                  padding: "12px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,.12)", border: "none",
-                  color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer",
-                }}
-              >
-                📋
-              </button>
-            </div>
-          )}
-          {loading && (
-            <div style={{ marginTop: 12, display: "flex", gap: 6, alignItems: "center" }}>
-              <div style={{
-                width: 6, height: 6, borderRadius: "50%", background: "#D0021B",
-                animation: "pulse 1s ease-in-out infinite",
-              }} />
-              <span style={{ fontSize: 12, color: "rgba(255,255,255,.4)" }}>Analyzing...</span>
-            </div>
-          )}
         </div>
       )}
 

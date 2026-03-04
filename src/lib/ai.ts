@@ -25,6 +25,10 @@ import {
   type CuratedRestaurantSummary,
 } from "@/lib/curated-restaurants";
 import { embedQuery } from "@/lib/embedding";
+import {
+  searchCuratedAttractions,
+  type AttractionSummary,
+} from "@/lib/attractions";
 
 function buildSystemPrompt(userCity?: string, isDemoMode?: boolean): string {
   let cityContext: string;
@@ -216,7 +220,12 @@ PROXIMITY (near me, nearby, close, hungry) → Search curated within 2km of user
 SPECIFIC (asking about a named restaurant, what to order somewhere) → Search curated by name. If not in database, offer Amap basic info.
 
 When showing curated results, sound like a knowledgeable friend — lead with the foreigner hook, mention specific dishes, give practical advice. When falling back to Amap results, be transparent: these are basic listings without the detailed reviews and tips.
-Never call both curated and Amap for the same query. Pick one path and commit.`;
+Never call both curated and Amap for the same query. Pick one path and commit.
+
+CURATED ATTRACTION GUIDE:
+For questions about things to do, activities, experiences, shows, or attractions, use the search_curated_attractions tool. These are hand-picked experiences with detailed profiles, insider tips, and practical guides for foreigners.
+When showing curated attraction results, mention the hook, what makes it special, and practical tips. The attraction cards will display automatically — keep your text response to 2-3 sentences.
+If the user asks about a specific attraction that exists in our database, the detailed page link will be shown automatically in the card.`;
 }
 
 const TOOLS: Anthropic.Messages.Tool[] = [
@@ -339,6 +348,22 @@ const TOOLS: Anthropic.Messages.Tool[] = [
       required: [],
     },
   },
+  {
+    name: "search_curated_attractions",
+    description:
+      "Search HelloChina's curated attraction guide — hand-picked Shanghai activities, shows, and experiences with insider tips for foreign travelers. Use this when the user asks about things to do, activities, experiences, shows, or attractions (NOT restaurants).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Optional search keyword to filter attractions. E.g., 'theater', 'ocean park', 'sports', 'music'.",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 const DEFAULT_ORIGIN = "121.4737,31.2304"; // Fallback coordinates when GPS unavailable
@@ -347,7 +372,7 @@ const NEIGHBORHOOD_MAX_DISTANCE_KM = 5;
 const CITY_WIDE_MAX_DISTANCE_KM = 50;
 const PROXIMITY_RADIUS_METERS = PROXIMITY_MAX_DISTANCE_KM * 1000;
 const MAX_PLACE_RESULTS = 8;
-const CURATED_MATCH_LIMIT = 3;
+const CURATED_MATCH_LIMIT = 8;
 const CURATED_SIMILARITY_THRESHOLD = 0.3;
 
 let _client: Anthropic | null = null;
@@ -1431,13 +1456,6 @@ async function executeCuratedSearch(
     };
   }
 
-  if (curatedResult.results.length > 0) {
-    const scorePreview = curatedResult.results
-      .map((r) => `${r.slug}:${r.similarity.toFixed(3)}`)
-      .join(", ");
-    console.log("[CuratedHybrid] Semantic matches:", scorePreview);
-  }
-
   if (curatedResult.results.length === 0) {
     return {
       summaries: [],
@@ -1902,6 +1920,10 @@ export function streamChatResponse(
           controller.enqueue(
             encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "search_curated_restaurants", label: "Checking curated restaurants..." }))),
           );
+        } else if (toolName === "search_curated_attractions") {
+          controller.enqueue(
+            encoder.encode(sseEvent("tool_start", JSON.stringify({ tool: "search_curated_attractions", label: "Finding attractions..." }))),
+          );
         }
 
         // Execute the tool
@@ -1953,6 +1975,18 @@ export function streamChatResponse(
           curatedSlugs = curatedResult.slugs.length > 0
             ? curatedResult.slugs
             : undefined;
+        } else if (toolName === "search_curated_attractions") {
+          const toolInput = tb.input as { query?: string };
+          const attractionResult = await searchCuratedAttractions(toolInput.query);
+          toolResultContent = JSON.stringify({
+            results: attractionResult.summaries,
+          });
+          if (attractionResult.slugs.length > 0) {
+            controller.enqueue(
+              encoder.encode(sseEvent("tool_data", JSON.stringify({ attractionSlugs: attractionResult.slugs }))),
+            );
+            emittedToolData = true;
+          }
         } else {
           const fallbackText = buildNoOutputFallback(userMessage);
           controller.enqueue(

@@ -1,5 +1,7 @@
 "use client";
 
+import { AiAvatar } from "./ChatMessage";
+
 function LoadingCard({ delayMs }: { delayMs: number }) {
   return (
     <div
@@ -30,11 +32,11 @@ export default function ToolStreamingIndicator({
     tool === "search_curated_restaurants" || tool === "search_nearby_places";
 
   return (
-    <div className="flex items-start gap-2">
-      <span className="mt-0.5 text-lg leading-none">🤖</span>
-      <div className="max-w-[80%] rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-3">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+    <div className="flex items-start gap-2.5">
+      <div className="mt-0.5 flex-shrink-0"><AiAvatar /></div>
+      <div className="max-w-[88%] min-w-0 py-1">
+        <div className="flex items-center gap-2 text-sm" style={{ color: "#666" }}>
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300" style={{ borderTopColor: "#D0021B" }} />
           <span className="font-medium">{label}</span>
         </div>
 

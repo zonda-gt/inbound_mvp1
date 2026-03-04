@@ -96,6 +96,22 @@ export default function Shell() {
     setActiveScreen('navigate');
   }, []);
 
+  // Read ?nav= query params to deep-link into NavigateScreen
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const navName = params.get('nav');
+    if (navName) {
+      setShowOnboarding(false);
+      handleNavigateToDestination({
+        name: navName,
+        chineseName: params.get('nameCn') || undefined,
+        address: params.get('addr') || undefined,
+      });
+      // Clean the URL without reloading
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Attraction detail overlay
   const [selectedAttraction, setSelectedAttraction] = useState<{ slug: string; heroImage: string } | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

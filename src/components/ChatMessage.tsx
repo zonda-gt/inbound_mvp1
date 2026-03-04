@@ -4,9 +4,11 @@ import ReactMarkdown from "react-markdown";
 import type { NavigationData } from "@/lib/ai";
 import type { POIResult } from "@/lib/amap";
 import type { CuratedRestaurant } from "@/lib/curated-restaurants";
+import type { AttractionSummary } from "@/lib/attractions";
 import NavigationCard from "./NavigationCard";
 import RestaurantList from "./RestaurantList";
 import CuratedRestaurantList from "./CuratedRestaurantList";
+import AttractionCard from "./AttractionCard";
 import MessageFeedback from "./MessageFeedback";
 
 export type NavContext = {
@@ -19,13 +21,30 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  imageUrl?: string; // preview URL for displaying the image
-  userLocation?: string; // "lng,lat" format
+  imageUrl?: string;
+  userLocation?: string;
   navigationData?: NavigationData;
   placesData?: POIResult[];
   curatedRestaurantsData?: CuratedRestaurant[];
-  dbMessageId?: string; // Supabase message ID for feedback
+  attractionsData?: AttractionSummary[];
+  dbMessageId?: string;
 };
+
+/* Branded AI avatar — red compass circle */
+export function AiAvatar() {
+  return (
+    <div style={{
+      width: 26, height: 26, borderRadius: 13, flexShrink: 0,
+      background: "#D0021B",
+      display: "flex", alignItems: "center", justifyContent: "center",
+    }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z"/>
+      </svg>
+    </div>
+  );
+}
 
 export default function ChatMessage({
   message,
@@ -54,31 +73,32 @@ export default function ChatMessage({
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+      {/* AI avatar — branded compass icon */}
       {!isUser && isFirstInGroup && (
-        <span className="mr-2 mt-auto text-lg leading-none">🤖</span>
+        <div className="mr-2.5 mt-1 flex-shrink-0"><AiAvatar /></div>
       )}
-      {!isUser && !isFirstInGroup && <span className="mr-2 w-[1.125rem]" />}
-      <div className="max-w-[80%]">
-        {/* For user messages: show image + text together */}
+      {!isUser && !isFirstInGroup && <span className="mr-2.5 w-[26px] flex-shrink-0" />}
+
+      <div className={isUser ? "max-w-[80%]" : "max-w-[88%] min-w-0"}>
+        {/* User messages — soft gray bubble */}
         {isUser && (
-          <div
-            className="whitespace-pre-wrap rounded-2xl rounded-br-md bg-[#2563EB] px-4 py-2.5 text-[15px] leading-relaxed text-white"
-          >
+          <div style={{
+            background: "#F3F4F6", color: "#1A1A1A",
+            borderRadius: "20px 20px 6px 20px",
+            padding: "10px 16px", fontSize: 15, lineHeight: 1.6,
+            whiteSpace: "pre-wrap",
+          }}>
             {message.imageUrl && (
-              <img
-                src={message.imageUrl}
-                alt="User uploaded"
-                className="mb-2 max-w-[240px] rounded-xl shadow-sm"
-              />
+              <img src={message.imageUrl} alt="User uploaded"
+                style={{ maxWidth: 240, borderRadius: 12, marginBottom: 8, display: "block" }} />
             )}
             {message.content}
           </div>
         )}
 
-        {/* For assistant messages: show tool results first, then text */}
+        {/* Assistant messages — no bubble, clean text on white */}
         {!isUser && (
           <>
-            {/* Tool results appear first - instant structured data */}
             {message.navigationData && (
               <NavigationCard data={message.navigationData} isDemoMode={isDemoMode} />
             )}
@@ -104,30 +124,34 @@ export default function ChatMessage({
                 }
               />
             )}
+            {message.attractionsData && message.attractionsData.length > 0 && (
+              <div className="mb-2">
+                {message.attractionsData.map((a) => (
+                  <AttractionCard key={a.slug} attraction={a} />
+                ))}
+              </div>
+            )}
 
-            {/* AI text appears last - streams in below structured data */}
+            {/* AI text — no bubble */}
             {message.content && (
-              <div
-                className={`rounded-2xl rounded-bl-md bg-[#F3F4F6] px-4 py-2.5 text-[15px] leading-relaxed text-gray-900 ${
-                  message.navigationData || message.placesData || message.curatedRestaurantsData ? "mt-2" : ""
-                }`}
-              >
+              <div style={{
+                fontSize: 15, lineHeight: 1.65, color: "#1A1A1A",
+                marginTop: (message.navigationData || message.placesData || message.curatedRestaurantsData) ? 10 : 0,
+              }}>
                 <ReactMarkdown
                   components={{
-                    p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                    ul: ({ children }) => <ul className="mb-2 ml-4 list-disc last:mb-0">{children}</ul>,
-                    ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal last:mb-0">{children}</ol>,
-                    li: ({ children }) => <li className="mb-0.5">{children}</li>,
-                    h3: ({ children }) => <h3 className="mb-1 font-semibold">{children}</h3>,
-                    h4: ({ children }) => <h4 className="mb-1 font-semibold">{children}</h4>,
+                    p: ({ children }) => <p style={{ marginBottom: 10 }}>{children}</p>,
+                    strong: ({ children }) => <strong style={{ fontWeight: 600, color: "#0D0D0D" }}>{children}</strong>,
+                    ul: ({ children }) => <ul style={{ margin: "6px 0 10px 20px", listStyleType: "disc" }}>{children}</ul>,
+                    ol: ({ children }) => <ol style={{ margin: "6px 0 10px 20px", listStyleType: "decimal" }}>{children}</ol>,
+                    li: ({ children }) => <li style={{ marginBottom: 3, lineHeight: 1.6 }}>{children}</li>,
+                    h3: ({ children }) => <h3 style={{ fontSize: 16, fontWeight: 700, margin: "16px 0 6px", color: "#0D0D0D" }}>{children}</h3>,
+                    h4: ({ children }) => <h4 style={{ fontSize: 15, fontWeight: 600, margin: "12px 0 4px", color: "#0D0D0D" }}>{children}</h4>,
                     a: ({ href, children }) => (
-                      <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
-                        {children}
-                      </a>
+                      <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#D0021B", textDecoration: "none" }}>{children}</a>
                     ),
                     code: ({ children }) => (
-                      <code className="rounded bg-gray-200 px-1 py-0.5 text-sm">{children}</code>
+                      <code style={{ background: "#F3F4F6", padding: "2px 6px", borderRadius: 4, fontFamily: "monospace", fontSize: "0.875em" }}>{children}</code>
                     ),
                   }}
                 >
@@ -136,7 +160,6 @@ export default function ChatMessage({
               </div>
             )}
 
-            {/* Feedback buttons — only show when we have a DB message ID */}
             {message.dbMessageId && sessionId && (
               <MessageFeedback
                 dbMessageId={message.dbMessageId}

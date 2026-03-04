@@ -169,23 +169,27 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
   const inlineMapInst = useRef<any>(null);
   const fullMapInst = useRef<any>(null);
 
-  // Marker factories
+  // Marker factories — modern teardrop pin
   const addMarker = useCallback((map: any, AMapLib: any, showLabel = false) => {
     const markerContent = document.createElement('div');
     markerContent.innerHTML = showLabel
-      ? `<div style="display:flex;flex-direction:column;align-items:center">
-          <div style="width:28px;height:28px;background:#222;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)">
-            <div style="width:8px;height:8px;background:#fff;border-radius:50%"></div>
-          </div>
-          <div style="margin-top:4px;font-size:13px;font-weight:700;color:#222;white-space:nowrap;font-family:'Inter',-apple-system,sans-serif;text-shadow:0 0 4px #fff,0 0 4px #fff">${name}</div>
+      ? `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2))">
+          <svg width="34" height="44" viewBox="0 0 34 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 43C17 43 33 27.2 33 17C33 8.16 25.84 1 17 1C8.16 1 1 8.16 1 17C1 27.2 17 43 17 43Z" fill="#1A1A1A" stroke="#fff" stroke-width="1.5"/>
+            <circle cx="17" cy="16" r="5.5" fill="#fff"/>
+          </svg>
+          <div style="margin-top:2px;padding:3px 10px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:8px;font-size:12px;font-weight:700;color:#1A1A1A;white-space:nowrap;font-family:'Inter','DM Sans',-apple-system,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:-0.01em">${name}</div>
         </div>`
-      : `<div style="width:28px;height:28px;background:#222;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35)">
-          <div style="width:8px;height:8px;background:#fff;border-radius:50%"></div>
+      : `<div style="filter:drop-shadow(0 2px 6px rgba(0,0,0,.2))">
+          <svg width="34" height="44" viewBox="0 0 34 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17 43C17 43 33 27.2 33 17C33 8.16 25.84 1 17 1C8.16 1 1 8.16 1 17C1 27.2 17 43 17 43Z" fill="#1A1A1A" stroke="#fff" stroke-width="1.5"/>
+            <circle cx="17" cy="16" r="5.5" fill="#fff"/>
+          </svg>
         </div>`;
     new AMapLib.Marker({
       position: [lng, lat],
       content: markerContent,
-      anchor: 'center',
+      anchor: 'bottom-center',
       map,
     });
   }, [lng, lat, name]);
@@ -356,96 +360,7 @@ function DetailSmoothImage({
   );
 }
 
-// —— Gallery Components ——
-
-function ImageViewer({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [current, setCurrent] = useState(startIndex);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollLeft = startIndex * window.innerWidth;
-  }, [startIndex]);
-
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    let ticking = false;
-    const onScroll = () => {
-      if (!ticking) { ticking = true; requestAnimationFrame(() => { setCurrent(Math.round(el.scrollLeft / window.innerWidth)); ticking = false; }); }
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-      style={{ position: 'fixed', inset: 0, zIndex: 310, background: '#000', display: 'flex', flexDirection: 'column' }}>
-      {/* Top bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '52px 16px 12px', flexShrink: 0 }}>
-        <button onClick={() => { try { navigator.share({ url: window.location.href }); } catch { navigator.clipboard.writeText(window.location.href); } }}
-          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⤴</button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>{current + 1} / {images.length}</span>
-        <button onClick={onClose}
-          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,.15)', border: 'none', color: '#fff', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
-      </div>
-      {/* Swipable strip */}
-      <div ref={scrollRef} className="img-viewer-scroll"
-        style={{ flex: 1, display: 'flex', overflowX: 'scroll', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
-        {images.map((src, i) => (
-          <div key={i} style={{ width: '100vw', flexShrink: 0, scrollSnapAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>
-            {Math.abs(i - current) <= 5 ? (
-              <DetailSmoothImage
-                src={src}
-                alt=""
-                loading={Math.abs(i - current) <= 1 ? 'eager' : 'lazy'}
-                wrapperStyle={{ width: '100%', height: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                imgStyle={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain', borderRadius: 4 }}
-              />
-            ) : <div style={{ width: '100%', height: 300 }} />}
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-function ImageGrid({ images, onClose, onImageTap }: { images: string[]; onClose: () => void; onImageTap: (index: number) => void }) {
-  const even = images.filter((_, i) => i % 2 === 0);
-  const odd = images.filter((_, i) => i % 2 === 1);
-
-  return (
-    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-      transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-      style={{ position: 'fixed', inset: 0, zIndex: 310, background: '#fff', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      {/* Sticky top bar */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '52px 16px 12px', borderBottom: '1px solid #ebebeb' }}>
-        <button onClick={onClose}
-          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.05)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>{images.length} photos</span>
-        <button onClick={() => { try { navigator.share({ url: window.location.href }); } catch { navigator.clipboard.writeText(window.location.href); } }}
-          style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(0,0,0,.05)', border: 'none', color: '#222', fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⤴</button>
-      </div>
-      {/* Two-column masonry */}
-      <div style={{ display: 'flex', gap: 4, padding: 4 }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {even.map((src, ci) => {
-            const origIdx = ci * 2;
-            return <img key={origIdx} src={src} alt="" loading="lazy" onClick={() => onImageTap(origIdx)}
-              style={{ width: '100%', borderRadius: 2, cursor: 'pointer', display: 'block' }} />;
-          })}
-        </div>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {odd.map((src, ci) => {
-            const origIdx = ci * 2 + 1;
-            return <img key={origIdx} src={src} alt="" loading="lazy" onClick={() => onImageTap(origIdx)}
-              style={{ width: '100%', borderRadius: 2, cursor: 'pointer', display: 'block' }} />;
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+// —— Gallery Components (inline, matching restaurant page) ——
 
 // —— Main Component ——————————————————————————————————————————————
 
@@ -457,7 +372,6 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const [staffPhrase, setStaffPhrase] = useState<PhraseData | null>(null);
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
-  const gallerySource = useRef<'hero' | 'grid'>('hero');
   const [mapCoords, setMapCoords] = useState<{ lng: number; lat: number } | null>(null);
 
   // Geocode the attraction address for the map
@@ -517,8 +431,11 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const types = [data.experience_type, data.experience_type_secondary].filter(Boolean).map(String);
   const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
   const handleNav = onNavigate || (() => {
-    const dest = encodeURIComponent(`${data.attraction_name_cn} ${data.address_cn || ''}`.trim());
-    window.open(`https://uri.amap.com/search?keyword=${dest}&callnative=1`, '_blank');
+    const params = new URLSearchParams();
+    params.set('nav', data.attraction_name_cn || data.attraction_name_en);
+    if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
+    if (data.address_cn) params.set('addr', data.address_cn);
+    window.location.href = `/v2?${params.toString()}`;
   });
 
   return (
@@ -556,7 +473,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
           {[0,1,2,3].map(i => {
             const r = ['12px 3px 3px 3px', '3px 12px 3px 3px', '3px 3px 3px 12px', '3px 3px 12px 3px'][i];
             return (
-            <div key={i} onClick={() => { if (images[i]) { gallerySource.current = 'hero'; setViewerIndex(i); setGalleryMode('viewer'); } }}
+            <div key={i} onClick={() => { if (images[i]) { setViewerIndex(i); setGalleryMode('viewer'); } }}
               style={{ backgroundColor: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
               {images[i] && (
                 <DetailSmoothImage
@@ -569,7 +486,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
               )}
               {!images[i] && '\uD83D\uDCF7'}
               {i === 3 && images.length > 4 && (
-                <button onClick={(e) => { e.stopPropagation(); gallerySource.current = 'hero'; setGalleryMode('grid'); }}
+                <button onClick={(e) => { e.stopPropagation(); setGalleryMode('grid'); }}
                   style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="8.5" height="8.5" rx="1.5" stroke="#222" strokeWidth="1.5"/><path d="M6 4V2.5A1.5 1.5 0 017.5 1H13.5A1.5 1.5 0 0115 2.5V8.5A1.5 1.5 0 0113.5 10H12" stroke="#222" strokeWidth="1.5"/></svg>
                 </button>
@@ -778,17 +695,107 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
 
       </motion.div>
 
-      {/* ═══ IMAGE GALLERY OVERLAYS ═══ */}
-      <AnimatePresence>
-        {galleryMode === 'viewer' && images.length > 0 && (
-          <ImageViewer images={images} startIndex={viewerIndex}
-            onClose={() => { if (gallerySource.current === 'grid') setGalleryMode('grid'); else setGalleryMode('closed'); }} />
-        )}
-        {galleryMode === 'grid' && images.length > 0 && (
-          <ImageGrid images={images} onClose={() => setGalleryMode('closed')}
-            onImageTap={(idx) => { gallerySource.current = 'grid'; setViewerIndex(idx); setGalleryMode('viewer'); }} />
-        )}
-      </AnimatePresence>
+      {/* ═══ IMAGE GALLERY ═══ */}
+      {galleryMode === 'grid' ? (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 260, background: '#fff', overflowY: 'auto' }}>
+          <div style={{ position: 'sticky', top: 0, zIndex: 5, background: 'rgba(255,255,255,.96)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #ececec', padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setGalleryMode('closed')}
+              style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.05)', cursor: 'pointer', fontSize: 16 }}
+              aria-label="Close photos"
+            >
+              ←
+            </button>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{images.length} photos</div>
+            <div style={{ width: 32 }} />
+          </div>
+          <div style={{ columnCount: 2, columnGap: 4, padding: '10px 10px 14px' }}>
+            {images.map((src: string, idx: number) => (
+              <button
+                key={`gallery-${idx}`}
+                type="button"
+                onClick={() => {
+                  setViewerIndex(idx);
+                  setGalleryMode('viewer');
+                }}
+                style={{
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                  cursor: 'pointer',
+                  background: 'transparent',
+                  width: '100%',
+                  display: 'block',
+                  marginBottom: 4,
+                  breakInside: 'avoid',
+                }}
+                aria-label={`Open photo ${idx + 1}`}
+              >
+                <DetailSmoothImage
+                  src={src}
+                  alt={`${data.attraction_name_en} gallery ${idx + 1}`}
+                  wrapperStyle={{ width: '100%', borderRadius: 6 }}
+                  imgStyle={{ width: '100%', height: 'auto' }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {galleryMode === 'viewer' && images[viewerIndex] ? (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 270, background: '#000', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setGalleryMode('grid')}
+              style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', cursor: 'pointer', fontSize: 16 }}
+              aria-label="Back to all photos"
+            >
+              ←
+            </button>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
+              {viewerIndex + 1} / {images.length}
+            </div>
+            <button
+              type="button"
+              onClick={() => setGalleryMode('closed')}
+              style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', cursor: 'pointer', fontSize: 16 }}
+              aria-label="Close photo viewer"
+            >
+              ✕
+            </button>
+          </div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 20px' }}>
+            <DetailSmoothImage
+              src={images[viewerIndex]}
+              alt={`${data.attraction_name_en} photo ${viewerIndex + 1}`}
+              loading="eager"
+              wrapperStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0d0d' }}
+              imgStyle={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
+            />
+          </div>
+          {images.length > 1 ? (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px 16px' }}>
+              <button
+                type="button"
+                onClick={() => setViewerIndex((prev) => (prev - 1 + images.length) % images.length)}
+                style={{ minWidth: 72, height: 34, borderRadius: 99, border: '1px solid rgba(255,255,255,.35)', background: 'rgba(255,255,255,.1)', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Prev
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewerIndex((prev) => (prev + 1) % images.length)}
+                style={{ minWidth: 72, height: 34, borderRadius: 99, border: '1px solid rgba(255,255,255,.35)', background: 'rgba(255,255,255,.1)', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Next
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ═══ SHOW-TO-STAFF OVERLAY ═══ */}
       <StaffOverlay phrase={staffPhrase} onClose={() => setStaffPhrase(null)} />

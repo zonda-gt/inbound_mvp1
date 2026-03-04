@@ -3,6 +3,14 @@ const BASE_V3 = "https://restapi.amap.com/v3";
 const BASE_V5 = "https://restapi.amap.com/v5";
 const PLACE_SHOW_FIELDS = "business,photos,navi,indoor";
 
+// Amap V5 API sometimes returns polyline as a nested object { polyline: "..." } instead of a string
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractPolyline(val: any): string | undefined {
+  if (typeof val === "string") return val;
+  if (val && typeof val === "object" && typeof val.polyline === "string") return val.polyline;
+  return undefined;
+}
+
 export type GeoResult = {
   location: string; // "lng,lat"
   formatted_address: string;
@@ -159,14 +167,15 @@ export async function getTransitRoute(
   city?: string,
 ): Promise<TransitRoute | null> {
   try {
-    const cityVal = city || "上海";
+    // Amap v5 transit API requires city adcode (e.g. "021") not Chinese name
+    const cityCode = city === "上海" || !city ? "021" : city;
     const params = new URLSearchParams({
       origin,
       destination,
       key: AMAP_KEY,
       strategy: "0",
-      city1: cityVal,
-      city2: cityVal,
+      city1: cityCode,
+      city2: cityCode,
       show_fields: "cost,polyline",
     });
     const res = await fetch(`${BASE_V5}/direction/transit/integrated?${params}`);
@@ -186,7 +195,7 @@ export async function getTransitRoute(
       // Walking part
       if (seg.walking && Number(seg.walking.distance) > 0) {
         const walkPolyline = (seg.walking.steps || [])
-          .map((s: Record<string, string>) => s.polyline)
+          .map((s: any) => extractPolyline(s.polyline))
           .filter(Boolean)
           .join(";");
         segments.push({
@@ -206,7 +215,7 @@ export async function getTransitRoute(
           arrivalStop: line.arrival_stop?.name || "",
           stopCount: Number(line.via_num || 0) + 1,
           direction: line.direction || "",
-          polyline: line.polyline || undefined,
+          polyline: extractPolyline(line.polyline) || undefined,
         });
         if (segments.filter((s) => s.type === "transit").length > 1) {
           transferCount++;
@@ -251,7 +260,7 @@ export async function getWalkingRoute(
 
     const path = data.route.paths[0];
     const walkPolyline = (path.steps || [])
-      .map((s: Record<string, string>) => s.polyline)
+      .map((s: any) => extractPolyline(s.polyline))
       .filter(Boolean)
       .join(";");
     const durationSec = Number(path.cost?.duration || path.duration || 0);
@@ -297,7 +306,7 @@ export async function getDrivingRoute(
     const distMeters = Number(path.distance);
     const durationSec = Number(path.cost?.duration || path.duration || 0);
     const drivePolyline = (path.steps || [])
-      .map((s: Record<string, string>) => s.polyline)
+      .map((s: any) => extractPolyline(s.polyline))
       .filter(Boolean)
       .join(";");
     return {

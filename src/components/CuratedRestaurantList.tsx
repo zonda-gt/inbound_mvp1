@@ -56,7 +56,7 @@ export default function CuratedRestaurantList({
       <div className="flex flex-col gap-2.5 mb-2.5">
         {display.map((restaurant, i) => (
           <div
-            key={restaurant.id}
+            key={restaurant.slug}
             className="hc-card-enter"
             style={{ animationDelay: `${i * 70}ms` }}
             ref={(el) => {

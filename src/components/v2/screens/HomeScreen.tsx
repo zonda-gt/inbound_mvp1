@@ -154,7 +154,6 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
 }
 
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
-  const [pickTab, setPickTab] = useState<'restaurants' | 'attractions'>('restaurants');
   const [pickIndex, setPickIndex] = useState(0);
   const [savedBySlug, setSavedBySlug] = useState<Record<string, boolean>>({});
   const [savedAttraction, setSavedAttraction] = useState(false);
@@ -277,132 +276,113 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </div>
 
-      {/* 4. Picks for you — unified section */}
+      {/* 4. Today's Pick */}
       <div className="v2-todays-pick v2-fade-up v2-d2">
-        <div className="v2-pick-header">
-          <div className="v2-pick-title">Picks for you</div>
-          <div className="v2-pick-pills">
-            <button
-              type="button"
-              className={`v2-pick-pill ${pickTab === 'restaurants' ? 'active' : ''}`}
-              onClick={() => { setPickTab('restaurants'); setPickIndex(0); setDragOffsetPx(0); }}
-            >
-              Restaurants
-            </button>
-            <button
-              type="button"
-              className={`v2-pick-pill ${pickTab === 'attractions' ? 'active' : ''}`}
-              onClick={() => { setPickTab('attractions'); setPickIndex(0); setDragOffsetPx(0); }}
-            >
-              Attractions
-            </button>
+        <div className="v2-section-label">✦ Today&apos;s Pick for you</div>
+        <div className="v2-pick-card v2-pick-static-frame">
+          <div
+            className="v2-pick-track"
+            style={{
+              transform: `translateX(calc(${-pickIndex * 100}% + ${dragOffsetPx}px))`,
+              transition: isSwipingPick ? 'none' : 'transform .34s cubic-bezier(.22,.61,.36,1)',
+            }}
+            onTouchStart={handlePickTouchStart}
+            onTouchMove={handlePickTouchMove}
+            onTouchEnd={handlePickTouchEnd}
+            onTouchCancel={handlePickTouchEnd}
+          >
+            {TODAY_PICKS.map((pick) => {
+              const saved = !!savedBySlug[pick.slug];
+              const distanceLabel = canShowDistance && coords
+                ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
+                : null;
+              const pickMetaItems = [
+                distanceLabel ? `📍 ${distanceLabel}` : null,
+                pick.price,
+                pick.location,
+              ].filter(Boolean) as string[];
+              return (
+                <div key={pick.slug} className="v2-pick-slide" onClick={() => onPickCardClick(pick.slug)}>
+                  <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
+                  <div className="v2-pick-overlay" />
+                  <div className="v2-pick-badge">{pick.badge}</div>
+                  <div className="v2-pick-body">
+                    <div className="v2-pick-name">{pick.name}</div>
+                    <div className="v2-pick-meta">
+                      {pickMetaItems.map((item, idx) => (
+                        <div className="v2-pick-meta-item" key={`${pick.slug}-meta-${idx}`}>
+                          {idx > 0 ? '· ' : ''}{item}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="v2-pick-ai-reason">
+                      &ldquo;{pick.reason}&rdquo;
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="v2-sh-food-fav"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
+                    }}
+                    aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
+                  >
+                    <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+                      <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
-
-        {pickTab === 'restaurants' ? (
-          <>
-            <div className="v2-pick-card v2-pick-static-frame">
-              <div
-                className="v2-pick-track"
-                style={{
-                  transform: `translateX(calc(${-pickIndex * 100}% + ${dragOffsetPx}px))`,
-                  transition: isSwipingPick ? 'none' : 'transform .34s cubic-bezier(.22,.61,.36,1)',
-                }}
-                onTouchStart={handlePickTouchStart}
-                onTouchMove={handlePickTouchMove}
-                onTouchEnd={handlePickTouchEnd}
-                onTouchCancel={handlePickTouchEnd}
-              >
-                {TODAY_PICKS.map((pick) => {
-                  const saved = !!savedBySlug[pick.slug];
-                  const distanceLabel = canShowDistance && coords
-                    ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
-                    : null;
-                  const pickMetaItems = [
-                    distanceLabel ? `📍 ${distanceLabel}` : null,
-                    pick.price,
-                    pick.location,
-                  ].filter(Boolean) as string[];
-                  return (
-                    <div key={pick.slug} className="v2-pick-slide" onClick={() => onPickCardClick(pick.slug)}>
-                      <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
-                      <div className="v2-pick-overlay" />
-                      <div className="v2-pick-badge">{pick.badge}</div>
-                      <div className="v2-pick-body">
-                        <div className="v2-pick-name">{pick.name}</div>
-                        <div className="v2-pick-meta">
-                          {pickMetaItems.map((item, idx) => (
-                            <div className="v2-pick-meta-item" key={`${pick.slug}-meta-${idx}`}>
-                              {idx > 0 ? '· ' : ''}{item}
-                            </div>
-                          ))}
-                        </div>
-                        <div className="v2-pick-ai-reason">
-                          &ldquo;{pick.reason}&rdquo;
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="v2-sh-food-fav"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
-                        }}
-                        aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
-                      >
-                        <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
-                          <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
-                        </svg>
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="v2-pick-dots" role="tablist" aria-label="Restaurant carousel position">
-              {TODAY_PICKS.map((pick, idx) => (
-                <button
-                  key={pick.slug}
-                  type="button"
-                  className={`v2-pick-dot ${idx === pickIndex ? 'active' : ''}`}
-                  onClick={() => jumpToPick(idx)}
-                  aria-label={`Show ${pick.name}`}
-                  aria-current={idx === pickIndex ? 'true' : undefined}
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="v2-pick-card" onClick={openAttractionPick}>
-            <SmoothImage key={`attraction-pick-${ATTRACTION_PICK.image}`} src={ATTRACTION_PICK.image} alt={ATTRACTION_PICK.name} className="v2-pick-card-img" />
-            <div className="v2-pick-overlay" />
-            <div className="v2-pick-badge">{ATTRACTION_PICK.badge}</div>
+        <div className="v2-pick-dots" role="tablist" aria-label="Restaurant carousel position">
+          {TODAY_PICKS.map((pick, idx) => (
             <button
+              key={pick.slug}
               type="button"
-              className="v2-sh-food-fav"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSavedAttraction((prev) => !prev);
-              }}
-              aria-label={savedAttraction ? 'Unsave attraction' : 'Save attraction'}
-            >
-              <svg viewBox="0 0 32 32" width="24" height="24" fill={savedAttraction ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
-                <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
-              </svg>
-            </button>
-            <div className="v2-pick-body">
-              <div className="v2-pick-name">{ATTRACTION_PICK.name}</div>
-              <div className="v2-pick-meta">
-                <div className="v2-pick-meta-item">⭐ {ATTRACTION_PICK.rating}</div>
-                <div className="v2-pick-meta-item">· {ATTRACTION_PICK.meta}</div>
-                <div className="v2-pick-meta-item">· {ATTRACTION_PICK.location}</div>
-              </div>
-              <div className="v2-pick-ai-reason">
-                &ldquo;{ATTRACTION_PICK.reason}&rdquo;
-              </div>
+              className={`v2-pick-dot ${idx === pickIndex ? 'active' : ''}`}
+              onClick={() => jumpToPick(idx)}
+              aria-label={`Show ${pick.name}`}
+              aria-current={idx === pickIndex ? 'true' : undefined}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* 5. Attraction Pick */}
+      <div className="v2-attraction-pick v2-fade-up v2-d2">
+        <div className="v2-section-label">✦ Attraction Pick for you</div>
+        <div className="v2-pick-card" onClick={openAttractionPick}>
+          <SmoothImage key={`attraction-pick-${ATTRACTION_PICK.image}`} src={ATTRACTION_PICK.image} alt={ATTRACTION_PICK.name} className="v2-pick-card-img" />
+          <div className="v2-pick-overlay" />
+          <div className="v2-pick-badge">{ATTRACTION_PICK.badge}</div>
+          <button
+            type="button"
+            className="v2-sh-food-fav"
+            onClick={(e) => {
+              e.stopPropagation();
+              setSavedAttraction((prev) => !prev);
+            }}
+            aria-label={savedAttraction ? 'Unsave attraction' : 'Save attraction'}
+          >
+            <svg viewBox="0 0 32 32" width="24" height="24" fill={savedAttraction ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+              <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+            </svg>
+          </button>
+          <div className="v2-pick-body">
+            <div className="v2-pick-name">{ATTRACTION_PICK.name}</div>
+            <div className="v2-pick-meta">
+              <div className="v2-pick-meta-item">⭐ {ATTRACTION_PICK.rating}</div>
+              <div className="v2-pick-meta-item">· {ATTRACTION_PICK.meta}</div>
+              <div className="v2-pick-meta-item">· {ATTRACTION_PICK.location}</div>
+            </div>
+            <div className="v2-pick-ai-reason">
+              &ldquo;{ATTRACTION_PICK.reason}&rdquo;
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* 6. Originals Rail */}
@@ -426,7 +406,6 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               <a key={item.slug} href={`/attractions/${item.slug}`} className="v2-orig-card">
               <div className="v2-orig-image-wrap">
                   <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" />
-                <div className="v2-orig-chip">🌾 {item.label}</div>
                 <button
                   type="button"
                   className="v2-sh-food-fav"
@@ -442,8 +421,8 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
                   </svg>
                 </button>
               </div>
-                <div className="v2-orig-name">{title}</div>
-              <div className="v2-orig-loc">{item.subtitle}</div>
+                <div className="v2-orig-name">{found?.card_hook || title}</div>
+              <div className="v2-orig-loc">{found?.card_type || found?.experience_type || item.subtitle}</div>
               <div className="v2-orig-meta">{item.meta}</div>
               </a>
             );

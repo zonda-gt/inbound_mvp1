@@ -74,7 +74,7 @@ export default function ChinaInternetGuidePage() {
       <PayNavbar
         navLinks={NAV_LINKS}
         brandIcon="网络"
-        brandLabel="China Internet Guide"
+        brandLabel="HelloChina Guide"
       />
       <main>
         <EsimHero />

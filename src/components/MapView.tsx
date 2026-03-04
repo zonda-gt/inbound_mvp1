@@ -209,24 +209,30 @@ export default function MapView({
       overlays.push(polyline);
     }
 
-    // Origin marker (blue dot)
+    // Origin marker — blue dot with subtle ring
     const originMarker = new AMap.Marker({
       position: new AMap.LngLat(originLng, originLat),
-      content:
-        '<div style="width:14px;height:14px;border-radius:50%;background:#2563EB;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
+      content: `<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;inset:4px;background:rgba(66,133,244,0.1);border-radius:50%"></div>
+        <div style="width:14px;height:14px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(66,133,244,.35);position:relative;z-index:1"></div>
+      </div>`,
       anchor: "center",
       zIndex: 50,
     });
     map.add(originMarker);
     overlays.push(originMarker);
 
-    // Destination marker (red dot)
+    // Destination marker — teardrop pin
     const destMarker = new AMap.Marker({
       position: new AMap.LngLat(destLng, destLat),
-      content:
-        '<div style="width:14px;height:14px;border-radius:50%;background:#EF4444;border:3px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>',
-      anchor: "center",
-      zIndex: 50,
+      content: `<div style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.18))">
+        <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M14 35C14 35 27 22.5 27 14C27 6.82 21.18 1 14 1C6.82 1 1 6.82 1 14C1 22.5 14 35 14 35Z" fill="#1A1A1A" stroke="#fff" stroke-width="1.5"/>
+          <circle cx="14" cy="13" r="4.5" fill="#fff"/>
+        </svg>
+      </div>`,
+      anchor: "bottom-center",
+      zIndex: 51,
     });
     map.add(destMarker);
     overlays.push(destMarker);
@@ -237,7 +243,8 @@ export default function MapView({
     routeOverlaysRef.current = overlays;
 
     return () => {
-      overlays.forEach((o) => map.remove(o));
+      const m = mapRef.current;
+      if (m) overlays.forEach((o) => m.remove(o));
       routeOverlaysRef.current = [];
     };
   }, [AMap, route]);
@@ -297,7 +304,8 @@ export default function MapView({
     }
 
     return () => {
-      newMarkers.forEach((m) => map.remove(m));
+      const m = mapRef.current;
+      if (m) newMarkers.forEach((mk) => m.remove(mk));
       markerOverlaysRef.current = [];
     };
   }, [AMap, markers, activeMarker]);
@@ -335,17 +343,17 @@ export default function MapView({
       overlays.push(directionMarker);
     }
 
-    // Blue pulsing dot for user location
+    // Blue pulsing dot for user location — Google Maps style
     const blueDotContent = `
-      <div style="position: relative; width: 20px; height: 20px;">
-        <!-- Pulsing outer ring -->
-        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border-radius: 50%; background: rgba(37, 99, 235, 0.2); animation: pulse 2s ease-in-out infinite;"></div>
-        <!-- Inner blue dot -->
-        <div style="position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border-radius: 50%; background: #2563EB; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"></div>
+      <div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;inset:0;background:rgba(66,133,244,0.1);border-radius:50%;animation:mapPulse 2s ease-out infinite"></div>
+        <div style="position:absolute;inset:8px;background:rgba(66,133,244,0.08);border-radius:50%"></div>
+        <div style="width:16px;height:16px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(66,133,244,.45);position:relative;z-index:1"></div>
         <style>
-          @keyframes pulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.2; }
+          @keyframes mapPulse {
+            0% { transform:scale(1); opacity:0.6; }
+            70% { transform:scale(1.6); opacity:0; }
+            100% { transform:scale(1.6); opacity:0; }
           }
         </style>
       </div>
@@ -382,7 +390,8 @@ export default function MapView({
     userLocationOverlaysRef.current = overlays;
 
     return () => {
-      overlays.forEach((o) => map.remove(o));
+      const m = mapRef.current;
+      if (m) overlays.forEach((o) => m.remove(o));
       userLocationOverlaysRef.current = [];
     };
   }, [AMap, userLocation, deviceHeading, isApproximateLocation]);

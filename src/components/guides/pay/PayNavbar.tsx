@@ -26,7 +26,7 @@ interface PayNavbarProps {
 export default function PayNavbar({
   navLinks = DEFAULT_NAV_LINKS,
   brandIcon = "支付",
-  brandLabel = "China Pay Guide",
+  brandLabel = "HelloChina Guide",
 }: PayNavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);

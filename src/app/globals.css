@@ -188,3 +188,11 @@ body {
 .pay-guide ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.55 0.01 65);
 }
+
+.scrollbar-hide {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

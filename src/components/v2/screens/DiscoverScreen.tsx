@@ -82,7 +82,7 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
       <div className="v2-sh-section v2-fade-up v2-d1">
         <div className="v2-sh-section-hdr">
           <div>
-            <div className="v2-sh-section-title">Only in Shanghai</div>
+            <div className="v2-sh-section-title">Experiences</div>
             <div className="v2-sh-section-sub">
               Experiences you won&apos;t find anywhere else
             </div>

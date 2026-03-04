@@ -232,8 +232,11 @@ export default function RestaurantDetail({ data }: { data: any }) {
   };
 
   const handleNav = () => {
-    const destination = encodeURIComponent([nameCn, addressCn].filter(Boolean).join(' '));
-    window.open(`https://uri.amap.com/search?keyword=${destination}&callnative=1`, '_blank');
+    const params = new URLSearchParams();
+    params.set('nav', nameCn || nameEn);
+    if (nameCn) params.set('nameCn', nameCn);
+    if (addressCn) params.set('addr', addressCn);
+    window.location.href = `/v2?${params.toString()}`;
   };
 
   const vibeCards = vibeCaptions.length > 0

@@ -16,48 +16,41 @@ export type CuratedRestaurantSummary = {
   hero_image_url: string | null;
 };
 
-// Full profile used by frontend cards
+// Full profile used by frontend cards (restaurants_v2 table shape)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type CuratedRestaurant = {
-  id: string;
   slug: string;
   name_cn: string;
   name_en: string;
-  address: string;
-  phone: string;
+  latitude: number;
+  longitude: number;
+  address_cn?: string;
+  address?: string;
+  city?: string;
+  foreigner_hook?: string;
+  cuisine?: string;
+  images: string[]; // string[] of URLs in v2
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  profile: any; // nested JSON — layer1_card, layer2_detail, internal
+};
+
+// Shape returned by the hybrid search RPC (old restaurants table)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CuratedRestaurantHybridResult = {
+  slug: string;
+  name_en: string;
+  name_cn: string;
   cuisine: string;
   price_per_person: number;
   rating: number;
-  review_count: number;
-  latitude: number;
-  longitude: number;
   foreigner_hook: string;
   english_description: string;
-  vibe: string;
   best_for: string[];
-  value_for_money: string | null;
-  signature_dishes: Array<{
-    english_name: string;
-    chinese_name: string;
-    description: string;
-    foreigner_rating: string;
-    notes: string;
-  }>;
-  ordering_guide: {
-    how_to_order: string;
-    for_2_people: { suggested_order: string; estimated_spend_rmb: string; notes: string };
-    for_4_people: { suggested_order: string; estimated_spend_rmb: string; notes: string };
-  };
-  common_complaints: Array<{ complaint: string; practical_note: string }>;
-  practical_tips: string[];
-  concierge_opportunities: string | null;
-  dining_style_note: string;
-  spice_and_dietary_notes: Record<string, string>;
-  images: Array<{ url: string; is_hero: boolean; category: string }>;
-  created_at: string;
-};
-
-export type CuratedRestaurantHybridResult = CuratedRestaurant & {
+  latitude: number;
+  longitude: number;
+  images: any[];
   similarity: number;
+  [key: string]: any; // allow extra columns from old table
 };
 
 function haversineDistance(
@@ -105,6 +98,7 @@ function normalizeCityKey(city: string): string {
   return lower;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function searchCuratedRestaurants(filters: {
   cuisine?: string;
   max_price?: number;
@@ -114,7 +108,7 @@ export async function searchCuratedRestaurants(filters: {
   max_distance_km?: number;
   query?: string;
   city?: string;
-}): Promise<CuratedRestaurant[]> {
+}): Promise<any[]> {
   const supabase = getSupabaseServerClient();
   if (!supabase) {
     console.warn("[CuratedRestaurants] Supabase not configured");
@@ -173,7 +167,7 @@ export async function searchCuratedRestaurants(filters: {
     return [];
   }
 
-  let results = (data || []) as CuratedRestaurant[];
+  let results = (data || []) as any[];
 
   // Proximity filter + sort if coordinates provided
   if (filters.near_lat != null && filters.near_lng != null) {
@@ -270,9 +264,9 @@ export async function searchCuratedRestaurantsHybrid(filters: {
   return { results };
 }
 
-/** Convert a full restaurant to a lightweight summary for Claude */
-export function toSummary(r: CuratedRestaurant): CuratedRestaurantSummary {
-  const heroImage = r.images?.find((img) => img.is_hero);
+/** Convert a hybrid search result (old table) to a lightweight summary for Claude */
+export function toSummary(r: CuratedRestaurantHybridResult): CuratedRestaurantSummary {
+  const heroImage = Array.isArray(r.images) ? r.images.find((img: any) => img?.is_hero) : null;
   return {
     slug: r.slug,
     name_en: r.name_en,
@@ -282,7 +276,7 @@ export function toSummary(r: CuratedRestaurant): CuratedRestaurantSummary {
     rating: r.rating,
     foreigner_hook: r.foreigner_hook,
     english_description: r.english_description,
-    best_for: r.best_for,
+    best_for: r.best_for || [],
     latitude: r.latitude,
     longitude: r.longitude,
     hero_image_url: heroImage?.url || null,
@@ -353,7 +347,7 @@ export async function getFeaturedRestaurants(limit = 8): Promise<any[]> {
   });
 }
 
-/** Fetch full restaurant profiles by slugs (for frontend card rendering) */
+/** Fetch full restaurant profiles by slugs — tries restaurants_v2 first, falls back to old restaurants table */
 export async function getCuratedRestaurantsBySlugs(
   slugs: string[],
 ): Promise<CuratedRestaurant[]> {
@@ -365,15 +359,88 @@ export async function getCuratedRestaurantsBySlugs(
     return [];
   }
 
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select("*")
+  // 1. Try restaurants_v2 (rich profile data)
+  const { data: v2Data, error: v2Error } = await supabase
+    .from("restaurants_v2")
+    .select("slug, name_en, name_cn, latitude, longitude, address_cn, address, city, foreigner_hook, cuisine, images, profile")
     .in("slug", slugs);
 
-  if (error) {
-    console.error("[CuratedRestaurants] Fetch by slugs error:", error);
-    return [];
+  if (v2Error) {
+    console.error("[CuratedRestaurants] v2 fetch error:", v2Error);
   }
 
-  return (data || []) as CuratedRestaurant[];
+  const v2Results = (v2Data || []).map((row) => ({
+    ...row,
+    images: Array.isArray(row.images) ? row.images : [],
+    profile: row.profile || {},
+  })) as CuratedRestaurant[];
+
+  const foundSlugs = new Set(v2Results.map((r) => r.slug));
+  const missingSlugs = slugs.filter((s) => !foundSlugs.has(s));
+  console.log("[CuratedRestaurants] v2 found:", [...foundSlugs], "| missing (fallback to old):", missingSlugs);
+
+  // 2. Fall back to old restaurants table for any slugs not in v2
+  if (missingSlugs.length > 0) {
+    const { data: oldData, error: oldError } = await supabase
+      .from("restaurants")
+      .select("*")
+      .in("slug", missingSlugs);
+
+    if (oldError) {
+      console.error("[CuratedRestaurants] old table fallback error:", oldError);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const oldResults = (oldData || []).map((row: any) => {
+      // Adapt old flat columns into v2 CuratedRestaurant shape
+      const imgs = Array.isArray(row.images)
+        ? row.images.map((img: any) => (typeof img === "string" ? img : img?.url)).filter(Boolean)
+        : [];
+      return {
+        slug: row.slug,
+        name_en: row.name_en,
+        name_cn: row.name_cn,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        address_cn: row.address_cn,
+        address: row.address,
+        city: row.city,
+        foreigner_hook: row.foreigner_hook,
+        cuisine: row.cuisine,
+        images: imgs,
+        profile: {
+          layer1_card: {
+            hook: row.foreigner_hook || "",
+            identity: { cuisine_type: row.cuisine || "" },
+            price: { price_per_person_cny: row.price_per_person },
+            tags: { rating: row.rating, best_for: row.best_for || [] },
+          },
+          layer2_detail: {
+            what_to_order: {
+              top_dishes: Array.isArray(row.signature_dishes)
+                ? row.signature_dishes.map((d: any) => ({
+                    dish_name_en: d.english_name || d.name,
+                    description: d.notes || "",
+                    comfort_level: d.foreigner_rating === "green" ? 5 : d.foreigner_rating === "yellow" ? 3 : 1,
+                  }))
+                : [],
+            },
+            how_to_order: {
+              steps: row.ordering_guide?.for_2_people ? [row.ordering_guide.for_2_people] : [],
+              what_visitors_get_wrong: row.common_complaints || [],
+            },
+            practical: {
+              payment: Array.isArray(row.practical_tips) ? row.practical_tips.join(". ") : "",
+            },
+          },
+        },
+      } as CuratedRestaurant;
+    });
+
+    v2Results.push(...oldResults);
+  }
+
+  // Preserve original slug order
+  const bySlug = new Map(v2Results.map((r) => [r.slug, r]));
+  return slugs.map((s) => bySlug.get(s)).filter((r): r is CuratedRestaurant => r != null);
 }
