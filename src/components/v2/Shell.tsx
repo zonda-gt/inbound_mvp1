@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import AttractionPage from '../guides/attractions/AttractionDetail';
-import OnboardingScreen from './screens/OnboardingScreen';
 import HomeScreen from './screens/HomeScreen';
 import DiscoverScreen from './screens/DiscoverScreen';
 import NavigateScreen, { type NavigateDestination } from './screens/NavigateScreen';
@@ -77,13 +76,7 @@ function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
 }
 
 export default function Shell() {
-  const [showOnboarding, setShowOnboarding] = useState(true);
   const [activeScreen, setActiveScreen] = useState<Screen>('home');
-
-  const handleFinishOnboarding = useCallback(() => {
-    setShowOnboarding(false);
-    setActiveScreen('home');
-  }, []);
 
   const handleNavigate = useCallback((screen: string) => {
     setActiveScreen(screen as Screen);
@@ -101,7 +94,6 @@ export default function Shell() {
     const params = new URLSearchParams(window.location.search);
     const navName = params.get('nav');
     if (navName) {
-      setShowOnboarding(false);
       handleNavigateToDestination({
         name: navName,
         chineseName: params.get('nameCn') || undefined,
@@ -139,16 +131,11 @@ export default function Shell() {
     }
   }, [selectedAttraction]);
 
-  const isActive = (screen: Screen) => !showOnboarding && activeScreen === screen;
+  const isActive = (screen: Screen) => activeScreen === screen;
   const isCollectionScreen = COLLECTION_IDS.includes(activeScreen);
 
   return (
     <div className="v2-shell">
-      {/* Onboarding */}
-      <div className={`v2-screen v2-onboard ${showOnboarding ? 'active' : ''}`}>
-        <OnboardingScreen onFinish={handleFinishOnboarding} />
-      </div>
-
       {/* Home */}
       <div className={`v2-screen v2-home ${isActive('home') ? 'active' : ''}`}>
         <HomeScreen onNavigate={handleNavigate} />
@@ -187,8 +174,7 @@ export default function Shell() {
       </div>
 
       {/* Bottom Nav */}
-      {!showOnboarding && (
-        <nav className="v2-bottom-nav">
+      <nav className="v2-bottom-nav">
           {navItems.map((item) => {
             const isItemActive = (screenToTab[activeScreen] || 'discover') === item.id;
 
@@ -227,8 +213,7 @@ export default function Shell() {
               </button>
             );
           })}
-        </nav>
-      )}
+      </nav>
       {/* Attraction Detail Overlay */}
       <AnimatePresence>
         {selectedAttraction && (

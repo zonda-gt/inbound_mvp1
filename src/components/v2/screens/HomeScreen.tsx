@@ -1,8 +1,54 @@
 'use client';
 
-import { type TouchEvent, useRef, useState } from 'react';
+import { type TouchEvent, useRef, useState, useEffect } from 'react';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
+
+// ── Weather helpers ─────────────────────────────────────────────
+
+const WMO_ICONS: Record<number, string> = {
+  0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+  45: '🌫️', 48: '🌫️',
+  51: '🌦️', 53: '🌦️', 55: '🌧️',
+  61: '🌧️', 63: '🌧️', 65: '🌧️',
+  71: '🌨️', 73: '🌨️', 75: '❄️',
+  80: '🌦️', 81: '🌧️', 82: '🌧️',
+  95: '⛈️', 96: '⛈️', 99: '⛈️',
+};
+
+function useWeather(lat: number | null, lng: number | null) {
+  const [temp, setTemp] = useState<number | null>(null);
+  const [icon, setIcon] = useState('');
+  useEffect(() => {
+    if (lat == null || lng == null) return;
+    let cancelled = false;
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&timezone=auto`)
+      .then(r => r.json())
+      .then(d => {
+        if (cancelled) return;
+        setTemp(Math.round(d.current.temperature_2m));
+        setIcon(WMO_ICONS[d.current.weather_code] || '🌡️');
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [lat, lng]);
+  return { temp, icon };
+}
+
+const CITY_NAMES: Record<string, string> = {
+  '上海': 'Shanghai', '北京': 'Beijing', '成都': 'Chengdu',
+  '广州': 'Guangzhou', '深圳': 'Shenzhen', '杭州': 'Hangzhou',
+  '南京': 'Nanjing', '西安': "Xi'an", '重庆': 'Chongqing',
+  '苏州': 'Suzhou', '武汉': 'Wuhan', '长沙': 'Changsha',
+};
+
+function cityEnglish(cn: string): string {
+  if (CITY_NAMES[cn]) return CITY_NAMES[cn];
+  for (const [k, v] of Object.entries(CITY_NAMES)) {
+    if (cn.includes(k)) return v;
+  }
+  return cn;
+}
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
@@ -59,16 +105,38 @@ const TODAY_PICKS = [
   },
 ];
 
-const ATTRACTION_PICK = {
-  slug: 'fotografiska-shanghai',
-  name: 'Fotografiska Shanghai',
-  rating: '4.8',
-  meta: '~¥120 entry',
-  location: 'Suzhou Creek',
-  reason: 'World-class photo exhibitions in a riverside warehouse with a rooftop bar.',
-  badge: '✦ AI Pick · Attraction',
-  image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/fotografiska-shanghai/review_212_0.jpeg',
-};
+const ATTRACTION_PICKS = [
+  {
+    slug: 'fotografiska-shanghai',
+    name: 'Fotografiska Shanghai',
+    rating: '4.8',
+    meta: '~¥120 entry',
+    location: 'Suzhou Creek',
+    reason: 'World-class photo exhibitions in a riverside warehouse with a rooftop bar.',
+    badge: '✦ AI Pick · Attraction',
+    image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/fotografiska-shanghai/review_212_0.jpeg',
+  },
+  {
+    slug: 'the-mckinnon-hotel',
+    name: 'Sleep No More Shanghai',
+    rating: '4.7',
+    meta: 'From ¥520',
+    location: "Jing'an",
+    reason: 'An immersive theatre masterpiece — wander freely through a noir dreamscape.',
+    badge: '✦ AI Pick · Theatre',
+    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    slug: 'shanghai-haichang-ocean-park',
+    name: 'Haichang Ocean Park',
+    rating: '4.5',
+    meta: 'From ¥299',
+    location: 'Lingang, Pudong',
+    reason: 'Massive aquarium with orca shows and underwater tunnels — great for families.',
+    badge: '✦ AI Pick · Family',
+    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
+  },
+];
 
 const ORIGINAL_ATTRACTIONS = [
   {
@@ -156,21 +224,32 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
 export default function HomeScreen({ onNavigate }: HomeScreenProps) {
   const [pickIndex, setPickIndex] = useState(0);
   const [savedBySlug, setSavedBySlug] = useState<Record<string, boolean>>({});
-  const [savedAttraction, setSavedAttraction] = useState(false);
+  const [savedAttrBySlug, setSavedAttrBySlug] = useState<Record<string, boolean>>({});
   const [savedOriginalBySlug, setSavedOriginalBySlug] = useState<Record<string, boolean>>({});
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
   const [isSwipingPick, setIsSwipingPick] = useState(false);
   const pickTouchStartX = useRef(0);
   const pickDidDrag = useRef(false);
+
+  const [attrPickIndex, setAttrPickIndex] = useState(0);
+  const [attrDragOffsetPx, setAttrDragOffsetPx] = useState(0);
+  const [isSwipingAttr, setIsSwipingAttr] = useState(false);
+  const attrTouchStartX = useRef(0);
+  const attrDidDrag = useRef(false);
   const { location: userLocation, city, isDemo } = useGeolocation();
   const { attractions: originalAttractionsData } = useCollectionData(ORIGINAL_ATTRACTION_SLUGS);
   const coords = parseLocation(userLocation);
   const canShowDistance = !isDemo && !!coords && isShanghaiCity(city);
+  const { temp, icon: weatherIcon } = useWeather(coords?.lat ?? 31.2304, coords?.lng ?? 121.4737);
+  const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
+  const cityName = cityEnglish(city);
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   const openTodayPick = (slug: string) => {
     window.location.assign(`/restaurants/${slug}`);
   };
-  const openAttractionPick = () => {
-    window.location.assign(`/attractions/${ATTRACTION_PICK.slug}`);
+  const openAttractionPick = (slug: string) => {
+    window.location.assign(`/attractions/${slug}`);
   };
 
   const handlePickTouchStart = (e: TouchEvent<HTMLDivElement>) => {
@@ -212,6 +291,45 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
     setIsSwipingPick(false);
   };
 
+  const handleAttrTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    attrTouchStartX.current = e.touches[0]?.clientX ?? 0;
+    attrDidDrag.current = false;
+    setIsSwipingAttr(true);
+  };
+
+  const handleAttrTouchMove = (e: TouchEvent<HTMLDivElement>) => {
+    if (!isSwipingAttr) return;
+    const currentX = e.touches[0]?.clientX ?? attrTouchStartX.current;
+    const dx = currentX - attrTouchStartX.current;
+    if (Math.abs(dx) > 8) attrDidDrag.current = true;
+    setAttrDragOffsetPx(dx);
+  };
+
+  const handleAttrTouchEnd = () => {
+    if (!isSwipingAttr) return;
+    const thresholdPx = 46;
+    let next = attrPickIndex;
+    if (attrDragOffsetPx <= -thresholdPx) next = Math.min(ATTRACTION_PICKS.length - 1, attrPickIndex + 1);
+    if (attrDragOffsetPx >= thresholdPx) next = Math.max(0, attrPickIndex - 1);
+    setAttrPickIndex(next);
+    setAttrDragOffsetPx(0);
+    setIsSwipingAttr(false);
+  };
+
+  const onAttrCardClick = (slug: string) => {
+    if (attrDidDrag.current) {
+      attrDidDrag.current = false;
+      return;
+    }
+    openAttractionPick(slug);
+  };
+
+  const jumpToAttrPick = (index: number) => {
+    setAttrPickIndex(index);
+    setAttrDragOffsetPx(0);
+    setIsSwipingAttr(false);
+  };
+
   return (
     <div className="v2-scroll-body">
       {/* 1. Hero Header */}
@@ -228,50 +346,9 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
           </div>
         </div>
         <div className="v2-home-greeting">
-          <div className="v2-greeting-eyebrow">Thursday · Shanghai · 7°C ☁️</div>
+          <div className="v2-greeting-eyebrow">{dayName} · {cityName}{temp != null ? ` · ${temp}°C ${weatherIcon}` : ''}</div>
           <div className="v2-greeting-text">
-            Morning, Alex <span className="wave">👋</span><br />Ready to eat?
-          </div>
-        </div>
-        <div className="v2-context-strip" style={{ marginTop: 14 }}>
-          <div className="v2-ctx-pill"><div className="v2-ctx-live-dot" /> People&apos;s Square</div>
-          <div className="v2-ctx-pill">🌐 Connected</div>
-          <div className="v2-ctx-pill">🔋 Offline ready</div>
-        </div>
-      </div>
-
-      {/* 2. Search */}
-      <div className="v2-search-wrap v2-fade-up v2-d1">
-        <div className="v2-search-bar">
-          <span className="v2-search-icon">🔍</span>
-          <input
-            className="v2-search-input"
-            type="text"
-            placeholder="Ask anything — food, directions, phrases…"
-          />
-          <div className="v2-search-cam" onClick={() => onNavigate('photo')}>📷</div>
-        </div>
-      </div>
-
-      {/* 3. Quick Actions */}
-      <div className="v2-quick-actions v2-fade-up v2-d2">
-        <div className="v2-section-label">Quick access</div>
-        <div className="v2-qa-grid">
-          <div className="v2-qa-item" onClick={() => onNavigate('discover')}>
-            <div className="v2-qa-icon" style={{ background: 'linear-gradient(135deg,#FF6B35,#D0021B)' }}>🍜</div>
-            <div className="v2-qa-label">Find Food</div>
-          </div>
-          <div className="v2-qa-item" onClick={() => onNavigate('navigate')}>
-            <div className="v2-qa-icon" style={{ background: 'linear-gradient(135deg,#007AFF,#5856D6)' }}>🚇</div>
-            <div className="v2-qa-label">Navigate</div>
-          </div>
-          <div className="v2-qa-item" onClick={() => onNavigate('photo')}>
-            <div className="v2-qa-icon" style={{ background: 'linear-gradient(135deg,#34C759,#30D158)' }}>📷</div>
-            <div className="v2-qa-label">Photo AI</div>
-          </div>
-          <div className="v2-qa-item">
-            <div className="v2-qa-icon" style={{ background: 'linear-gradient(135deg,#C9A84C,#FF9500)' }}>🗺️</div>
-            <div className="v2-qa-label">Explore</div>
+            {greeting} <span className="wave">👋</span><br />Ready to explore?
           </div>
         </div>
       </div>
@@ -351,42 +428,8 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
       </div>
 
-      {/* 5. Attraction Pick */}
-      <div className="v2-attraction-pick v2-fade-up v2-d2">
-        <div className="v2-section-label">✦ Attraction Pick for you</div>
-        <div className="v2-pick-card" onClick={openAttractionPick}>
-          <SmoothImage key={`attraction-pick-${ATTRACTION_PICK.image}`} src={ATTRACTION_PICK.image} alt={ATTRACTION_PICK.name} className="v2-pick-card-img" />
-          <div className="v2-pick-overlay" />
-          <div className="v2-pick-badge">{ATTRACTION_PICK.badge}</div>
-          <button
-            type="button"
-            className="v2-sh-food-fav"
-            onClick={(e) => {
-              e.stopPropagation();
-              setSavedAttraction((prev) => !prev);
-            }}
-            aria-label={savedAttraction ? 'Unsave attraction' : 'Save attraction'}
-          >
-            <svg viewBox="0 0 32 32" width="24" height="24" fill={savedAttraction ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
-              <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
-            </svg>
-          </button>
-          <div className="v2-pick-body">
-            <div className="v2-pick-name">{ATTRACTION_PICK.name}</div>
-            <div className="v2-pick-meta">
-              <div className="v2-pick-meta-item">⭐ {ATTRACTION_PICK.rating}</div>
-              <div className="v2-pick-meta-item">· {ATTRACTION_PICK.meta}</div>
-              <div className="v2-pick-meta-item">· {ATTRACTION_PICK.location}</div>
-            </div>
-            <div className="v2-pick-ai-reason">
-              &ldquo;{ATTRACTION_PICK.reason}&rdquo;
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. Originals Rail */}
-      <div className="v2-orig-section v2-fade-up v2-d3">
+      {/* 5. Originals Rail */}
+      <div className="v2-orig-section v2-fade-up v2-d2">
         <div className="v2-orig-header">
           <div>
             <div className="v2-orig-title">Attraction Originals</div>
@@ -427,6 +470,71 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               </a>
             );
           })}
+        </div>
+      </div>
+
+      {/* 6. Attraction Pick */}
+      <div className="v2-attraction-pick v2-fade-up v2-d3">
+        <div className="v2-section-label">✦ Attraction Pick for you</div>
+        <div className="v2-pick-card v2-pick-static-frame">
+          <div
+            className="v2-pick-track"
+            style={{
+              transform: `translateX(calc(${-attrPickIndex * 100}% + ${attrDragOffsetPx}px))`,
+              transition: isSwipingAttr ? 'none' : 'transform .34s cubic-bezier(.22,.61,.36,1)',
+            }}
+            onTouchStart={handleAttrTouchStart}
+            onTouchMove={handleAttrTouchMove}
+            onTouchEnd={handleAttrTouchEnd}
+            onTouchCancel={handleAttrTouchEnd}
+          >
+            {ATTRACTION_PICKS.map((pick) => {
+              const saved = !!savedAttrBySlug[pick.slug];
+              return (
+                <div key={pick.slug} className="v2-pick-slide" onClick={() => onAttrCardClick(pick.slug)}>
+                  <img className="v2-pick-card-img" src={pick.image} alt={pick.name} />
+                  <div className="v2-pick-overlay" />
+                  <div className="v2-pick-badge">{pick.badge}</div>
+                  <div className="v2-pick-body">
+                    <div className="v2-pick-name">{pick.name}</div>
+                    <div className="v2-pick-meta">
+                      <div className="v2-pick-meta-item">⭐ {pick.rating}</div>
+                      <div className="v2-pick-meta-item">· {pick.meta}</div>
+                      <div className="v2-pick-meta-item">· {pick.location}</div>
+                    </div>
+                    <div className="v2-pick-ai-reason">
+                      &ldquo;{pick.reason}&rdquo;
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="v2-sh-food-fav"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSavedAttrBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
+                    }}
+                    aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
+                  >
+                    <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+                      <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                    </svg>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="v2-pick-dots" role="tablist" aria-label="Attraction carousel position">
+          {ATTRACTION_PICKS.map((pick, idx) => (
+            <button
+              key={pick.slug}
+              type="button"
+              className={`v2-pick-dot ${idx === attrPickIndex ? 'active' : ''}`}
+              onClick={() => jumpToAttrPick(idx)}
+              aria-label={`Show ${pick.name}`}
+              aria-current={idx === attrPickIndex ? 'true' : undefined}
+            />
+          ))}
         </div>
       </div>
 
@@ -500,7 +608,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
         <div className="v2-vibes-scroll">
           <div className="v2-vibe-card">
-            <div className="v2-vibe-bg" style={{ background: 'linear-gradient(135deg,#2d1b69,#11998e)' }}>🌿</div>
+            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">French Concession</div>
@@ -508,7 +616,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <div className="v2-vibe-bg" style={{ background: 'linear-gradient(135deg,#1a0508,#4a0e1a)' }}>🌃</div>
+            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">The Bund</div>
@@ -516,7 +624,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <div className="v2-vibe-bg" style={{ background: 'linear-gradient(135deg,#0d4f3c,#1a8c5a)' }}>🏮</div>
+            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">Xintiandi</div>
@@ -524,7 +632,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             </div>
           </div>
           <div className="v2-vibe-card">
-            <div className="v2-vibe-bg" style={{ background: 'linear-gradient(135deg,#1a1a2e,#16213e)' }}>🍜</div>
+            <img className="v2-vibe-bg-img" src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">People&apos;s Square</div>
