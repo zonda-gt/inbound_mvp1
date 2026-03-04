@@ -254,8 +254,6 @@ export default function RestaurantDetail({ data }: { data: any }) {
     vibeCards.length,
     Math.max(images.length - heroPhotoCount, 0),
   );
-  const dishPhotoStart = heroPhotoCount + vibePhotoCount;
-
   const footerPriceText = priceCny ? `¥${priceCny} / person` : 'Price varies';
 
   return (
@@ -626,7 +624,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
           const dishNameCn = asString(dish.dish_name_cn || dish.name_cn);
           const dishDesc = asString(dish.description);
           const dishPrice = asNumber(dish.price_cny);
-          const dishImage = asString(dish.image_url) || asString(images[dishPhotoStart + index]);
+          const dishImage = asString(dish.image_url || dish.image);
 
           return (
             <div className="dish-card" key={`dish-${index}-${dishNameEn}`}>
