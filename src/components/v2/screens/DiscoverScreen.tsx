@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, ViewTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { getTimeAwareMessage, searchPlaces, getQuickActions } from '../data/discover-data';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
 
 interface DiscoverScreenProps {
   onNavigate: (screen: string) => void;
+  isActive?: boolean;
 }
 
 // Grab a diverse mix of attraction slugs across collections for the "Only in Shanghai" scroll
@@ -33,7 +35,7 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
   );
 }
 
-export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
+export default function DiscoverScreen({ onNavigate, isActive: screenActive = true }: DiscoverScreenProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
 
@@ -108,7 +110,7 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
             </>
           ) : (
             featuredAttractions.map((a) => (
-              <AttractionCoverCard key={a.slug} attraction={a} />
+              <AttractionCoverCard key={a.slug} attraction={a} screenActive={screenActive} />
             ))
           )}
         </div>
@@ -127,7 +129,7 @@ export default function DiscoverScreen({ onNavigate }: DiscoverScreenProps) {
         </div>
         <div className="v2-sh-hscroll">
           {featuredRestaurants.length > 0 ? featuredRestaurants.map((r: any) => (
-            <FoodCard key={r.slug} slug={r.slug} image={r.image} name={r.name_en} hook={r.verdict} price={r.price_cny ? `¥${r.price_cny}/pp` : ''} rating={r.rating ? String(r.rating) : ''} cuisine={r.cuisine} />
+            <FoodCard key={r.slug} slug={r.slug} image={r.image} name={r.name_en} hook={r.verdict} price={r.price_cny ? `¥${r.price_cny}/pp` : ''} rating={r.rating ? String(r.rating) : ''} cuisine={r.cuisine} screenActive={screenActive} />
           )) : (
             <>
               <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
@@ -262,20 +264,23 @@ function shortHook(hook?: string): string {
 
 /* ─── Sub-components ─── */
 
-function AttractionCoverCard({ attraction }: { attraction: import('@/types/attraction').AttractionData }) {
+function AttractionCoverCard({ attraction, screenActive = true }: { attraction: import('@/types/attraction').AttractionData; screenActive?: boolean }) {
   const [saved, setSaved] = useState(false);
+  const router = useRouter();
   const img = attraction.images?.[0];
   return (
-    <a href={`/attractions/${attraction.slug}`} className="v2-sh-cover-card" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${attraction.slug}`)}>
       {img ? (
-        <SmoothImage key={`${attraction.slug}-${img}`} className="v2-sh-cover-img" src={img} alt={attraction.card_name || attraction.attraction_name_en} />
+        <ViewTransition name={screenActive ? `hero-attraction-${attraction.slug}` : undefined}>
+          <SmoothImage key={`${attraction.slug}-${img}`} className="v2-sh-cover-img" src={img} alt={attraction.card_name || attraction.attraction_name_en} />
+        </ViewTransition>
       ) : (
         <div className="v2-sh-cover-img" style={{ background: 'linear-gradient(135deg,#1a1a2d,#2d2d4a)' }} />
       )}
       <div className="v2-sh-cover-overlay" />
       <button
         className="v2-sh-food-fav"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved(!saved); }}
+        onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
         aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
       >
         <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -287,7 +292,7 @@ function AttractionCoverCard({ attraction }: { attraction: import('@/types/attra
         <div className="v2-sh-cover-name">{attraction.card_name || attraction.attraction_name_en}</div>
         <div className="v2-sh-cover-hook">{attraction.card_hook || shortHook(attraction.hook)}</div>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -318,21 +323,24 @@ function NeighbourhoodCard({ bg, name, desc, count }: { bg: string; name: string
   );
 }
 
-function FoodCard({ slug, image, name, price, rating, cuisine }: {
-  slug: string; image: string | null; name: string; hook: string; price: string; rating: string; cuisine: string;
+function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = true }: {
+  slug: string; image: string | null; name: string; hook: string; price: string; rating: string; cuisine: string; screenActive?: boolean;
 }) {
   const [saved, setSaved] = useState(false);
+  const router = useRouter();
   const card = (
     <div className="v2-sh-food-card">
       <div className="v2-sh-food-img-wrap">
         {image ? (
-          <SmoothImage className="v2-sh-food-img" src={image} alt={name} />
+          <ViewTransition name={screenActive && slug ? `hero-restaurant-${slug}` : undefined}>
+            <SmoothImage className="v2-sh-food-img" src={image} alt={name} />
+          </ViewTransition>
         ) : (
           <div className="v2-sh-food-img v2-sh-food-img-placeholder">🍽️</div>
         )}
         <button
           className="v2-sh-food-fav"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved(!saved); }}
+          onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
           aria-label="Save"
         >
           <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -353,7 +361,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine }: {
     </div>
   );
   if (!slug) return card;
-  return <a href={`/restaurants/${slug}`} style={{ textDecoration: 'none', color: 'inherit' }}>{card}</a>;
+  return <div style={{ cursor: 'pointer' }} onClick={() => router.push(`/restaurants/${slug}`)}>{card}</div>;
 }
 
 function PlanCard({ bg, tag, title, stops }: { bg: string; tag: string; title: string; stops: string[]; }) {

@@ -9,12 +9,16 @@ import NavigateScreen, { type NavigateDestination } from './screens/NavigateScre
 import PhotoScreen from './screens/PhotoScreen';
 import JournalScreen from './screens/JournalScreen';
 import ShanghaiAllScreen from './screens/ShanghaiAllScreen';
+import EatScreen from './screens/EatScreen';
+import EatCategoryScreen from './screens/EatCategoryScreen';
 import CollectionDetailScreen from './screens/CollectionDetailScreen';
+import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
 
 type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
-type Screen = NavTab | 'shanghai-all' | CollectionScreen;
+type EatCategoryScreenId = 'eat-chinese' | 'eat-asian' | 'eat-middle_eastern' | 'eat-western' | 'eat-bars';
+type Screen = NavTab | 'shanghai-all' | 'eat' | EatCategoryScreenId | CollectionScreen;
 
 const collectionScreenToTab: Record<string, NavTab> = {};
 COLLECTION_IDS.forEach((id) => { collectionScreenToTab[id] = 'discover'; });
@@ -26,6 +30,12 @@ const screenToTab: Record<string, NavTab> = {
   photo: 'photo',
   journal: 'journal',
   'shanghai-all': 'discover',
+  'eat': 'discover',
+  'eat-chinese': 'discover',
+  'eat-asian': 'discover',
+  'eat-middle_eastern': 'discover',
+  'eat-western': 'discover',
+  'eat-bars': 'discover',
   ...collectionScreenToTab,
 };
 
@@ -138,12 +148,12 @@ export default function Shell() {
     <div className="v2-shell">
       {/* Home */}
       <div className={`v2-screen v2-home ${isActive('home') ? 'active' : ''}`}>
-        <HomeScreen onNavigate={handleNavigate} />
+        <HomeScreen onNavigate={handleNavigate} isActive={isActive('home')} />
       </div>
 
       {/* Discover / Shanghai */}
       <div className={`v2-screen v2-discover ${isActive('discover') ? 'active' : ''}`}>
-        <DiscoverScreen onNavigate={handleNavigate} />
+        <DiscoverScreen onNavigate={handleNavigate} isActive={isActive('discover')} />
       </div>
 
       {/* Navigate */}
@@ -165,6 +175,18 @@ export default function Shell() {
       <div className={`v2-screen ${isActive('shanghai-all') ? 'active' : ''}`}>
         <ShanghaiAllScreen onNavigate={handleNavigate} />
       </div>
+
+      {/* Eat / Restaurant Picker */}
+      <div className={`v2-screen ${isActive('eat') ? 'active' : ''}`}>
+        {isActive('eat') && <EatScreen onNavigate={handleNavigate} />}
+      </div>
+
+      {/* Eat Category Detail */}
+      {(['eat-chinese', 'eat-asian', 'eat-middle_eastern', 'eat-western', 'eat-bars'] as const).map((id) => (
+        <div key={id} className={`v2-screen ${isActive(id) ? 'active' : ''}`}>
+          {isActive(id) && <EatCategoryScreen categoryId={id.replace('eat-', '') as EatCategory} onNavigate={handleNavigate} />}
+        </div>
+      ))}
 
       {/* Collection Detail — data-driven, renders whichever collection is active */}
       <div className={`v2-screen ${isCollectionScreen ? 'active' : ''}`}>

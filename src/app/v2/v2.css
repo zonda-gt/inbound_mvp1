@@ -2866,3 +2866,307 @@
   height:8px;background:#EEEBE7;
   margin:0;
 }
+
+/* ===== EAT SCREEN ===== */
+
+/* Header */
+.v2-eat-header{
+  display:flex;align-items:center;gap:12px;
+  padding:56px 20px 12px;
+  background:var(--surface);
+  position:sticky;top:0;z-index:10;
+}
+.v2-eat-back{
+  width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  background:none;border:none;cursor:pointer;
+  color:var(--text-1);padding:0;
+  border-radius:var(--r-full);
+  transition:background 0.15s ease;
+  flex-shrink:0;
+}
+.v2-eat-back:active{background:var(--surface-alt);}
+.v2-eat-header-text{flex:1;min-width:0;}
+.v2-eat-title{
+  font-family:'DM Sans',sans-serif;
+  font-size:26px;font-weight:800;letter-spacing:-0.03em;
+  color:var(--text-1);margin:0;line-height:1.15;
+}
+.v2-eat-subtitle{
+  font-size:13px;font-weight:400;color:var(--text-2);
+  margin:2px 0 0;
+}
+
+/* Mood chips */
+.v2-eat-moods{
+  padding:10px 0 4px;
+  background:var(--surface);
+  position:sticky;top:108px;z-index:9;
+}
+.v2-eat-moods-scroll{
+  display:flex;gap:8px;
+  overflow-x:auto;
+  padding:0 20px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.v2-eat-moods-scroll::-webkit-scrollbar{display:none;}
+.v2-eat-mood-chip{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 14px;
+  border-radius:var(--r-full);
+  border:1.5px solid var(--border-med);
+  background:var(--surface);
+  font-family:'DM Sans',sans-serif;
+  font-size:13px;font-weight:500;
+  color:var(--text-1);
+  white-space:nowrap;
+  cursor:pointer;
+  transition:all 0.18s ease;
+  flex-shrink:0;
+}
+.v2-eat-mood-chip:active{transform:scale(0.96);}
+.v2-eat-mood-chip.active{
+  background:var(--text-1);
+  color:var(--surface);
+  border-color:var(--text-1);
+}
+.v2-eat-mood-emoji{font-size:14px;line-height:1;}
+
+/* Category tabs */
+.v2-eat-tabs-wrap{
+  position:sticky;top:108px;z-index:8;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0;
+}
+.v2-eat-tabs{
+  display:flex;
+  overflow-x:auto;
+  scrollbar-width:none;
+  padding:0 16px;
+  -webkit-overflow-scrolling:touch;
+}
+.v2-eat-tabs::-webkit-scrollbar{display:none;}
+.v2-eat-tab{
+  display:flex;align-items:center;gap:5px;
+  padding:10px 14px;
+  font-family:'DM Sans',sans-serif;
+  font-size:14px;font-weight:600;
+  color:var(--text-3);
+  background:none;border:none;
+  border-bottom:2.5px solid transparent;
+  cursor:pointer;
+  white-space:nowrap;
+  transition:color 0.18s ease, border-color 0.18s ease;
+  flex-shrink:0;
+}
+.v2-eat-tab.active{
+  color:var(--text-1);
+  border-bottom-color:var(--red);
+}
+.v2-eat-tab-count{
+  font-size:11px;font-weight:500;
+  color:var(--text-3);
+  background:var(--surface-alt);
+  padding:1px 6px;
+  border-radius:var(--r-full);
+  line-height:1.4;
+}
+.v2-eat-tab.active .v2-eat-tab-count{
+  background:var(--red-bg);
+  color:var(--red);
+}
+
+/* Results meta */
+.v2-eat-results-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px 6px;
+  font-size:13px;font-weight:500;color:var(--text-2);
+}
+.v2-eat-clear-filters{
+  font-size:12px;font-weight:600;color:var(--red);
+  background:none;border:none;cursor:pointer;padding:0;
+}
+
+/* Card Grid */
+.v2-eat-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  padding:10px 20px 0;
+}
+
+/* Restaurant Card */
+.v2-eat-card{
+  display:flex;flex-direction:column;
+  cursor:pointer;
+  transition:transform 0.2s ease;
+  border-radius:var(--r-md);
+  overflow:hidden;
+  background:var(--surface);
+}
+.v2-eat-card:active{transform:scale(0.97);}
+.v2-eat-card-img-wrap{
+  position:relative;overflow:hidden;
+  border-radius:var(--r-md);
+  aspect-ratio:3/2;
+}
+.v2-eat-card-img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.v2-eat-card-img-placeholder{
+  background:#e8d8c8;display:flex;align-items:center;justify-content:center;
+  font-size:36px;width:100%;height:100%;
+}
+.v2-eat-card-fav{
+  position:absolute;top:8px;right:8px;
+  width:30px;height:30px;
+  background:none;border:none;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.18));
+  transition:transform 0.18s ease;
+  z-index:3;line-height:0;
+}
+.v2-eat-card-fav:active{transform:scale(1.2);}
+.v2-eat-card-cuisine-tag{
+  position:absolute;bottom:8px;left:8px;
+  font-size:10px;font-weight:600;letter-spacing:0.02em;
+  padding:3px 8px;
+  border-radius:var(--r-full);
+  background:rgba(0,0,0,0.55);
+  color:white;
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  line-height:1.3;
+  max-width:calc(100% - 48px);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.v2-eat-card-body{
+  padding:8px 2px 4px;
+}
+.v2-eat-card-name{
+  font-family:'DM Sans',sans-serif;
+  font-size:13.5px;font-weight:600;color:var(--text-1);
+  line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:1;
+  -webkit-box-orient:vertical;overflow:hidden;
+}
+.v2-eat-card-meta{
+  display:flex;align-items:center;gap:6px;
+  margin-top:3px;
+}
+.v2-eat-card-price{
+  font-size:12px;font-weight:500;color:var(--text-2);
+}
+.v2-eat-card-rating{
+  font-size:12px;font-weight:600;color:var(--text-1);
+}
+.v2-eat-card-rating::first-letter{color:var(--orange);}
+.v2-eat-card-hook{
+  font-size:11.5px;font-weight:400;color:var(--text-2);
+  line-height:1.35;margin-top:3px;
+  display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;
+}
+
+/* Card skeleton */
+.v2-eat-card-skel .v2-eat-card-img{
+  background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+  background-size:200% 100%;
+  animation:v2-skel-shimmer 1.5s ease-in-out infinite;
+}
+.v2-skel-line{
+  border-radius:6px;
+  background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);
+  background-size:200% 100%;
+  animation:v2-skel-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Empty state */
+.v2-eat-empty{
+  grid-column:1/-1;
+  display:flex;flex-direction:column;align-items:center;
+  padding:48px 20px;
+  text-align:center;
+}
+.v2-eat-empty-emoji{font-size:48px;margin-bottom:12px;}
+.v2-eat-empty-text{
+  font-size:14px;font-weight:500;color:var(--text-3);
+}
+
+/* ===== EAT CATEGORY DETAIL ===== */
+
+.v2-eatcat-list{
+  padding:8px 0 0;
+}
+
+/* Each restaurant row */
+.v2-eatcat-row{
+  padding:0 0 20px;
+  transition:transform 0.2s ease;
+}
+.v2-eatcat-row:active{transform:scale(0.99);}
+
+/* Horizontal photo scroll */
+.v2-eatcat-photos{
+  position:relative;
+  display:flex;gap:8px;
+  overflow-x:auto;
+  padding:0 20px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.v2-eatcat-photos::-webkit-scrollbar{display:none;}
+.v2-eatcat-photo-wrap{
+  flex-shrink:0;
+  width:180px;height:140px;
+  border-radius:12px;
+  overflow:hidden;
+  position:relative;
+}
+.v2-eatcat-photo{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.v2-eatcat-photo-placeholder{
+  background:#e8d8c8;display:flex;align-items:center;justify-content:center;
+  font-size:36px;width:100%;height:100%;
+}
+
+/* Fav button positioned on photo strip */
+.v2-eatcat-photos .v2-sh-food-fav{
+  position:absolute;top:10px;right:28px;
+}
+
+/* Info section below photos */
+.v2-eatcat-info{
+  padding:8px 20px 0;
+}
+.v2-eatcat-name-row{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+}
+.v2-eatcat-name{
+  font-family:'DM Sans',sans-serif;
+  font-size:16px;font-weight:700;color:var(--text-1);
+  line-height:1.25;
+  flex:1;min-width:0;
+}
+.v2-eatcat-rating{
+  font-size:14px;font-weight:600;color:var(--text-1);
+  white-space:nowrap;flex-shrink:0;
+}
+.v2-eatcat-rating::first-letter{color:var(--orange);}
+.v2-eatcat-meta{
+  margin-top:2px;
+  font-size:13px;font-weight:500;color:var(--text-2);
+}
+.v2-eatcat-cuisine{
+  font-size:12px;font-weight:500;color:#1a8c3a;
+  margin-top:2px;
+}
+.v2-eatcat-verdict{
+  font-size:12px;font-weight:400;color:var(--text-2);
+  line-height:1.35;margin-top:4px;
+  display:-webkit-box;-webkit-line-clamp:2;
+  -webkit-box-orient:vertical;overflow:hidden;
+}

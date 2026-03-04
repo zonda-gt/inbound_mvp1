@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, ViewTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
 
@@ -620,13 +620,25 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
             <div key={i} onClick={() => { if (images[i]) { setViewerIndex(i); setGalleryMode('viewer'); } }}
               style={{ backgroundColor: '#e8e8e8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#b0b0b0', fontSize: 24, cursor: images[i] ? 'pointer' : 'default', position: 'relative', borderRadius: r, overflow: 'hidden' }}>
               {images[i] && (
-                <DetailSmoothImage
-                  src={images[i]}
-                  alt=""
-                  loading={i < 2 ? 'eager' : 'lazy'}
-                  wrapperStyle={{ width: '100%', height: '100%' }}
-                  imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                i === 0 && !layoutId ? (
+                  <ViewTransition name={`hero-attraction-${data.slug}`}>
+                    <DetailSmoothImage
+                      src={images[i]}
+                      alt=""
+                      loading="eager"
+                      wrapperStyle={{ width: '100%', height: '100%' }}
+                      imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </ViewTransition>
+                ) : (
+                  <DetailSmoothImage
+                    src={images[i]}
+                    alt=""
+                    loading={i < 2 ? 'eager' : 'lazy'}
+                    wrapperStyle={{ width: '100%', height: '100%' }}
+                    imgStyle={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                )
               )}
               {!images[i] && '\uD83D\uDCF7'}
               {i === 3 && images.length > 4 && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -263,7 +263,30 @@ export default function RestaurantDetail({ data }: { data: any }) {
   const city = asString(identity.city || data.city);
 
   const openingTime = asString(practical.opening_time || practical.hours);
-  const openLabel = asString(practical.open_label || practical.open_status, openingTime ? 'Open now' : '');
+  const openLabel = (() => {
+    const explicit = asString(practical.open_label || practical.open_status);
+    if (explicit) return explicit;
+    if (!openingTime) return '';
+    // Parse time ranges like "18:00-02:00" or "11:30-13:30, 17:30-21:30"
+    const ranges = openingTime.split(/[,，]/).map((s) => s.trim());
+    const now = new Date();
+    const shanghai = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    const nowMin = shanghai.getHours() * 60 + shanghai.getMinutes();
+    let parsed = false;
+    for (const range of ranges) {
+      const m = range.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+      if (!m) continue;
+      parsed = true;
+      const openMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      const closeMin = parseInt(m[3], 10) * 60 + parseInt(m[4], 10);
+      // Handle overnight ranges (e.g. 18:00-02:00)
+      const isOpen = closeMin > openMin
+        ? nowMin >= openMin && nowMin < closeMin
+        : nowMin >= openMin || nowMin < closeMin;
+      if (isOpen) return 'Open now';
+    }
+    return parsed ? 'Closed' : '';
+  })();
 
   const verdict = asString(card.hook || card.verdict || data.foreigner_hook);
   const priceCny = asNumber(price.price_per_person_cny);
@@ -478,7 +501,9 @@ export default function RestaurantDetail({ data }: { data: any }) {
         .header-cn{font-family:'Noto Sans SC',sans-serif;font-size:14px;color:var(--gray-500);font-weight:400;margin-top:2px}
         .header-open{margin-top:8px;font-size:14px;color:var(--gray-600);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
         .open-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block}
+        .open-dot.closed{background:#e53e3e}
         .open-label{color:var(--green-dark);font-weight:600}
+        .open-label.closed{color:#e53e3e}
 
         .quick-stats{display:flex;border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;margin-top:14px}
         .qs{flex:1;padding:14px 10px;text-align:center;border-right:1px solid var(--gray-200)}
@@ -645,13 +670,25 @@ export default function RestaurantDetail({ data }: { data: any }) {
             }}
           >
             {images[index] ? (
-              <SmoothImage
-                src={images[index]}
-                alt={`${nameEn} photo ${index + 1}`}
-                imgClassName="hero-img"
-                wrapperStyle={{ width: '100%', height: '100%' }}
-                loading={index === 0 ? 'eager' : 'lazy'}
-              />
+              index === 0 ? (
+                <ViewTransition name={`hero-restaurant-${data.slug}`}>
+                  <SmoothImage
+                    src={images[index]}
+                    alt={`${nameEn} photo ${index + 1}`}
+                    imgClassName="hero-img"
+                    wrapperStyle={{ width: '100%', height: '100%' }}
+                    loading="eager"
+                  />
+                </ViewTransition>
+              ) : (
+                <SmoothImage
+                  src={images[index]}
+                  alt={`${nameEn} photo ${index + 1}`}
+                  imgClassName="hero-img"
+                  wrapperStyle={{ width: '100%', height: '100%' }}
+                  loading="lazy"
+                />
+              )
             ) : (
               <div className="hero-ph">Photo {index + 1}</div>
             )}
@@ -688,8 +725,8 @@ export default function RestaurantDetail({ data }: { data: any }) {
 
           {openingTime ? (
             <div className="header-open">
-              <span className="open-dot" />
-              <span className="open-label">{openLabel || 'Open now'}</span>
+              <span className={`open-dot ${openLabel === 'Closed' ? 'closed' : ''}`} />
+              <span className={`open-label ${openLabel === 'Closed' ? 'closed' : ''}`}>{openLabel || 'Hours'}</span>
               <span>· {openingTime}</span>
             </div>
           ) : null}

@@ -1,6 +1,7 @@
 'use client';
 
-import { type TouchEvent, useRef, useState, useEffect, useCallback } from 'react';
+import { type TouchEvent, useRef, useState, useEffect, useCallback, ViewTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 
@@ -52,6 +53,7 @@ function cityEnglish(cn: string): string {
 
 interface HomeScreenProps {
   onNavigate: (screen: string) => void;
+  isActive?: boolean;
 }
 
 const TODAY_PICKS = [
@@ -226,7 +228,7 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
   );
 }
 
-export default function HomeScreen({ onNavigate }: HomeScreenProps) {
+export default function HomeScreen({ onNavigate, isActive: screenActive = true }: HomeScreenProps) {
   const [pickIndex, setPickIndex] = useState(0);
   const [savedBySlug, setSavedBySlug] = useState<Record<string, boolean>>({});
   const [savedAttrBySlug, setSavedAttrBySlug] = useState<Record<string, boolean>>({});
@@ -251,11 +253,12 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
   const cityName = cityEnglish(city);
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+  const router = useRouter();
   const openTodayPick = (slug: string) => {
-    window.location.assign(`/restaurants/${slug}`);
+    router.push(`/restaurants/${slug}`);
   };
   const openAttractionPick = (slug: string) => {
-    window.location.assign(`/attractions/${slug}`);
+    router.push(`/attractions/${slug}`);
   };
 
   const handlePickTouchStart = (e: TouchEvent<HTMLDivElement>) => {
@@ -386,7 +389,9 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               ].filter(Boolean) as string[];
               return (
                 <div key={pick.slug} className="v2-pick-slide" onClick={() => onPickCardClick(pick.slug)}>
-                  <SmoothImage src={pick.image} alt={pick.name} className="v2-pick-card-img" />
+                  <ViewTransition name={screenActive ? `hero-restaurant-${pick.slug}` : undefined}>
+                    <SmoothImage src={pick.image} alt={pick.name} className="v2-pick-card-img" />
+                  </ViewTransition>
                   <div className="v2-pick-overlay" />
                   <div className="v2-pick-badge">{pick.badge}</div>
                   <div className="v2-pick-body">
@@ -452,14 +457,13 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
             const title = found?.card_name || found?.attraction_name_en || item.title;
             const saved = !!savedOriginalBySlug[item.slug];
             return (
-              <a key={item.slug} href={`/attractions/${item.slug}`} className="v2-orig-card">
+              <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${item.slug}`)}>
               <div className="v2-orig-image-wrap">
                   <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" />
                 <button
                   type="button"
                   className="v2-sh-food-fav"
                   onClick={(e) => {
-                    e.preventDefault();
                     e.stopPropagation();
                     setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] }));
                   }}
@@ -473,7 +477,7 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
                 <div className="v2-orig-name">{found?.card_hook || title}</div>
               <div className="v2-orig-loc">{found?.card_type || found?.experience_type || item.subtitle}</div>
               <div className="v2-orig-meta">{item.meta}</div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -501,7 +505,9 @@ export default function HomeScreen({ onNavigate }: HomeScreenProps) {
               const name = dbData?.card_name || dbData?.attraction_name_en || pick.name;
               return (
                 <div key={pick.slug} className="v2-pick-slide" onClick={() => onAttrCardClick(pick.slug)}>
-                  <SmoothImage src={image} alt={name} className="v2-pick-card-img" />
+                  <ViewTransition name={screenActive ? `hero-attraction-${pick.slug}` : undefined}>
+                    <SmoothImage src={image} alt={name} className="v2-pick-card-img" />
+                  </ViewTransition>
                   <div className="v2-pick-overlay" />
                   <div className="v2-pick-badge">{pick.badge}</div>
                   <div className="v2-pick-body">
