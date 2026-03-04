@@ -362,6 +362,145 @@ function DetailSmoothImage({
 
 // —— Gallery Components (inline, matching restaurant page) ——
 
+// —— Swipeable Photo Viewer ——————————————————————————————————————
+
+function ViewerSwipe({
+  images,
+  viewerIndex,
+  setViewerIndex,
+  altPrefix,
+  onClose,
+  onSwipeDown,
+}: {
+  images: string[];
+  viewerIndex: number;
+  setViewerIndex: React.Dispatch<React.SetStateAction<number>>;
+  altPrefix: string;
+  onClose: () => void;
+  onSwipeDown: () => void;
+}) {
+  const touchRef = useRef<{ startX: number; startY: number; startTime: number } | null>(null);
+  const [dragX, setDragX] = useState(0);
+  const [dragY, setDragY] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+  const [swipeAxis, setSwipeAxis] = useState<'x' | 'y' | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchRef.current = { startX: t.clientX, startY: t.clientY, startTime: Date.now() };
+    setSwipeAxis(null);
+    setSwiping(true);
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!touchRef.current) return;
+    const t = e.touches[0];
+    const dx = t.clientX - touchRef.current.startX;
+    const dy = t.clientY - touchRef.current.startY;
+
+    // Lock axis after 8px of movement
+    if (!swipeAxis) {
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+        setSwipeAxis(Math.abs(dx) > Math.abs(dy) ? 'x' : 'y');
+      }
+      return;
+    }
+
+    if (swipeAxis === 'x') {
+      setDragX(dx);
+    } else {
+      // Only allow downward drag
+      setDragY(Math.max(0, dy));
+    }
+  }, [swipeAxis]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!touchRef.current) return;
+    const elapsed = Date.now() - touchRef.current.startTime;
+
+    if (swipeAxis === 'x') {
+      const threshold = Math.abs(dragX) > 60 || (Math.abs(dragX) > 20 && elapsed < 250);
+      if (threshold && dragX < 0) {
+        setViewerIndex((prev) => Math.min(prev + 1, images.length - 1));
+      } else if (threshold && dragX > 0) {
+        setViewerIndex((prev) => Math.max(prev - 1, 0));
+      }
+    } else if (swipeAxis === 'y' && dragY > 100) {
+      onSwipeDown();
+    }
+
+    setDragX(0);
+    setDragY(0);
+    setSwiping(false);
+    setSwipeAxis(null);
+    touchRef.current = null;
+  }, [swipeAxis, dragX, dragY, images.length, setViewerIndex, onSwipeDown]);
+
+  const opacity = swipeAxis === 'y' ? Math.max(0.3, 1 - dragY / 400) : 1;
+  const scale = swipeAxis === 'y' ? Math.max(0.85, 1 - dragY / 1200) : 1;
+  const translateX = swipeAxis === 'x' ? dragX : 0;
+  const translateY = swipeAxis === 'y' ? dragY : 0;
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 270,
+        background: `rgba(255,255,255,${opacity})`,
+        display: 'flex', flexDirection: 'column',
+        transition: swiping ? 'none' : 'background .25s ease',
+      }}
+    >
+      {/* Header */}
+      <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={onSwipeDown}
+          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          aria-label="Back to all photos"
+        >
+          ←
+        </button>
+        <div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>
+          {viewerIndex + 1} / {images.length}
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          aria-label="Close photo viewer"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Swipeable image area */}
+      <div
+        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'none' }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          style={{
+            transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
+            transition: swiping ? 'none' : 'transform .25s ease',
+            maxWidth: '100%', maxHeight: '100%',
+            padding: 16,
+          }}
+        >
+          <DetailSmoothImage
+            src={images[viewerIndex]}
+            alt={`${altPrefix} photo ${viewerIndex + 1}`}
+            loading="eager"
+            wrapperStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            imgStyle={{ maxWidth: '100%', maxHeight: '70vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16 }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // —— Main Component ——————————————————————————————————————————————
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -745,56 +884,14 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       ) : null}
 
       {galleryMode === 'viewer' && images[viewerIndex] ? (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 270, background: '#000', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <button
-              type="button"
-              onClick={() => setGalleryMode('grid')}
-              style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', cursor: 'pointer', fontSize: 16 }}
-              aria-label="Back to all photos"
-            >
-              ←
-            </button>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>
-              {viewerIndex + 1} / {images.length}
-            </div>
-            <button
-              type="button"
-              onClick={() => setGalleryMode('closed')}
-              style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', cursor: 'pointer', fontSize: 16 }}
-              aria-label="Close photo viewer"
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 8px 20px' }}>
-            <DetailSmoothImage
-              src={images[viewerIndex]}
-              alt={`${data.attraction_name_en} photo ${viewerIndex + 1}`}
-              loading="eager"
-              wrapperStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0d0d' }}
-              imgStyle={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', objectFit: 'contain' }}
-            />
-          </div>
-          {images.length > 1 ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 12px 16px' }}>
-              <button
-                type="button"
-                onClick={() => setViewerIndex((prev) => (prev - 1 + images.length) % images.length)}
-                style={{ minWidth: 72, height: 34, borderRadius: 99, border: '1px solid rgba(255,255,255,.35)', background: 'rgba(255,255,255,.1)', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewerIndex((prev) => (prev + 1) % images.length)}
-                style={{ minWidth: 72, height: 34, borderRadius: 99, border: '1px solid rgba(255,255,255,.35)', background: 'rgba(255,255,255,.1)', color: '#fff', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Next
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <ViewerSwipe
+          images={images}
+          viewerIndex={viewerIndex}
+          setViewerIndex={setViewerIndex}
+          altPrefix={data.attraction_name_en}
+          onClose={() => setGalleryMode('closed')}
+          onSwipeDown={() => setGalleryMode('grid')}
+        />
       ) : null}
 
       {/* ═══ SHOW-TO-STAFF OVERLAY ═══ */}

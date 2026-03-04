@@ -13,24 +13,53 @@ export async function getAllAttractionSlugs(): Promise<string[]> {
   return data.map((row) => row.slug);
 }
 
+const STORAGE_BASE = "https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images";
+
+/** List all image URLs from Supabase Storage for a given attraction slug */
+async function listStorageImages(
+  supabase: ReturnType<typeof getSupabaseServerClient>,
+  slug: string,
+): Promise<string[]> {
+  if (!supabase) return [];
+  try {
+    const { data: files, error } = await supabase.storage
+      .from("attraction-images")
+      .list(slug, { limit: 200, sortBy: { column: "name", order: "asc" } });
+
+    if (error || !files) return [];
+
+    return files
+      .filter((f) => /\.(jpe?g|png|webp|avif)$/i.test(f.name))
+      .map((f) => `${STORAGE_BASE}/${slug}/${f.name}`);
+  } catch {
+    return [];
+  }
+}
+
 export async function getAttractionBySlug(
   slug: string,
 ): Promise<AttractionData | null> {
   const supabase = getSupabaseServerClient();
   if (!supabase) return null;
 
-  const { data, error } = await supabase
-    .from("attractions")
-    .select("slug, profile, images")
-    .eq("slug", slug)
-    .single();
+  const [dbResult, storageImages] = await Promise.all([
+    supabase
+      .from("attractions")
+      .select("slug, profile, images")
+      .eq("slug", slug)
+      .single(),
+    listStorageImages(supabase, slug),
+  ]);
 
+  const { data, error } = dbResult;
   if (error || !data) return null;
 
   const profile = data.profile as Omit<AttractionData, "slug" | "images">;
   if (!profile.attraction_name_en || !profile.attraction_name_cn) return null;
 
-  return { ...profile, slug: data.slug, images: data.images || [] };
+  const images = storageImages.length > 0 ? storageImages : (data.images || []);
+
+  return { ...profile, slug: data.slug, images };
 }
 
 export async function getAllAttractions(): Promise<
