@@ -27,6 +27,7 @@ const VIBE_FILTERS: { id: string; emoji: string; label: string }[] = [
 
 export default function ShanghaiAllScreen({ onNavigate }: ShanghaiAllScreenProps) {
   const [activeVibe, setActiveVibe] = useState<string | null>(null);
+  const [compact, setCompact] = useState(false);
 
   function handleTopTabClick(id: string) {
     if (id === 'eat') onNavigate('eat');
@@ -38,9 +39,9 @@ export default function ShanghaiAllScreen({ onNavigate }: ShanghaiAllScreenProps
     : COLLECTION_LIST;
 
   return (
-    <div className={`v2-scroll-body${activeVibe ? ' v2-scroll-body--light' : ''}`}>
+    <div className={`v2-scroll-body${activeVibe ? ' v2-scroll-body--light' : ''}`} onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
       {/* Airbnb-style sticky top bar */}
-      <div className="v2-sha-sticky-bar">
+      <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
         <div className="v2-sha-pill">
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
@@ -62,28 +63,28 @@ export default function ShanghaiAllScreen({ onNavigate }: ShanghaiAllScreenProps
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Vibe filter chips */}
-      <div className={`v2-eat-moods v2-eat-moods--below-bar${activeVibe ? ' v2-eat-moods--light' : ''}`}>
-        <div className="v2-eat-moods-scroll">
-          <button
-            className={`v2-eat-mood-chip ${activeVibe === null ? 'active' : ''}`}
-            onClick={() => setActiveVibe(null)}
-          >
-            <span className="v2-eat-mood-emoji">✨</span>
-            All
-          </button>
-          {VIBE_FILTERS.map((v) => (
+        {/* Vibe filter chips — inside sticky bar so they always sit right below tabs */}
+        <div className={`v2-eat-moods${activeVibe ? ' v2-eat-moods--light' : ''}`} style={{ position: 'static' }}>
+          <div className="v2-eat-moods-scroll">
             <button
-              key={v.id}
-              className={`v2-eat-mood-chip ${activeVibe === v.id ? 'active' : ''}`}
-              onClick={() => setActiveVibe(v.id)}
+              className={`v2-eat-mood-chip ${activeVibe === null ? 'active' : ''}`}
+              onClick={() => setActiveVibe(null)}
             >
-              <span className="v2-eat-mood-emoji">{v.emoji}</span>
-              {v.label}
+              <span className="v2-eat-mood-emoji">✨</span>
+              All
             </button>
-          ))}
+            {VIBE_FILTERS.map((v) => (
+              <button
+                key={v.id}
+                className={`v2-eat-mood-chip ${activeVibe === v.id ? 'active' : ''}`}
+                onClick={() => setActiveVibe(v.id)}
+              >
+                <span className="v2-eat-mood-emoji">{v.emoji}</span>
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

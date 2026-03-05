@@ -45,6 +45,7 @@ interface EatCategoryScreenProps {
 export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'eat' }: EatCategoryScreenProps) {
   const [activeTab, setActiveTab] = useState<EatCategory>(categoryId);
   const [allRestaurants, setAllRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
+  const [compact, setCompact] = useState(false);
 
   // Enrich with Supabase data (images, slugs, verdicts)
   useEffect(() => {
@@ -67,9 +68,9 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
   }, [allRestaurants]);
 
   return (
-    <div className="v2-scroll-body">
+    <div className="v2-scroll-body" onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
       {/* Airbnb-style sticky top bar */}
-      <div className="v2-sha-sticky-bar">
+      <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
         <div className="v2-sha-pill">
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
@@ -99,25 +100,25 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Category Tabs — hidden on Drink screen */}
-      {topTab === 'eat' && (
-        <div className="v2-eat-tabs-wrap v2-eat-tabs-wrap--below-bar">
-          <div className="v2-eat-tabs">
-            {EAT_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`v2-eat-tab ${activeTab === tab.id ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                {tab.label}
-                <span className="v2-eat-tab-count">{counts[tab.id] || 0}</span>
-              </button>
-            ))}
+        {/* Category Tabs — inside sticky bar, hidden on Drink screen */}
+        {topTab === 'eat' && (
+          <div className="v2-eat-tabs-wrap" style={{ position: 'static' }}>
+            <div className="v2-eat-tabs">
+              {EAT_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`v2-eat-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  {tab.label}
+                  <span className="v2-eat-tab-count">{counts[tab.id] || 0}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Restaurant Rows */}
       <div className="v2-eatcat-list">
