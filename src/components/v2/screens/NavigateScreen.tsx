@@ -17,6 +17,7 @@ interface NavigateScreenProps {
   onNavigate: (screen: string) => void;
   destination?: NavigateDestination | null;
   onClearDestination?: () => void;
+  referrer?: string | null;
 }
 
 type TransportMode = "metro" | "taxi" | "walk";
@@ -34,6 +35,7 @@ export default function NavigateScreen({
   onNavigate,
   destination: externalDest,
   onClearDestination,
+  referrer,
 }: NavigateScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [localDest, setLocalDest] = useState<string | null>(null);
@@ -194,7 +196,7 @@ export default function NavigateScreen({
       {/* 1. Header */}
       <section className="v2-nav-hdr v2-fade-up v2-d1">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <button className="v2-nav-back-btn" onClick={handleClear}>←</button>
+          <button className="v2-nav-back-btn" onClick={() => { if (referrer) { window.location.href = referrer; } else { handleClear(); } }}>←</button>
           <h1 className="v2-nav-hdr-title" style={{ margin: 0 }}>Getting There</h1>
         </div>
 
@@ -527,12 +529,7 @@ function SearchMap({ gpsLocation, isDemo }: { gpsLocation: string; isDemo: boole
     });
 
     // Marker: blue dot with pulse (GPS) or dark dot with ring (demo)
-    const markerHtml = isDemo
-      ? `<div style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center">
-          <div style="position:absolute;inset:6px;background:rgba(26,26,26,0.08);border-radius:50%"></div>
-          <div style="width:14px;height:14px;background:#1A1A1A;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.25);position:relative;z-index:1"></div>
-        </div>`
-      : `<div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+    const markerHtml = `<div style="position:relative;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
           <div style="position:absolute;inset:0;background:rgba(66,133,244,0.1);border-radius:50%;animation:v2-gps-pulse 2s ease-out infinite"></div>
           <div style="position:absolute;inset:8px;background:rgba(66,133,244,0.08);border-radius:50%"></div>
           <div style="width:16px;height:16px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 6px rgba(66,133,244,.45);position:relative;z-index:1"></div>

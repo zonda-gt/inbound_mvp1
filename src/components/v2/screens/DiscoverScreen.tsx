@@ -44,44 +44,47 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
   useEffect(() => {
     fetch('/api/restaurants-v2')
       .then(r => r.json())
-      .then(d => setFeaturedRestaurants(d.restaurants || []))
+      .then(d => {
+        // Deduplicate by slug to prevent duplicate ViewTransition names
+        const seen = new Set<string>();
+        const unique = (d.restaurants || []).filter((r: any) => r.slug && !seen.has(r.slug) && seen.add(r.slug));
+        setFeaturedRestaurants(unique);
+      })
       .catch(() => {});
   }, []);
 
-  // Pick a hero attraction based on time of day
-  const heroAttraction = useMemo(() => {
-    if (featuredAttractions.length === 0) return null;
-    const withImages = featuredAttractions.filter((a) => a.images?.[0] && !a.slug.includes('disney'));
-    if (withImages.length === 0) return featuredAttractions[0];
-    const scored = withImages.map((a) => ({ a, score: getTimeScore(a) }));
-    scored.sort((x, y) => y.score - x.score);
-    // Pick randomly among the top-scored candidates
-    const topScore = scored[0].score;
-    const top = scored.filter((s) => s.score === topScore);
-    return top[Math.floor(Math.random() * top.length)].a;
-  }, [featuredAttractions]);
-
   return (
     <div className="v2-scroll-body">
-      {/* Masthead Hero */}
-      <div className="v2-sh-masthead">
-        {heroAttraction?.images?.[0] ? (
-          <SmoothImage key={`discover-hero-${heroAttraction.images[0]}`} className="v2-sh-masthead-img" src={heroAttraction.images[0]} alt="" />
-        ) : (
-          <div
-            className="v2-sh-masthead-img"
-            style={{ background: 'linear-gradient(135deg, #1a0508, #0a0a1a)' }}
-          />
-        )}
-        <div className="v2-sh-masthead-overlay" />
-        <div className="v2-sh-masthead-content">
-          <div className="v2-sh-hero-message">{heroAttraction?.card_hook ? `\u201C${heroAttraction.card_hook}\u201D` : ''}</div>
-          <div className="v2-sh-hero-search" onClick={() => setSearchOpen(true)}>
-            <span className="v2-sh-hero-search-icon">🔍</span>
-            <span className="v2-sh-hero-search-placeholder">
-              Noodles, bars, &ldquo;something weird&rdquo;&hellip;
-            </span>
-          </div>
+      {/* Sticky search + Eat / Experience / Drink tabs */}
+      <div className="v2-sha-sticky-bar">
+        <div className="v2-sha-pill" onClick={() => setSearchOpen(true)}>
+          <span className="v2-sha-pill-icon">🔍</span>
+          <span>Start your search</span>
+        </div>
+        <div className="v2-sha-tabs">
+          {[
+            { id: 'eat',        emoji: '🍜', label: 'Eat',        isNew: false },
+            { id: 'experience', emoji: '🎡', label: 'Experience', isNew: false },
+            { id: 'drink',      emoji: '🍸', label: 'Drink',      isNew: true  },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`v2-sha-tab ${tab.id === 'experience' ? 'active' : ''}`}
+              onClick={() => {
+                if (tab.id === 'eat') onNavigate('eat');
+                if (tab.id === 'experience') onNavigate('shanghai-all');
+                if (tab.id === 'drink') onNavigate('drink');
+              }}
+            >
+              <div className="v2-sha-tab-icon-wrap">
+                <span className="v2-sha-tab-icon">{tab.emoji}</span>
+                {tab.isNew && <span className="v2-sha-tab-new">NEW</span>}
+              </div>
+              <span className="v2-sha-tab-label">{tab.label}</span>
+              <div className="v2-sha-tab-bar" />
+            </button>
+          ))}
         </div>
       </div>
 

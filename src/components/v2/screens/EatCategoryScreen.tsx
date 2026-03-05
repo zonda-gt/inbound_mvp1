@@ -4,12 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
 
-const TABS: { id: EatCategory; label: string }[] = [
+const EAT_TABS: { id: EatCategory; label: string }[] = [
   { id: 'chinese', label: 'Chinese' },
   { id: 'asian', label: 'Asian' },
   { id: 'middle_eastern', label: 'Middle Eastern' },
   { id: 'western', label: 'Western' },
-  { id: 'bars', label: 'Bars' },
 ];
 
 /* ─── SmoothImage ─── */
@@ -40,9 +39,10 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
 interface EatCategoryScreenProps {
   categoryId: EatCategory;
   onNavigate: (screen: string) => void;
+  topTab?: 'eat' | 'drink';
 }
 
-export default function EatCategoryScreen({ categoryId, onNavigate }: EatCategoryScreenProps) {
+export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'eat' }: EatCategoryScreenProps) {
   const [activeTab, setActiveTab] = useState<EatCategory>(categoryId);
   const [allRestaurants, setAllRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
 
@@ -68,34 +68,56 @@ export default function EatCategoryScreen({ categoryId, onNavigate }: EatCategor
 
   return (
     <div className="v2-scroll-body">
-      {/* Header */}
-      <div className="v2-eat-header">
-        <button className="v2-eat-back" onClick={() => onNavigate('eat')}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <div className="v2-eat-header-text">
-          <h1 className="v2-eat-title">All Restaurants</h1>
-          <p className="v2-eat-subtitle">{filtered.length} places</p>
+      {/* Airbnb-style sticky top bar */}
+      <div className="v2-sha-sticky-bar">
+        <div className="v2-sha-pill">
+          <span className="v2-sha-pill-icon">🔍</span>
+          <span>Start your search</span>
         </div>
-      </div>
-
-      {/* Category Tabs */}
-      <div className="v2-eat-tabs-wrap">
-        <div className="v2-eat-tabs">
-          {TABS.map((tab) => (
+        <div className="v2-sha-tabs">
+          {[
+            { id: 'eat',        emoji: '🍜', label: 'Eat',       isNew: false },
+            { id: 'experience', emoji: '🎡', label: 'Experience', isNew: false },
+            { id: 'drink',      emoji: '🍸', label: 'Drink',      isNew: true  },
+          ].map((tab) => (
             <button
               key={tab.id}
-              className={`v2-eat-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              type="button"
+              className={`v2-sha-tab ${tab.id === topTab ? 'active' : ''}`}
+              onClick={() => {
+                if (tab.id === 'eat') onNavigate('eat');
+                if (tab.id === 'experience') onNavigate('shanghai-all');
+                if (tab.id === 'drink') onNavigate('drink');
+              }}
             >
-              {tab.label}
-              <span className="v2-eat-tab-count">{counts[tab.id] || 0}</span>
+              <div className="v2-sha-tab-icon-wrap">
+                <span className="v2-sha-tab-icon">{tab.emoji}</span>
+                {tab.isNew && <span className="v2-sha-tab-new">NEW</span>}
+              </div>
+              <span className="v2-sha-tab-label">{tab.label}</span>
+              <div className="v2-sha-tab-bar" />
             </button>
           ))}
         </div>
       </div>
+
+      {/* Category Tabs — hidden on Drink screen */}
+      {topTab === 'eat' && (
+        <div className="v2-eat-tabs-wrap v2-eat-tabs-wrap--below-bar">
+          <div className="v2-eat-tabs">
+            {EAT_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                className={`v2-eat-tab ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+                <span className="v2-eat-tab-count">{counts[tab.id] || 0}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Restaurant Rows */}
       <div className="v2-eatcat-list">
@@ -147,11 +169,11 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
           <div className="v2-eatcat-name">{r.name_en}</div>
           {r.rating != null && <div className="v2-eatcat-rating">★ {r.rating}</div>}
         </div>
+        {r.hook && <div className="v2-eatcat-hook">{r.hook}</div>}
         <div className="v2-eatcat-meta">
           {r.price_cny != null && <span>¥{r.price_cny}/pp</span>}
         </div>
         {r.cuisine_label && <div className="v2-eatcat-cuisine">{r.cuisine_label}</div>}
-        {r.verdict && <div className="v2-eatcat-verdict">{r.verdict}</div>}
       </div>
     </div>
   );

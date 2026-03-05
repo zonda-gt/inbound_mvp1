@@ -28,6 +28,7 @@ export type Message = {
   curatedRestaurantsData?: CuratedRestaurant[];
   attractionsData?: AttractionSummary[];
   dbMessageId?: string;
+  hideMap?: boolean;
 };
 
 /* Branded AI avatar — red compass circle */
@@ -122,6 +123,7 @@ export default function ChatMessage({
                     ? message.userLocation.split(",").map(Number) as [number, number]
                     : undefined
                 }
+                hideMap={message.hideMap}
               />
             )}
             {message.attractionsData && message.attractionsData.length > 0 && (

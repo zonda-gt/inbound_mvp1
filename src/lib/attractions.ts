@@ -57,7 +57,9 @@ export async function getAttractionBySlug(
   const profile = data.profile as Omit<AttractionData, "slug" | "images">;
   if (!profile.attraction_name_en || !profile.attraction_name_cn) return null;
 
-  const images = storageImages.length > 0 ? storageImages : (data.images || []);
+  // DB images array is the ordered source of truth (set via admin).
+  // Fall back to alphabetical storage listing only if DB array is empty.
+  const images = (data.images && data.images.length > 0) ? data.images : storageImages;
 
   return { ...profile, slug: data.slug, images };
 }

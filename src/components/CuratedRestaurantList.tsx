@@ -9,10 +9,12 @@ export default function CuratedRestaurantList({
   restaurants,
   onNavigate,
   userLocation,
+  hideMap,
 }: {
   restaurants: CuratedRestaurant[];
   onNavigate: (name: string, location: string, address: string) => void;
   userLocation?: [number, number]; // [lng, lat]
+  hideMap?: boolean;
 }) {
   const MAX_DISPLAY_RESULTS = 8;
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
@@ -76,7 +78,7 @@ export default function CuratedRestaurantList({
       </div>
 
       {/* Map with numbered markers */}
-      {markers.length > 0 && (
+      {!hideMap && markers.length > 0 && (
         <div className="hc-map-enter" style={{ animationDelay: `${display.length * 70}ms` }}>
           <MapView
             markers={markers}

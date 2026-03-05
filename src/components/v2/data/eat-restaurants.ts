@@ -10,6 +10,7 @@ export interface EatRestaurant {
   slug: string;
   image: string | null;
   images: string[];
+  hook?: string;
   verdict?: string;
   best_for?: string[];
 }
@@ -28,7 +29,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/930-private-kitchen/review_67_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/930-private-kitchen/review_54_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/930-private-kitchen/review_203_0.jpeg',
-    ] },
+    ],
+    hook: 'A milky pork broth so good they sell 200,000 bowls a year – from a kitchen above a wet market.' },
   { name_cn: '上海滩餐厅', name_en: 'Shanghai Tan', cuisine_label: 'Elevated Shanghai + Cantonese fine dining', price_cny: 580, rating: 4.9, category: 'chinese', slug: 'shanghai-tan-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shanghai-tan-restaurant/review_36_0.jpeg',
     images: [
@@ -40,7 +42,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shanghai-tan-restaurant/review_6_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shanghai-tan-restaurant/review_1_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shanghai-tan-restaurant/review_33_0.jpeg',
-    ] },
+    ],
+    hook: 'Duck carved tableside, skin dipped in sugar, Pudong skyline lit up behind your table.' },
   { name_cn: '元古雲境', name_en: 'Yuangu Yunjing', cuisine_label: 'Creative seasonal (Yunnan/Guizhou/Shanghai)', price_cny: 206, rating: 4.8, category: 'chinese', slug: 'yuan-gu-yun-jing',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-gu-yun-jing/review_45_0.jpeg',
     images: [
@@ -52,7 +55,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-gu-yun-jing/review_85_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-gu-yun-jing/review_62_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-gu-yun-jing/review_3_0.jpeg',
-    ] },
+    ],
+    hook: 'A zen garden hidden inside a heritage villa – desserts named after snowfall, solstice, and autumn dew.' },
   { name_cn: '卿庭成都鲜货火锅', name_en: 'Qingting Chengdu Hot Pot', cuisine_label: 'Sichuan hot pot with tea broth', price_cny: 156, rating: 4.5, category: 'chinese', slug: 'qingting-chengdu-fresh-hotpot',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingting-chengdu-fresh-hotpot/review_3_3.jpeg',
     images: [
@@ -64,7 +68,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingting-chengdu-fresh-hotpot/review_4_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingting-chengdu-fresh-hotpot/review_3_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingting-chengdu-fresh-hotpot/review_7_0.jpeg',
-    ] },
+    ],
+    hook: 'Sichuan hot pot in a teahouse – cook your own dinner while face-changing opera happens at your table.' },
   { name_cn: '吉品小鲜', name_en: 'Jhouse', cuisine_label: 'Shanghainese / Zhejiang seafood', price_cny: 212, rating: 4.8, category: 'chinese', slug: 'jhouse',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jhouse/review_1_3.jpeg',
     images: [
@@ -76,7 +81,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jhouse/review_5_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jhouse/review_6_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jhouse/review_213_0.jpeg',
-    ] },
+    ],
+    hook: 'Crispy fried dough sticks soaked in rich golden fish sauce – the Shanghainese pairing you didn\'t know you needed.' },
   { name_cn: '圆苑', name_en: 'Yuan Yuan', cuisine_label: 'Shanghai benbang', price_cny: 180, rating: 4.8, category: 'chinese', slug: 'yuan-yuan',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-yuan/review_108_0.jpeg',
     images: [
@@ -88,7 +94,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-yuan/review_130_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-yuan/review_148_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yuan-yuan/review_161_0.jpeg',
-    ] },
+    ],
+    hook: 'Sweet, glossy pork belly that melts on contact – the dish Shanghai\'s been obsessed with for 26 years.' },
   { name_cn: '天辣(陆家嘴中心店)', name_en: 'Tian La', cuisine_label: 'Sichuan / Chongqing', price_cny: 114, rating: 4.8, category: 'chinese', slug: 'tian-la',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/tian-la/review_100_0.jpeg',
     images: [
@@ -100,7 +107,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/tian-la/review_101_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/tian-la/review_2_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/tian-la/review_128_0.jpeg',
-    ] },
+    ],
+    hook: 'They drop a whole fish into fresh chili oil – then jar the leftover peppers as sauce you take home.' },
   { name_cn: '寻裕记·现炒浇头面(人民广场店)', name_en: 'Xun Yu Ji Noodles', cuisine_label: 'Shanghai noodles', price_cny: 38, rating: 4.4, category: 'chinese', slug: 'xun-yu-ji-wok-fried-topping-noodles',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xun-yu-ji-wok-fried-topping-noodles/review_107_0.jpeg',
     images: [
@@ -112,7 +120,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xun-yu-ji-wok-fried-topping-noodles/review_81_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xun-yu-ji-wok-fried-topping-noodles/review_164_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xun-yu-ji-wok-fried-topping-noodles/review_67_0.jpeg',
-    ] },
+    ],
+    hook: 'Your toppings get wok-fired in two-foot flames while you watch – ¥38 with free unlimited noodle refills.' },
   { name_cn: '海底捞火锅(新梅联合广场店)', name_en: 'Haidilao Hot Pot', cuisine_label: 'Sichuan hot pot', price_cny: 128, rating: 4.4, category: 'chinese', slug: 'haidilao-hot-pot',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/haidilao-hot-pot/review_108_0.jpeg',
     images: [
@@ -124,7 +133,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/haidilao-hot-pot/review_6_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/haidilao-hot-pot/review_150_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/haidilao-hot-pot/review_1_5.jpeg',
-    ] },
+    ],
+    hook: 'Free manicures, birthday flash mobs, noodle acrobatics – then you cook your own meal in bubbling broth at the table.' },
   { name_cn: '清真·穆斯林玛丽亚餐厅', name_en: 'Muslim Maria Restaurant', cuisine_label: 'Xinjiang / Uyghur Halal', price_cny: 77, rating: 3.9, category: 'chinese', slug: 'maria-muslim-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maria-muslim-restaurant/review_137_0.jpeg',
     images: [
@@ -136,7 +146,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maria-muslim-restaurant/review_119_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maria-muslim-restaurant/review_43_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maria-muslim-restaurant/review_55_0.jpeg',
-    ] },
+    ],
+    hook: 'Lamb on red willow branches over charcoal – Xinjiang locals pack this place, and they\'re still grilling at 3am.' },
   { name_cn: '清真遇见宁夏盐池滩羊(浦东大道店)', name_en: 'Ningxia Halal Lamb', cuisine_label: 'Ningxia Halal', price_cny: 114, rating: 4.4, category: 'chinese', slug: 'halal-ningxia-yanchi-tan-yang',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/halal-ningxia-yanchi-tan-yang/review_1_0.jpeg',
     images: [
@@ -148,7 +159,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/halal-ningxia-yanchi-tan-yang/review_2_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/halal-ningxia-yanchi-tan-yang/review_4_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/halal-ningxia-yanchi-tan-yang/review_58_1.jpeg',
-    ] },
+    ],
+    hook: 'Pull tender lamb off the bone with your hands – flown 1,800km from China\'s desert salt flats.' },
   { name_cn: '焱格格云南雪菌老火锅(常德路店)', name_en: 'Yan Gege Yunnan Hot Pot', cuisine_label: 'Yunnan mushroom hot pot', price_cny: 120, rating: 4.8, category: 'chinese', slug: 'yangege-yunnan-mushroom-hot-pot',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yangege-yunnan-mushroom-hot-pot/review_9_1.jpeg',
     images: [
@@ -160,7 +172,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yangege-yunnan-mushroom-hot-pot/review_188_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yangege-yunnan-mushroom-hot-pot/review_103_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/yangege-yunnan-mushroom-hot-pot/review_1_0.jpeg',
-    ] },
+    ],
+    hook: 'Yunnan wild mushrooms simmered into pure umami – completely vegan, and even carnivores leave converted.' },
   { name_cn: '玫瑰厅上海菜', name_en: 'Rose Hall Shanghai', cuisine_label: 'Shanghai benbang', price_cny: 216, rating: 4.7, category: 'chinese', slug: 'rose-hall-shanghainese',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/rose-hall-shanghainese/review_9_0.jpeg',
     images: [
@@ -172,7 +185,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/rose-hall-shanghainese/review_6_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/rose-hall-shanghainese/review_8_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/rose-hall-shanghainese/review_47_0.jpeg',
-    ] },
+    ],
+    hook: 'You\'re eating in a shipping tycoon\'s actual mansion – and the crispy beef will ruin all other beef for you.' },
   { name_cn: '福和面馆', name_en: 'Fu He Noodle House', cuisine_label: 'Shanghai noodles', price_cny: 36, rating: 4.2, category: 'chinese', slug: 'fuhe-noodle-house',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fuhe-noodle-house/review_2_1.jpeg',
     images: [
@@ -184,7 +198,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fuhe-noodle-house/review_8_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fuhe-noodle-house/review_41_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fuhe-noodle-house/review_4_3.jpeg',
-    ] },
+    ],
+    hook: 'Hidden behind a supermarket – ¥36 wok-fried noodles with liver so silky you\'ll rethink everything about offal.' },
   { name_cn: '老吉士', name_en: 'Old Jesse', cuisine_label: 'Traditional Shanghainese', price_cny: 164, rating: 4.5, category: 'chinese', slug: 'jesse',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jesse/review_199_0.jpeg',
     images: [
@@ -196,7 +211,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jesse/review_123_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jesse/review_90_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/jesse/review_3_4.jpeg',
-    ] },
+    ],
+    hook: 'Every table orders the same glistening pork belly – caramelized with Shaoxing wine, gone in minutes.' },
   { name_cn: '新雅茶室(丰盛里店)', name_en: 'Xinya Cantonese Tea Room', cuisine_label: 'Cantonese / Dim Sum', price_cny: 136, rating: 4.6, category: 'chinese', slug: 'xinya-tea-house',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xinya-tea-house/review_187_0.jpeg',
     images: [
@@ -208,7 +224,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xinya-tea-house/review_45_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xinya-tea-house/review_57_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xinya-tea-house/review_1_2.jpeg',
-    ] },
+    ],
+    hook: 'The pigeon skin shatters like glass on first bite – a century-old tea house full of Shanghai grandparents.' },
   { name_cn: '蜀谭记·盐帮川菜', name_en: 'Shu Tan Ji', cuisine_label: 'Zigong salt merchant Sichuan', price_cny: 99, rating: 4.8, category: 'chinese', slug: 'shu-tan-ji-zigong-salt-cuisine',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shu-tan-ji-zigong-salt-cuisine/review_96_0.jpeg',
     images: [
@@ -220,7 +237,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shu-tan-ji-zigong-salt-cuisine/review_101_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shu-tan-ji-zigong-salt-cuisine/review_47_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shu-tan-ji-zigong-salt-cuisine/review_3_2.jpeg',
-    ] },
+    ],
+    hook: 'Sichuan fish served in a basin bigger than your face – hot oil poured over a mountain of chilies at your table.' },
   { name_cn: '贯贯吉·清真餐厅', name_en: 'Guan Guan Ji Halal', cuisine_label: 'NW Chinese / Halal (Xinjiang & Lanzhou)', price_cny: 115, rating: 4.7, category: 'chinese', slug: 'guanguanji-halal-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/guanguanji-halal-restaurant/review_141_0.jpeg',
     images: [
@@ -232,7 +250,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/guanguanji-halal-restaurant/review_9_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/guanguanji-halal-restaurant/review_86_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/guanguanji-halal-restaurant/review_194_0.jpeg',
-    ] },
+    ],
+    hook: 'Lamb flown in from western China every morning. You tear it apart with your hands. ¥68.' },
   { name_cn: '那时新疆·乌孙', name_en: 'Nashi Xinjiang', cuisine_label: 'Xinjiang', price_cny: 92, rating: 4.4, category: 'chinese', slug: 'once-upon-xinjiang-wusun',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/once-upon-xinjiang-wusun/review_0_0.jpeg',
     images: [
@@ -244,7 +263,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/once-upon-xinjiang-wusun/review_1_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/once-upon-xinjiang-wusun/review_3_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/once-upon-xinjiang-wusun/review_5_0.jpeg',
-    ] },
+    ],
+    hook: 'Michelin-recommended three years running – and you\'re eating Silk Road lamb in a mall for $13.' },
   { name_cn: '馋三尺蟹粉小笼(人民广场店)', name_en: 'Chan San Chi Xiaolongbao', cuisine_label: 'Shanghai snacks / dim sum', price_cny: 52, rating: 4.5, category: 'chinese', slug: 'chan-san-chi-crab-xiaolongbao',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chan-san-chi-crab-xiaolongbao/review_110_0.jpeg',
     images: [
@@ -256,7 +276,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chan-san-chi-crab-xiaolongbao/review_133_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chan-san-chi-crab-xiaolongbao/review_128_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chan-san-chi-crab-xiaolongbao/review_158_0.jpeg',
-    ] },
+    ],
+    hook: 'Bite, slurp golden crab broth, repeat – ¥40 soup dumplings steps from Nanjing Road.' },
   { name_cn: '龙华素斋(龙华路店)', name_en: 'Longhua Temple Vegetarian', cuisine_label: 'Buddhist vegetarian', price_cny: 28, rating: 4.9, category: 'chinese', slug: 'longhua-temple-vegetarian-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/longhua-temple-vegetarian-restaurant/review_188_0.jpeg',
     images: [
@@ -268,7 +289,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/longhua-temple-vegetarian-restaurant/review_149_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/longhua-temple-vegetarian-restaurant/review_197_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/longhua-temple-vegetarian-restaurant/review_129_0.jpeg',
-    ] },
+    ],
+    hook: '¥15 noodles in a 1,700-year-old temple – eat first, pay later, honor system.' },
   { name_cn: '无味舒食(思南公馆店)', name_en: 'Wu Wei Shu Shi', cuisine_label: 'Seasonal vegan tasting menu', price_cny: 440, rating: 4.9, category: 'chinese', slug: 'wuwei-shushi',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/wuwei-shushi/review_120_0.jpeg',
     images: [
@@ -280,7 +302,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/wuwei-shushi/review_6_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/wuwei-shushi/review_136_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/wuwei-shushi/review_1_1.jpeg',
-    ] },
+    ],
+    hook: 'Vegan tasting menu in a 1920s mansion – Yunnan mushrooms flown in daily, and they encore your favorite course free.' },
   { name_cn: '茹 Pure Vegan', name_en: 'Ru Pure Vegan', cuisine_label: 'Upscale vegan / plant-based', price_cny: 152, rating: 4.8, category: 'chinese', slug: 'ru-pure-vegan',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/ru-pure-vegan/review_41_0.jpeg',
     images: [
@@ -292,7 +315,8 @@ const CHINESE: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/ru-pure-vegan/review_3_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/ru-pure-vegan/review_1_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/ru-pure-vegan/review_1_3.jpeg',
-    ] },
+    ],
+    hook: 'Vegan mushroom pizza with nut cheese on a rooftop – Pudong skyline behind every bite.' },
 ];
 
 /* ─── Asian Non-Chinese (8) ─── */
@@ -309,7 +333,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/belloco/review_72_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/belloco/review_3_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/belloco/review_5_2.jpeg',
-    ] },
+    ],
+    hook: 'Korean place inside a Japanese department store – the chili-cream prawn pasta is why everyone\'s here.' },
   { name_cn: 'Maki House寿司 (华润时代广场店)', name_en: 'Maki House', cuisine_label: 'Japanese sushi & sashimi', price_cny: 129, rating: 4.7, category: 'asian', slug: 'maki-house-sushi',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maki-house-sushi/review_79_0.jpeg',
     images: [
@@ -321,7 +346,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maki-house-sushi/review_2_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maki-house-sushi/review_33_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/maki-house-sushi/review_2_1.jpeg',
-    ] },
+    ],
+    hook: 'Thick-cut foie gras sushi for ¥18 a piece – every table orders it, you will too.' },
   { name_cn: '大江户日本料理', name_en: 'Edo Japanese', cuisine_label: 'Japanese omakase buffet', price_cny: 270, rating: 4.7, category: 'asian', slug: 'edo-japanese-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/edo-japanese-restaurant/review_101_0.jpeg',
     images: [
@@ -333,7 +359,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/edo-japanese-restaurant/review_141_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/edo-japanese-restaurant/review_118_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/edo-japanese-restaurant/review_130_0.jpeg',
-    ] },
+    ],
+    hook: 'Shanghai\'s long-running Japanese all-you-can-eat: sea urchin tartare, sashimi, foie gras, and hot dishes in one two-hour feast.' },
   { name_cn: '鮨匠·割烹料理(金陵东路店)', name_en: 'Sushi Takumi Kappo', cuisine_label: 'Japanese omakase / kappo', price_cny: null, rating: null, category: 'asian', slug: 'sushisho-kappo-cuisine',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sushisho-kappo-cuisine/review_1_5.jpeg',
     images: [
@@ -345,7 +372,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sushisho-kappo-cuisine/review_35_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sushisho-kappo-cuisine/review_51_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sushisho-kappo-cuisine/review_6_1.jpeg',
-    ] },
+    ],
+    hook: 'Live king crab five ways at an omakase counter – Pudong skyline lights up behind you.' },
   { name_cn: '清晨家首尔烤肉店(陆家嘴中心店)', name_en: 'Morning Seoul BBQ', cuisine_label: 'Korean BBQ', price_cny: 255, rating: 4.9, category: 'asian', slug: 'cheongchun-house-korean-bbq',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheongchun-house-korean-bbq/review_183_0.jpeg',
     images: [
@@ -357,7 +385,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheongchun-house-korean-bbq/review_147_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheongchun-house-korean-bbq/review_1_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheongchun-house-korean-bbq/review_121_0.jpeg',
-    ] },
+    ],
+    hook: 'They grill your wagyu on a hidden rooftop – Lujiazui skyline glowing through floor-to-ceiling glass.' },
   { name_cn: '青鹤谷(浦东店)', name_en: 'Qinghegu Korean BBQ', cuisine_label: 'Korean BBQ', price_cny: 157, rating: 4.7, category: 'asian', slug: 'cheonghakgol-korean-bbq',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheonghakgol-korean-bbq/review_18_0.jpeg',
     images: [
@@ -369,7 +398,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheonghakgol-korean-bbq/review_9_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheonghakgol-korean-bbq/review_34_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/cheonghakgol-korean-bbq/review_12_0.jpeg',
-    ] },
+    ],
+    hook: 'Staff grills every cut for you over real charcoal – the clientele is 80% Korean, and so is the food.' },
   { name_cn: '四面泰', name_en: 'Si Mian Thai', cuisine_label: 'Thai hot pot', price_cny: 156, rating: 4.8, category: 'asian', slug: 'simiantai',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/simiantai/review_159_0.jpeg',
     images: [
@@ -381,7 +411,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/simiantai/review_126_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/simiantai/review_3_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/simiantai/review_216_0.jpeg',
-    ] },
+    ],
+    hook: 'Tom yum broth you\'ll drink by the bowl – then live shrimp hits your table, still jumping.' },
   { name_cn: '庆春朴门(新天地东台里店)', name_en: 'Qingchun Pumen', cuisine_label: 'Vegan Chinese + SE Asian', price_cny: 100, rating: 4.8, category: 'asian', slug: 'qingchun-pumen',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingchun-pumen/review_105_0.jpeg',
     images: [
@@ -393,7 +424,8 @@ const ASIAN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingchun-pumen/review_9_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingchun-pumen/review_1_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/qingchun-pumen/review_1_4.jpeg',
-    ] },
+    ],
+    hook: 'Not a gram of meat in the building – and a devoted carnivore ate three bowls of the truffle fried rice.' },
 ];
 
 /* ─── Middle Eastern (6) ─── */
@@ -410,7 +442,8 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/eli-falafel-lebanese-mediterranean/review_27_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/eli-falafel-lebanese-mediterranean/review_26_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/eli-falafel-lebanese-mediterranean/review_9_0.jpeg',
-    ] },
+    ],
+    hook: 'Only Lebanese-owned place in Shanghai – garden terrace, belly dancers, shisha, and hummus the expat crowd swears by.' },
   { name_cn: 'SULTAN 土耳其餐厅 (静安店)', name_en: 'Sultan Turkish', cuisine_label: 'Turkish', price_cny: 163, rating: 3.9, category: 'middle_eastern', slug: 'sultan-turkish-restaurant',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sultan-turkish-restaurant/review_222_0.jpeg',
     images: [
@@ -422,7 +455,8 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sultan-turkish-restaurant/review_65_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sultan-turkish-restaurant/review_1_5.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/sultan-turkish-restaurant/review_140_0.jpeg',
-    ] },
+    ],
+    hook: 'Terrace full of Middle Eastern expats, Turkish chefs on the grill, live drumming after dark – kebabs are legit.' },
   { name_cn: 'MESS Gallery Restaurant & Bar', name_en: 'MESS Gallery', cuisine_label: 'Middle Eastern / Mediterranean fusion', price_cny: 295, rating: 4.7, category: 'middle_eastern', slug: 'mess-gallery-restaurant-bar',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/mess-gallery-restaurant-bar/review_9_1.jpeg',
     images: [
@@ -434,7 +468,8 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/mess-gallery-restaurant-bar/review_1_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/mess-gallery-restaurant-bar/review_0_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/mess-gallery-restaurant-bar/review_2_3.jpeg',
-    ] },
+    ],
+    hook: 'Eat inside a coal-factory art gallery on the Huangpu – Israeli chef, global fusion, million-dollar paintings downstairs.' },
   { name_cn: 'Shishka Garden', name_en: 'Shishka Garden', cuisine_label: 'Russian shisha + Middle Eastern', price_cny: 202, rating: 4.7, category: 'middle_eastern', slug: 'shishka-garden',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shishka-garden/review_5_4.jpeg',
     images: [
@@ -446,7 +481,8 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shishka-garden/review_1_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shishka-garden/review_6_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/shishka-garden/review_13_3.jpeg',
-    ] },
+    ],
+    hook: 'Fourth-floor rooftop garden you\'d never find alone – shisha smoke, skyline views, open till 3am.' },
   { name_cn: '克比叔叔印度餐厅', name_en: 'Kebabs on the Grille', cuisine_label: 'North Indian', price_cny: 35, rating: 4.1, category: 'middle_eastern', slug: 'kebabs-on-the-grille',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/kebabs-on-the-grille/review_245_0.jpeg',
     images: [
@@ -458,7 +494,8 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/kebabs-on-the-grille/review_13_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/kebabs-on-the-grille/review_13_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/kebabs-on-the-grille/review_7_0.jpeg',
-    ] },
+    ],
+    hook: 'Indian guys, English spoken, Bollywood on TV – butter chicken this legit costs 4x more back home.' },
   { name_cn: '阿萨中东料理·清真(上海五角场店)', name_en: 'Asa Middle Eastern', cuisine_label: 'Middle Eastern / Halal', price_cny: 110, rating: 4.4, category: 'middle_eastern', slug: 'asa-middle-eastern-cuisine',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/asa-middle-eastern-cuisine/review_222_0.jpeg',
     images: [
@@ -470,24 +507,13 @@ const MIDDLE_EASTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/asa-middle-eastern-cuisine/review_211_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/asa-middle-eastern-cuisine/review_1_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/asa-middle-eastern-cuisine/review_1_3.jpeg',
-    ] },
+    ],
+    hook: 'Sealed pot of camel meat set on fire at your table, cracked open — tender, spiced, unforgettable.' },
 ];
 
-/* ─── Western (8) ─── */
+/* ─── Western (7) ─── */
 
 const WESTERN: EatRestaurant[] = [
-  { name_cn: 'COA', name_en: 'COA', cuisine_label: 'Mexican tequila/mezcal bar', price_cny: 200, rating: 4.0, category: 'western', slug: 'coa',
-    image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_1.jpeg',
-    images: [
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_1.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_2_4.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_12_3.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_3.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_1_4.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_6_0.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_4_3.jpeg',
-      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_2_5.jpeg',
-    ] },
   { name_cn: 'COMMUNE幻师', name_en: 'Commune', cuisine_label: 'Western fusion bistro-bar', price_cny: 159, rating: 4.7, category: 'western', slug: 'commune',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/commune/review_164_0.jpeg',
     images: [
@@ -499,7 +525,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/commune/review_2_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/commune/review_110_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/commune/review_182_0.jpeg',
-    ] },
+    ],
+    hook: '$8 pizza lunch beneath Shanghai\'s three tallest buildings – stay for the ¥98 all-you-can-drink at sundown.' },
   { name_cn: 'Fling福临·Bar·Bistro', name_en: 'Fling Bistro', cuisine_label: 'Western bistro + cocktails', price_cny: 161, rating: 4.6, category: 'western', slug: 'fling-bar-bistro',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fling-bar-bistro/review_2_1.jpeg',
     images: [
@@ -511,7 +538,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fling-bar-bistro/review_4_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fling-bar-bistro/review_5_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/fling-bar-bistro/review_3_2.jpeg',
-    ] },
+    ],
+    hook: 'Courtyard bar on Yongjia Road where cocktails, shisha, and loaded fries carry your whole night in one stop.' },
   { name_cn: 'Texas Roadhouse', name_en: 'Texas Roadhouse', cuisine_label: 'American steakhouse / Texas BBQ', price_cny: 200, rating: 4.8, category: 'western', slug: 'texas-roadhouse',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/texas-roadhouse/review_113_0.jpeg',
     images: [
@@ -523,7 +551,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/texas-roadhouse/review_1_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/texas-roadhouse/review_6_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/texas-roadhouse/review_1_5.jpeg',
-    ] },
+    ],
+    hook: 'China\'s only Texas Roadhouse. Same warm rolls, cinnamon butter, peanuts at every table – staff still dance between courses.' },
   { name_cn: '夏朵花园', name_en: 'Chateau Garden', cuisine_label: 'European Continental (French-Italian)', price_cny: 220, rating: 4.8, category: 'western', slug: 'chateau-garden',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chateau-garden/review_119_0.jpeg',
     images: [
@@ -535,7 +564,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chateau-garden/review_101_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chateau-garden/review_62_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/chateau-garden/review_57_0.jpeg',
-    ] },
+    ],
+    hook: 'Century-old villa hidden on a plane tree lane – the soufflé takes 30 minutes and earns every one.' },
   { name_cn: '宝灵蟹The Boiling Crab海鲜餐酒吧', name_en: 'The Boiling Crab', cuisine_label: 'American Cajun seafood', price_cny: 158, rating: 4.6, category: 'western', slug: 'the-boiling-crab',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/the-boiling-crab/review_1_1.jpeg',
     images: [
@@ -547,7 +577,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/the-boiling-crab/review_176_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/the-boiling-crab/review_2_5.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/the-boiling-crab/review_6_0.jpeg',
-    ] },
+    ],
+    hook: 'The messy LA seafood chain – Cajun butter, bibs on, crab and shrimp dumped straight on your table.' },
   { name_cn: '拉巴洛·Labarra', name_en: 'Labarra', cuisine_label: 'Mediterranean / Spanish tapas', price_cny: 219, rating: 4.6, category: 'western', slug: 'labarra',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/labarra/review_8_0.jpeg',
     images: [
@@ -559,7 +590,8 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/labarra/review_1_5.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/labarra/review_2_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/labarra/review_176_0.jpeg',
-    ] },
+    ],
+    hook: 'Hidden alley villa – Mediterranean charcoal grill downstairs, house-music bar up the spiral staircase.' },
   { name_cn: '拉蒂娜·巴西牛排馆', name_en: 'Latina Brazilian Steakhouse', cuisine_label: 'Brazilian churrascaria', price_cny: 291, rating: 4.8, category: 'western', slug: 'latina-brazilian-steakhouse',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/latina-brazilian-steakhouse/review_1_5.jpeg',
     images: [
@@ -571,12 +603,26 @@ const WESTERN: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/latina-brazilian-steakhouse/review_43_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/latina-brazilian-steakhouse/review_9_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/latina-brazilian-steakhouse/review_79_0.jpeg',
-    ] },
+    ],
+    hook: 'Real Brazilian churrascaria – endless meat carved at your table for $40. Yes, with actual Brazilian chefs.' },
 ];
 
-/* ─── Bars / Lounges (9) ─── */
+/* ─── Bars / Lounges (10) ─── */
 
 const BARS: EatRestaurant[] = [
+  { name_cn: 'COA', name_en: 'COA', cuisine_label: 'Mexican tequila/mezcal bar', price_cny: 200, rating: 4.0, category: 'bars', slug: 'coa',
+    image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_1.jpeg',
+    images: [
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_1.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_2_4.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_12_3.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_5_3.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_1_4.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_6_0.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_4_3.jpeg',
+      'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/coa/review_2_5.jpeg',
+    ],
+    hook: 'They put beef broth and Sichuan pepper in a cocktail – and it\'s why this was Asia\'s #1 bar.' },
   { name_cn: 'CARTER', name_en: 'Carter', cuisine_label: 'Cocktail bar + bar snacks', price_cny: 149, rating: 4.5, category: 'bars', slug: 'carter',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/carter/review_1_4.jpeg',
     images: [
@@ -588,7 +634,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/carter/review_16_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/carter/review_19_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/carter/review_17_0.jpeg',
-    ] },
+    ],
+    hook: 'A glowing gold bar hidden inside a 1932 Art Deco apartment – Shanghai glamour meets London cocktail craft.' },
   { name_cn: '隐觅地', name_en: 'Hideout Hookah Lounge', cuisine_label: 'Hookah / cocktail lounge', price_cny: 199, rating: 4.8, category: 'bars', slug: 'hideout-hookah-lounge',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/hideout-hookah-lounge/review_4_0.jpeg',
     images: [
@@ -600,7 +647,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/hideout-hookah-lounge/review_3_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/hideout-hookah-lounge/review_66_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/hideout-hookah-lounge/review_46_1.jpeg',
-    ] },
+    ],
+    hook: 'Unmarked door, amber glow, hookah custom-blended at your table – the speakeasy you\'ll want to keep secret.' },
   { name_cn: 'J·Boroski', name_en: 'J. Boroski', cuisine_label: 'Bespoke cocktail speakeasy', price_cny: 181, rating: 4.2, category: 'bars', slug: 'j-boroski',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/j-boroski/review_3_4.jpeg',
     images: [
@@ -612,7 +660,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/j-boroski/review_113_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/j-boroski/review_127_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/j-boroski/review_140_0.jpeg',
-    ] },
+    ],
+    hook: 'No menu – describe a feeling and they\'ll make you a cocktail no one\'s had before. Also, there are tarantulas in the walls.' },
   { name_cn: 'Lieben (巨鹿店)', name_en: 'Lieben', cuisine_label: 'Cocktail bar / speakeasy', price_cny: 139, rating: 4.4, category: 'bars', slug: 'lieben',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/lieben/review_0_0.jpeg',
     images: [
@@ -624,7 +673,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/lieben/review_8_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/lieben/review_0_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/lieben/review_0_2.jpeg',
-    ] },
+    ],
+    hook: 'Order by choosing a key – the longer it is, the stronger your cocktail. Hidden behind an unmarked concrete door.' },
   { name_cn: 'OPUS Lounge', name_en: 'OPUS Lounge', cuisine_label: 'Bar / lounge / shisha', price_cny: 139, rating: 4.7, category: 'bars', slug: 'opus-lounge',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/opus-lounge/review_110_0.jpeg',
     images: [
@@ -636,7 +686,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/opus-lounge/review_237_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/opus-lounge/review_80_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/opus-lounge/review_111_0.jpeg',
-    ] },
+    ],
+    hook: 'Hidden atop a 1930s Shanghai hotel – shisha, cocktails, and a terrace with People\'s Square glittering below.' },
   { name_cn: 'Speak Low彼楼', name_en: 'Speak Low', cuisine_label: 'Cocktail bar', price_cny: 201, rating: 4.1, category: 'bars', slug: 'speak-low',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/speak-low/review_3_1.jpeg',
     images: [
@@ -648,7 +699,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/speak-low/review_2_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/speak-low/review_5_4.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/speak-low/review_46_0.jpeg',
-    ] },
+    ],
+    hook: 'Push through a bookshelf, crack a map puzzle – four hidden floors of Asia\'s top-ranked cocktails.' },
   { name_cn: 'peekazoo鸡尾酒吧', name_en: 'Peekazoo', cuisine_label: 'Cocktail bar', price_cny: 139, rating: 4.5, category: 'bars', slug: 'peekazoo-cocktail-bar',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/peekazoo-cocktail-bar/review_15_0.jpeg',
     images: [
@@ -660,7 +712,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/peekazoo-cocktail-bar/review_17_2.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/peekazoo-cocktail-bar/review_17_3.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/peekazoo-cocktail-bar/review_42_1.jpeg',
-    ] },
+    ],
+    hook: 'Hidden courtyard bar – cocktails ranked from \'Little Princess\' to \'King of Kids\' by strength. Staff actually speaks English.' },
   { name_cn: '天光·黑石BLACKSTONE', name_en: 'Blackstone', cuisine_label: 'Whisky & cocktail bar', price_cny: 163, rating: 4.5, category: 'bars', slug: 'blackstone',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/blackstone/review_131_0.jpeg',
     images: [
@@ -672,7 +725,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/blackstone/review_3_1.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/blackstone/review_14_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/blackstone/review_7_1.jpeg',
-    ] },
+    ],
+    hook: 'Secret alley entrance into a century-old Shanghai apartment. Inside: a speakeasy with vault doors and a wall of whisky.' },
   { name_cn: 'UPPERWOOD', name_en: 'Upperwood', cuisine_label: 'Fusion bar food', price_cny: 345, rating: 4.4, category: 'bars', slug: 'upperwood',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/upperwood/review_4_0.jpeg',
     images: [
@@ -684,7 +738,8 @@ const BARS: EatRestaurant[] = [
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/upperwood/review_9_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/upperwood/review_3_0.jpeg',
       'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/upperwood/review_2_1.jpeg',
-    ] },
+    ],
+    hook: 'A Michelin-trained chef doing foie gras pineapple buns – inside a hookah lounge hidden in a Shanghai park.' },
 ];
 
 export const ALL_EAT_RESTAURANTS: EatRestaurant[] = [

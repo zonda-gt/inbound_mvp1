@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 const APP_HOST = 'app.hellochina.chat';
 
 export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Admin auth gate — skip login page and login API
+  if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login') && pathname !== '/api/admin/login') {
+    const session = request.cookies.get('admin_session')?.value;
+    if (!session) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+  }
+
   const host = request.headers.get('host') || '';
 
   // On app.hellochina.chat, rewrite root to /v2

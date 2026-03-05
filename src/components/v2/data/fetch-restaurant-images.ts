@@ -11,10 +11,18 @@ interface DbRow {
   foreigner_hook: string | null;
 }
 
+// Module-level cache so tab switches don't re-fetch and flash static images
+let cachedResult: EatRestaurant[] | null = null;
+let inFlight: Promise<EatRestaurant[]> | null = null;
+
 /** Fetch all restaurant images/data from Supabase client-side and enrich static data */
 export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Promise<EatRestaurant[]> {
   if (!supabaseUrl || !supabaseAnonKey) return restaurants;
 
+  if (cachedResult) return cachedResult;
+  if (inFlight) return inFlight;
+
+  inFlight = (async () => {
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const { data, error } = await supabase
@@ -29,7 +37,7 @@ export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Pro
       bySlug.set(row.slug, row);
     }
 
-    return restaurants.map((r) => {
+    const enriched = restaurants.map((r) => {
       if (!r.slug) return r;
       const match = bySlug.get(r.slug);
       if (!match) return r;
@@ -46,7 +54,12 @@ export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Pro
         best_for: tags.best_for?.length ? tags.best_for : r.best_for,
       };
     });
+    cachedResult = enriched;
+    return enriched;
   } catch {
     return restaurants;
   }
+  })();
+
+  return inFlight;
 }

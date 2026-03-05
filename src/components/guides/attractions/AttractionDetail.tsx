@@ -579,6 +579,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
     params.set('nav', data.attraction_name_cn || data.attraction_name_en);
     if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
     if (data.address_cn) params.set('addr', data.address_cn);
+    params.set('from', `/attractions/${data.slug}`);
     window.location.href = `/v2?${params.toString()}`;
   });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ChatMessage, { Message, NavContext } from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -102,8 +102,11 @@ export default function ChatPage() {
 
 function ChatPageInner() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const attractionSlug = searchParams.get("attraction");
+  const restaurantSlug = searchParams.get("restaurant");
   const attractionHandledRef = useRef(false);
+  const restaurantHandledRef = useRef(false);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -211,9 +214,43 @@ function ChatPageInner() {
     return () => clearTimeout(hardTimeout);
   }, []);
 
-  // Auto-send message when arriving from an attraction page (?attraction=slug)
-  const [pendingAttractionMsg, setPendingAttractionMsg] = useState<string | null>(null);
+  // Context entity for pre-loaded cards from restaurant/attraction detail pages
+  const [contextEntity, setContextEntity] = useState<{ type: "restaurant" | "attraction"; name: string } | null>(null);
 
+  // Pre-load restaurant card when arriving from restaurant detail (?restaurant=slug)
+  useEffect(() => {
+    if (!restaurantSlug || restaurantHandledRef.current) return;
+    restaurantHandledRef.current = true;
+
+    fetch(`/api/curated-restaurants?slugs=${encodeURIComponent(restaurantSlug)}`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (body.restaurants?.length > 0) {
+          const rest = body.restaurants[0];
+          const name = rest.name_en || restaurantSlug;
+          // Strip hook — user already saw it on the detail page
+          const stripped = body.restaurants.map((r: any) => ({
+            ...r,
+            foreigner_hook: undefined,
+            profile: r.profile ? {
+              ...r.profile,
+              layer1_card: r.profile.layer1_card ? { ...r.profile.layer1_card, hook: undefined, verdict: undefined } : r.profile.layer1_card,
+            } : r.profile,
+          }));
+          setContextEntity({ type: "restaurant", name });
+          setMessages([{
+            id: makeId(),
+            role: "assistant",
+            content: `Here's **${name}**. What would you like to know?`,
+            curatedRestaurantsData: stripped,
+            hideMap: true,
+          }]);
+        }
+      })
+      .catch(() => {});
+  }, [restaurantSlug]);
+
+  // Pre-load attraction card when arriving from attraction detail (?attraction=slug)
   useEffect(() => {
     if (!attractionSlug || attractionHandledRef.current) return;
     attractionHandledRef.current = true;
@@ -222,8 +259,22 @@ function ChatPageInner() {
       .then((r) => r.json())
       .then((body) => {
         if (body.attraction) {
-          const name = body.attraction.attraction_name_en || attractionSlug;
-          setPendingAttractionMsg(`Tell me more about ${name}`);
+          const a = body.attraction;
+          const name = a.attraction_name_en || attractionSlug;
+          setContextEntity({ type: "attraction", name });
+          setMessages([{
+            id: makeId(),
+            role: "assistant",
+            content: `Here's **${name}**. What would you like to know?`,
+            attractionsData: [{
+              slug: a.slug,
+              name_en: a.attraction_name_en,
+              name_cn: a.attraction_name_cn,
+              hook: "",
+              experience_type: a.experience_type || "",
+              image: a.images?.[0] || null,
+            }],
+          }]);
         }
       })
       .catch(() => {});
@@ -314,31 +365,43 @@ function ChatPageInner() {
           }
         }
 
-        const requestPayload = {
-          messages: apiMessages,
-          origin: freshOrigin,
-          city: userCity || undefined,
-          navContext: navContext || undefined,
-          image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
-          // Session tracking data
-          sessionId: sessionId || undefined,
-          anonymousUserId: anonymousUserId || undefined,
-          referralSource: captureReferralSource() || undefined,
-          deviceType: getDeviceType(),
-          entryPage: getEntryPage(),
-          gpsPermissionStatus: gpsPermissionStatus || undefined,
-          userLat: freshLat,
-          userLng: freshLng,
-          isDemoMode,
-        };
+        // Route to /api/ask for entity-specific Q&A, /api/chat for general chat
+        const isEntityAsk = !!(restaurantSlug || attractionSlug);
+        const apiUrl = isEntityAsk ? "/api/ask" : "/api/chat";
 
-        console.log('📤 Sending message with session tracking:', {
-          sessionId: sessionId || 'NEW SESSION',
-          anonymousUserId,
-          messageCount: apiMessages.length,
-        });
+        const requestPayload = isEntityAsk
+          ? {
+              messages: apiMessages,
+              entityType: restaurantSlug ? "restaurant" : "attraction",
+              entitySlug: restaurantSlug || attractionSlug,
+              sessionId: sessionId || undefined,
+              anonymousUserId: anonymousUserId || undefined,
+              referralSource: captureReferralSource() || undefined,
+              deviceType: getDeviceType(),
+              entryPage: getEntryPage(),
+              gpsPermissionStatus: gpsPermissionStatus || undefined,
+              userLat: freshLat,
+              userLng: freshLng,
+              isDemoMode,
+            }
+          : {
+              messages: apiMessages,
+              origin: freshOrigin,
+              city: userCity || undefined,
+              navContext: navContext || undefined,
+              image: imageData ? { base64: imageData.base64, mediaType: imageData.mediaType } : undefined,
+              sessionId: sessionId || undefined,
+              anonymousUserId: anonymousUserId || undefined,
+              referralSource: captureReferralSource() || undefined,
+              deviceType: getDeviceType(),
+              entryPage: getEntryPage(),
+              gpsPermissionStatus: gpsPermissionStatus || undefined,
+              userLat: freshLat,
+              userLng: freshLng,
+              isDemoMode,
+            };
 
-        const res = await fetch("/api/chat", {
+        const res = await fetch(apiUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(requestPayload),
@@ -718,12 +781,6 @@ function ChatPageInner() {
     [messages, userLocation, userCity, sessionId, anonymousUserId, gpsPermissionStatus, isDemoMode],
   );
 
-  // Trigger auto-send for attraction context once handleSend and location are ready
-  useEffect(() => {
-    if (!pendingAttractionMsg || !locationRequested) return;
-    handleSend(pendingAttractionMsg);
-    setPendingAttractionMsg(null);
-  }, [pendingAttractionMsg, locationRequested, handleSend]);
 
   const handleCameraCapture = useCallback(
     (image: { base64: string; mediaType: string; previewUrl: string }) => {
@@ -741,6 +798,8 @@ function ChatPageInner() {
   }, []);
 
   const hasUserMessages = messages.some((m) => m.role === "user");
+  const hasContextIntent = !!(restaurantSlug || attractionSlug);
+  const showWelcome = !hasUserMessages && !hasContextIntent && !isTyping;
 
   return (
     <div className="flex h-dvh flex-col bg-white">
@@ -753,13 +812,19 @@ function ChatPageInner() {
         borderBottom: "1px solid rgba(0,0,0,0.06)",
         position: "relative", zIndex: 10,
       }}>
-        <Link
-          href="/"
-          style={{ marginRight: 12, fontSize: 18, color: "#999", textDecoration: "none" }}
-          aria-label="Back to home"
+        <button
+          onClick={() => {
+            if (restaurantSlug || attractionSlug) {
+              router.back();
+            } else {
+              router.push("/");
+            }
+          }}
+          style={{ marginRight: 12, fontSize: 18, color: "#999", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+          aria-label="Go back"
         >
           ←
-        </Link>
+        </button>
         <h1 style={{ fontSize: 16, fontWeight: 600, color: "#1A1A1A", letterSpacing: "-0.01em" }}>
           Hello<span style={{ color: "#D0021B" }}>China</span>
         </h1>
@@ -777,7 +842,7 @@ function ChatPageInner() {
 
       {/* Chat area */}
       <div ref={scrollRef} onScroll={handleScroll} className="flex-1 overflow-y-auto">
-        {!hasUserMessages && !isTyping ? (
+        {showWelcome ? (
           /* Welcome state */
           <div className="flex h-full flex-col items-center justify-center px-4 py-8">
             <div className="mb-8 text-center">
@@ -848,6 +913,34 @@ function ChatPageInner() {
                   />
                 );
               })}
+
+              {/* Contextual prompts for pre-loaded restaurant/attraction cards */}
+              {hasContextIntent && !hasUserMessages && contextEntity && (
+                <div className="flex flex-wrap justify-center gap-2 py-3">
+                  {(contextEntity.type === "restaurant"
+                    ? [
+                        "What should I order?",
+                        "How do I get there?",
+                        "Is it good for groups?",
+                        "Any tips for first-timers?",
+                      ]
+                    : [
+                        "How do I get there?",
+                        "What should I know before visiting?",
+                        "How long should I spend?",
+                        "What's nearby?",
+                      ]
+                  ).map((prompt) => (
+                    <button
+                      key={prompt}
+                      onClick={() => handleSend(prompt)}
+                      className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm text-gray-600 transition-colors hover:border-[#D0021B] hover:text-[#D0021B] active:bg-red-50"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {toolStatus && <ToolStreamingIndicator label={toolStatus} tool={activeTool} />}
 

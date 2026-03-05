@@ -4,10 +4,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
 
-/* ─── Types ─── */
-
-type MoodFilter = 'quick_bite' | 'date_night' | 'group' | 'local_fav' | 'vegetarian' | 'halal' | 'late_night';
-
 /* ─── Constants ─── */
 
 const SECTIONS: { id: EatCategory; title: string; subtitle: string }[] = [
@@ -18,39 +14,22 @@ const SECTIONS: { id: EatCategory; title: string; subtitle: string }[] = [
   { id: 'bars', title: 'Bars & Lounges', subtitle: 'Cocktails, speakeasies & late night' },
 ];
 
-const MOOD_FILTERS: { id: MoodFilter; label: string; emoji: string }[] = [
-  { id: 'quick_bite', label: 'Quick Bite', emoji: '⚡' },
-  { id: 'date_night', label: 'Date Night', emoji: '🕯️' },
-  { id: 'group', label: 'Group Dinner', emoji: '👥' },
-  { id: 'local_fav', label: 'Local Favorite', emoji: '❤️‍🔥' },
-  { id: 'vegetarian', label: 'Vegetarian', emoji: '🌿' },
-  { id: 'halal', label: 'Halal', emoji: '☪️' },
-  { id: 'late_night', label: 'Late Night', emoji: '🌙' },
+const CUISINE_CHIPS: { id: string; label: string; emoji: string }[] = [
+  { id: 'all',           label: 'All',           emoji: '✨' },
+  { id: 'chinese',       label: 'Chinese',        emoji: '🥢' },
+  { id: 'asian',         label: 'Asian',          emoji: '🍱' },
+  { id: 'middle_eastern',label: 'Middle Eastern', emoji: '🌯' },
+  { id: 'western',       label: 'Western',        emoji: '🍔' },
+  { id: 'bars',          label: 'Bars',           emoji: '🍸' },
+  { id: 'vegetarian',    label: 'Vegetarian',     emoji: '🌿' },
+  { id: 'halal',         label: 'Halal',          emoji: '☪️' },
 ];
 
-/* ─── Mood filter logic ─── */
-
-function matchesMood(r: EatRestaurant, mood: MoodFilter): boolean {
+function matchesDietary(r: EatRestaurant, filter: string): boolean {
   const text = r.cuisine_label.toLowerCase();
-
-  switch (mood) {
-    case 'quick_bite':
-      return r.price_cny != null && r.price_cny <= 80;
-    case 'date_night':
-      return (r.price_cny != null && r.price_cny >= 200) || text.includes('fine dining') || text.includes('tasting');
-    case 'group':
-      return text.includes('hot pot') || text.includes('hotpot') || text.includes('bbq') || text.includes('churrascaria') || text.includes('steamboat');
-    case 'local_fav':
-      return r.rating != null && r.rating >= 4.7;
-    case 'vegetarian':
-      return text.includes('vegan') || text.includes('vegetarian') || text.includes('buddhist') || text.includes('plant-based');
-    case 'halal':
-      return text.includes('halal') || text.includes('muslim') || text.includes('xinjiang') || text.includes('uyghur') || text.includes('ningxia');
-    case 'late_night':
-      return r.category === 'bars';
-    default:
-      return true;
-  }
+  if (filter === 'vegetarian') return text.includes('vegan') || text.includes('vegetarian') || text.includes('buddhist') || text.includes('plant-based');
+  if (filter === 'halal') return text.includes('halal') || text.includes('muslim') || text.includes('xinjiang') || text.includes('uyghur') || text.includes('ningxia');
+  return true;
 }
 
 /* ─── SmoothImage ─── */
@@ -84,30 +63,20 @@ interface EatScreenProps {
 
 export default function EatScreen({ onNavigate }: EatScreenProps) {
   const [restaurants, setRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
-  const [activeMoods, setActiveMoods] = useState<Set<MoodFilter>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<string>('all');
 
-  // Enrich static data with images/slugs/verdicts from Supabase
   useEffect(() => {
     enrichRestaurantsFromDb(ALL_EAT_RESTAURANTS).then(setRestaurants);
   }, []);
 
-  const toggleMood = useCallback((mood: MoodFilter) => {
-    setActiveMoods((prev) => {
-      const next = new Set(prev);
-      if (next.has(mood)) next.delete(mood);
-      else next.add(mood);
-      return next;
-    });
-  }, []);
-
-  // Group by category, applying mood filters
   const grouped = useMemo(() => {
+    const isDietary = activeFilter === 'vegetarian' || activeFilter === 'halal';
+    const isCuisine = activeFilter !== 'all' && !isDietary;
+
     let list = restaurants;
-    if (activeMoods.size > 0) {
-      list = list.filter((r) =>
-        Array.from(activeMoods).every((mood) => matchesMood(r, mood))
-      );
-    }
+    if (isDietary) list = list.filter((r) => matchesDietary(r, activeFilter));
+    if (isCuisine) list = list.filter((r) => r.category === activeFilter);
+
     const map = new Map<EatCategory, EatRestaurant[]>();
     for (const r of list) {
       const arr = map.get(r.category) || [];
@@ -115,47 +84,54 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
       map.set(r.category, arr);
     }
     return map;
-  }, [restaurants, activeMoods]);
+  }, [restaurants, activeFilter]);
 
   return (
     <div className="v2-scroll-body">
-      {/* Header */}
-      <div className="v2-eat-header">
-        <button className="v2-eat-back" onClick={() => onNavigate('discover')}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        <div className="v2-eat-header-text">
-          <h1 className="v2-eat-title">Where to Eat</h1>
-          <p className="v2-eat-subtitle">{restaurants.length} curated restaurants in Shanghai</p>
+      {/* Airbnb-style sticky top bar */}
+      <div className="v2-sha-sticky-bar">
+        <div className="v2-sha-pill">
+          <span className="v2-sha-pill-icon">🔍</span>
+          <span>Start your search</span>
         </div>
-      </div>
-
-      {/* Mood Chips */}
-      <div className="v2-eat-moods">
-        <div className="v2-eat-moods-scroll">
-          {MOOD_FILTERS.map((mood) => (
+        <div className="v2-sha-tabs">
+          {[
+            { id: 'eat',        emoji: '🍜', label: 'Eat',        isNew: false },
+            { id: 'experience', emoji: '🎡', label: 'Experience',  isNew: false },
+            { id: 'drink',      emoji: '🍸', label: 'Drink',       isNew: true  },
+          ].map((tab) => (
             <button
-              key={mood.id}
-              className={`v2-eat-mood-chip ${activeMoods.has(mood.id) ? 'active' : ''}`}
-              onClick={() => toggleMood(mood.id)}
+              key={tab.id}
+              type="button"
+              className={`v2-sha-tab ${tab.id === 'eat' ? 'active' : ''}`}
+              onClick={() => { if (tab.id === 'experience') onNavigate('shanghai-all'); }}
             >
-              <span className="v2-eat-mood-emoji">{mood.emoji}</span>
-              {mood.label}
+              <div className="v2-sha-tab-icon-wrap">
+                <span className="v2-sha-tab-icon">{tab.emoji}</span>
+                {tab.isNew && <span className="v2-sha-tab-new">NEW</span>}
+              </div>
+              <span className="v2-sha-tab-label">{tab.label}</span>
+              <div className="v2-sha-tab-bar" />
             </button>
           ))}
         </div>
       </div>
 
-      {activeMoods.size > 0 && (
-        <div className="v2-eat-results-meta">
-          <span>{Array.from(grouped.values()).reduce((a, b) => a + b.length, 0)} restaurants</span>
-          <button className="v2-eat-clear-filters" onClick={() => setActiveMoods(new Set())}>
-            Clear filters
-          </button>
+      {/* Cuisine / Dietary Chips */}
+      <div className="v2-eat-moods v2-eat-moods--below-bar">
+        <div className="v2-eat-moods-scroll">
+          {CUISINE_CHIPS.map((chip) => (
+            <button
+              key={chip.id}
+              className={`v2-eat-mood-chip ${activeFilter === chip.id ? 'active' : ''}`}
+              onClick={() => setActiveFilter(chip.id)}
+            >
+              <span className="v2-eat-mood-emoji">{chip.emoji}</span>
+              {chip.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
 
       {/* Category Sections */}
       {SECTIONS.map((section) => {
@@ -171,7 +147,7 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
                 </div>
                 <div className="v2-sh-see-all" onClick={() => onNavigate(`eat-${section.id}`)}>See all {items.length} &rarr;</div>
               </div>
-              <div className="v2-sh-hscroll">
+              <div className="v2-eat-grid">
                 {items.map((r) => (
                   <FoodCard key={r.name_cn} restaurant={r} />
                 ))}
@@ -181,7 +157,7 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
         );
       })}
 
-      {/* Empty state when all sections filtered out */}
+      {/* Empty state */}
       {Array.from(grouped.values()).every((arr) => arr.length === 0) && (
         <div className="v2-eat-empty" style={{ padding: '80px 20px' }}>
           <div className="v2-eat-empty-emoji">🍽️</div>
@@ -222,6 +198,7 @@ function FoodCard({ restaurant: r }: { restaurant: EatRestaurant }) {
           <div className="v2-sh-food-name">{r.name_en}</div>
           {r.rating != null && <div className="v2-sh-food-rating">★ {r.rating}</div>}
         </div>
+        {r.hook && <div className="v2-sh-food-hook">{r.hook}</div>}
         <div className="v2-sh-food-meta">
           {r.price_cny != null && <span className="v2-sh-food-price">¥{r.price_cny}/pp</span>}
         </div>

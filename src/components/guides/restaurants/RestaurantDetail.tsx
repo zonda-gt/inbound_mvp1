@@ -399,6 +399,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
     params.set('nav', nameCn || nameEn);
     if (nameCn) params.set('nameCn', nameCn);
     if (addressCn) params.set('addr', addressCn);
+    params.set('from', `/restaurants/${data.slug}`);
     window.location.href = `/v2?${params.toString()}`;
   };
 
@@ -623,12 +624,14 @@ export default function RestaurantDetail({ data }: { data: any }) {
         .collapse-body{display:none;padding:0 0 16px;font-size:14px;color:var(--gray-700);line-height:1.6}
         .collapse-body.show{display:block}
 
-        .sticky-footer{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--gray-200);padding:12px 20px;z-index:100;display:flex;justify-content:space-between;align-items:center;box-shadow:0 -2px 12px rgba(0,0,0,.04)}
+        .sticky-footer{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,.06);padding:12px 20px calc(12px + env(safe-area-inset-bottom));z-index:100;display:flex;justify-content:space-between;align-items:center}
         .footer-price{font-size:18px;font-weight:800}
         .footer-sub{font-size:12px;color:var(--gray-500)}
-        .footer-btns{display:flex;gap:8px}
-        .btn-outline{padding:10px 20px;border-radius:100px;font-size:14px;font-weight:700;border:1px solid var(--gray-200);background:var(--bg);color:var(--gray-900);cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif}
-        .btn-primary{padding:10px 24px;border-radius:100px;font-size:14px;font-weight:700;border:none;background:#dc2626;color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif}
+        .footer-btns{display:flex;gap:10px}
+        .btn-ask{padding:12px 22px;border-radius:14px;font-size:15px;font-weight:600;border:1.5px solid var(--gray-200);background:var(--bg);color:var(--gray-900);cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;transition:all .2s ease;letter-spacing:-.01em}
+        .btn-ask:active{background:var(--gray-100);transform:scale(.97)}
+        .btn-go{padding:12px 28px;border-radius:14px;font-size:15px;font-weight:600;border:none;background:linear-gradient(135deg,#e8382e 0%,#c41e14 100%);color:#fff;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;box-shadow:0 2px 12px rgba(196,30,20,.28);transition:all .2s ease;letter-spacing:-.01em}
+        .btn-go:active{transform:scale(.97);box-shadow:0 1px 6px rgba(196,30,20,.3)}
 
         .toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.78);color:#fff;padding:8px 12px;border-radius:8px;font-size:12px;z-index:300}
 
@@ -1022,8 +1025,18 @@ export default function RestaurantDetail({ data }: { data: any }) {
           <div className="footer-sub">{footerSub || 'Local favorite'}</div>
         </div>
         <div className="footer-btns">
-          <button className="btn-outline" onClick={handleAsk}>💬 Ask</button>
-          <button className="btn-primary" onClick={handleNav}>🧭 Go</button>
+          <button className="btn-ask" onClick={handleAsk}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+            Ask
+          </button>
+          <button className="btn-go" onClick={handleNav}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
+            GO
+          </button>
         </div>
       </div>
 

@@ -18,7 +18,7 @@ import { COLLECTION_IDS } from './data/collections-data';
 type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
 type EatCategoryScreenId = 'eat-chinese' | 'eat-asian' | 'eat-middle_eastern' | 'eat-western' | 'eat-bars';
-type Screen = NavTab | 'shanghai-all' | 'eat' | EatCategoryScreenId | CollectionScreen;
+type Screen = NavTab | 'shanghai-all' | 'eat' | 'drink' | EatCategoryScreenId | CollectionScreen;
 
 const collectionScreenToTab: Record<string, NavTab> = {};
 COLLECTION_IDS.forEach((id) => { collectionScreenToTab[id] = 'discover'; });
@@ -31,6 +31,7 @@ const screenToTab: Record<string, NavTab> = {
   journal: 'journal',
   'shanghai-all': 'discover',
   'eat': 'discover',
+  'drink': 'discover',
   'eat-chinese': 'discover',
   'eat-asian': 'discover',
   'eat-middle_eastern': 'discover',
@@ -86,14 +87,26 @@ function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
 }
 
 export default function Shell() {
-  const [activeScreen, setActiveScreen] = useState<Screen>('home');
+  const [activeScreen, setActiveScreenRaw] = useState<Screen>('home');
+
+  // Restore saved screen after hydration (avoids SSR/client mismatch)
+  useEffect(() => {
+    const saved = sessionStorage.getItem('v2-screen');
+    if (saved && saved in screenToTab) setActiveScreenRaw(saved as Screen);
+  }, []);
+
+  const setActiveScreen = useCallback((screen: Screen) => {
+    setActiveScreenRaw(screen);
+    sessionStorage.setItem('v2-screen', screen);
+  }, []);
 
   const handleNavigate = useCallback((screen: string) => {
     setActiveScreen(screen as Screen);
-  }, []);
+  }, [setActiveScreen]);
 
   // Navigate screen destination
   const [navigateDestination, setNavigateDestination] = useState<NavigateDestination | null>(null);
+  const [navReferrer, setNavReferrer] = useState<string | null>(null);
   const handleNavigateToDestination = useCallback((dest: NavigateDestination) => {
     setNavigateDestination(dest);
     setActiveScreen('navigate');
@@ -109,6 +122,8 @@ export default function Shell() {
         chineseName: params.get('nameCn') || undefined,
         address: params.get('addr') || undefined,
       });
+      const from = params.get('from');
+      if (from) setNavReferrer(from);
       // Clean the URL without reloading
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -158,7 +173,7 @@ export default function Shell() {
 
       {/* Navigate */}
       <div className={`v2-screen v2-navigate ${isActive('navigate') ? 'active' : ''}`}>
-        <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} />
+        <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} referrer={navReferrer} />
       </div>
 
       {/* Photo AI */}
@@ -178,7 +193,12 @@ export default function Shell() {
 
       {/* Eat / Restaurant Picker */}
       <div className={`v2-screen ${isActive('eat') ? 'active' : ''}`}>
-        {isActive('eat') && <EatScreen onNavigate={handleNavigate} />}
+        {isActive('eat') && <EatCategoryScreen categoryId="chinese" onNavigate={handleNavigate} />}
+      </div>
+
+      {/* Drink */}
+      <div className={`v2-screen ${isActive('drink') ? 'active' : ''}`}>
+        {isActive('drink') && <EatCategoryScreen categoryId="bars" topTab="drink" onNavigate={handleNavigate} />}
       </div>
 
       {/* Eat Category Detail */}
