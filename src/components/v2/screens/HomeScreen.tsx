@@ -2,8 +2,15 @@
 
 import { type TouchEvent, useRef, useState, useEffect, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
+import SaveSheet from '../SaveSheet';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 // ── Weather helpers ─────────────────────────────────────────────
 
@@ -233,6 +240,14 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const [savedBySlug, setSavedBySlug] = useState<Record<string, boolean>>({});
   const [savedAttrBySlug, setSavedAttrBySlug] = useState<Record<string, boolean>>({});
   const [savedOriginalBySlug, setSavedOriginalBySlug] = useState<Record<string, boolean>>({});
+  const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
+
+  async function handleFav(e: React.MouseEvent, name: string, onConfirm: () => void) {
+    e.stopPropagation(); e.preventDefault();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setSaveSheet({ open: true, name, onConfirm }); return; }
+    onConfirm();
+  }
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
   const [isSwipingPick, setIsSwipingPick] = useState(false);
   const pickTouchStartX = useRef(0);
@@ -341,6 +356,12 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
 
   return (
     <div className="v2-scroll-body">
+      <SaveSheet
+        isOpen={saveSheet.open}
+        placeName={saveSheet.name}
+        onClose={() => setSaveSheet({ open: false })}
+        onLoggedIn={() => { saveSheet.onConfirm?.(); setSaveSheet({ open: false }); }}
+      />
       {/* 1. Hero Header */}
       <div className="v2-home-hero">
         <div className="v2-home-hero-glow" />
@@ -410,10 +431,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                   <button
                     type="button"
                     className="v2-sh-food-fav"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
-                    }}
+                    onClick={(e) => handleFav(e, pick.name, () => setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
                     aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
                   >
                     <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -463,10 +481,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                 <button
                   type="button"
                   className="v2-sh-food-fav"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] }));
-                  }}
+                  onClick={(e) => handleFav(e, title, () => setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] })))}
                   aria-label={saved ? `Unsave ${title}` : `Save ${title}`}
                 >
                   <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -524,10 +539,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                   <button
                     type="button"
                     className="v2-sh-food-fav"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSavedAttrBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] }));
-                    }}
+                    onClick={(e) => handleFav(e, pick.name, () => setSavedAttrBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
                     aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
                   >
                     <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -694,32 +706,21 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
       <div className="v2-survival-section v2-fade-up v2-d4">
         <div className="v2-sec-hdr">
           <span className="v2-sec-title">Survival Kit 🛟</span>
-          <span className="v2-sec-link">See all</span>
         </div>
         <div className="v2-survival-grid">
-          <div className="v2-survival-card">
-            <div className="v2-survival-card-stripe" style={{ background: 'linear-gradient(90deg,#FF9500,#FF6B35)' }} />
-            <div className="v2-survival-card-icon" style={{ background: 'rgba(255,149,0,0.1)' }}>💳</div>
+          <div className="v2-survival-card" onClick={() => window.open('https://www.hellochina.chat/blog/china-payment-guide', '_blank')} style={{ cursor: 'pointer' }}>
+            <div className="v2-survival-card-stripe" style={{ background: 'linear-gradient(90deg,#1677FF,#00AAEE)' }} />
+            <div className="v2-survival-card-icon" style={{ background: 'rgba(22,119,255,0.08)' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M21.422 13.482C21.422 13.482 18.87 12.29 16.8 11.34c-.49-.23-.78-.34-.78-.34s-.49 1.12-1.47 2.24c-1.34 1.54-2.93 2.15-2.93 2.15s3.11 1.56 5.14 2.72c1.11.63 1.69 1.03 2.14 1.36A9.96 9.96 0 0 0 22 12c0-.86-.11-1.7-.31-2.5l-.27.98z" fill="#1677FF"/><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 1.5c4.69 0 8.5 3.81 8.5 8.5 0 .71-.09 1.4-.26 2.06-.54-.28-2.05-1.07-3.89-1.88.71-1.11 1.22-2.37 1.22-2.37H13.2V8.44h2.64V7.53H13.2V5.7h-1.34v1.83H8.72v.91h3.14v1.37H8.3v.91h5.55s-.34.91-1.02 1.89c-1.12-.44-2.54-.94-3.89-1.18-2.4-.44-4.33.45-4.64 2.18-.31 1.73.98 3.42 3.54 3.42 1.78 0 3.35-.94 4.46-2.14.43.2 3.5 1.64 3.5 1.64A8.47 8.47 0 0 1 12 20.5 8.5 8.5 0 0 1 3.5 12c0-4.69 3.81-8.5 8.5-8.5z" fill="#1677FF"/></svg>
+            </div>
             <div className="v2-survival-card-title">Alipay Setup</div>
             <div className="v2-survival-card-sub">Pay everywhere in 5 min</div>
           </div>
-          <div className="v2-survival-card">
-            <div className="v2-survival-card-stripe" style={{ background: 'linear-gradient(90deg,#D0021B,#FF3B30)' }} />
-            <div className="v2-survival-card-icon" style={{ background: 'rgba(208,2,27,0.08)' }}>🚨</div>
-            <div className="v2-survival-card-title">Emergency</div>
-            <div className="v2-survival-card-sub">Phrases & numbers</div>
-          </div>
-          <div className="v2-survival-card">
+          <div className="v2-survival-card" onClick={() => window.open('https://www.hellochina.chat/blog/china-internet-guide', '_blank')} style={{ cursor: 'pointer' }}>
             <div className="v2-survival-card-stripe" style={{ background: 'linear-gradient(90deg,#007AFF,#5856D6)' }} />
             <div className="v2-survival-card-icon" style={{ background: 'rgba(0,122,255,0.08)' }}>📶</div>
-            <div className="v2-survival-card-title">VPN & SIM</div>
+            <div className="v2-survival-card-title">eSIM & VPN</div>
             <div className="v2-survival-card-sub">Stay connected guide</div>
-          </div>
-          <div className="v2-survival-card">
-            <div className="v2-survival-card-stripe" style={{ background: 'linear-gradient(90deg,#34C759,#30D158)' }} />
-            <div className="v2-survival-card-icon" style={{ background: 'rgba(52,199,89,0.08)' }}>🏥</div>
-            <div className="v2-survival-card-title">Medical Help</div>
-            <div className="v2-survival-card-sub">English-speaking clinics</div>
           </div>
         </div>
       </div>
@@ -728,7 +729,6 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
       <div className="v2-reviews-section v2-fade-up v2-d5">
         <div className="v2-sec-hdr">
           <span className="v2-sec-title">From Travellers Like You</span>
-          <span className="v2-sec-link">See more</span>
         </div>
         <div className="v2-reviews-scroll">
           <div className="v2-review-card">
