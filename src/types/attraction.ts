@@ -123,4 +123,5 @@ export interface AttractionData {
   photo_spots?: PhotoSpot[];
   best_for?: string[];
   images?: string[];
+  opening_hours?: string;
 }

@@ -573,6 +573,29 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const lang = langInfo(gi.language_barrier_rating);
   const shortPrice = extractShortPrice(gi.price_rmb);
   const types = [data.experience_type, data.experience_type_secondary].filter(Boolean).map(String);
+
+  // Opening hours (same parsing logic as restaurants)
+  const openingHours = data.opening_hours || '';
+  const openLabel = (() => {
+    if (!openingHours) return '';
+    const ranges = openingHours.split(/[,，]/).map((s: string) => s.trim());
+    const now = new Date();
+    const shanghai = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }));
+    const nowMin = shanghai.getHours() * 60 + shanghai.getMinutes();
+    let parsed = false;
+    for (const range of ranges) {
+      const m = range.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+      if (!m) continue;
+      parsed = true;
+      const openMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      const closeMin = parseInt(m[3], 10) * 60 + parseInt(m[4], 10);
+      const isOpen = closeMin > openMin
+        ? nowMin >= openMin && nowMin < closeMin
+        : nowMin >= openMin || nowMin < closeMin;
+      if (isOpen) return 'Open now';
+    }
+    return parsed ? 'Closed' : '';
+  })();
   const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
   const handleNav = onNavigate || (() => {
     const params = new URLSearchParams();
@@ -663,10 +686,18 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         {types.length > 0 && <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>{types.map((t: string, i: number) => <span key={i} style={{ fontSize: 11, fontWeight: 600, color: '#717171', background: '#f7f7f7', padding: '4px 10px', borderRadius: 20, letterSpacing: .3, textTransform: 'capitalize' }}>{t}</span>)}</div>}
         <h1 className="dm-serif" style={{ fontSize: 26, fontWeight: 400, color: '#222', lineHeight: 1.2, letterSpacing: -.2, marginBottom: 4 }}>{data.attraction_name_en}</h1>
         <p style={{ fontSize: 13, color: '#717171', marginBottom: 0 }}>{data.attraction_name_cn}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, fontSize: 13, color: '#484848', fontWeight: 500 }}>
-          {tn.recommended && <><span>{String(tn.recommended).split('—')[0].trim()}</span><span style={{ color: '#c0c0c0', margin: '0 2px' }}>·</span></>}
-          {lang && <span style={{ color: lang.color, fontWeight: 600 }}>{lang.text}</span>}
-        </div>
+        {tn.recommended && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, fontSize: 13, color: '#484848', fontWeight: 500 }}>
+            <span>{String(tn.recommended).split('—')[0].trim()}</span>
+          </div>
+        )}
+        {openingHours && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 14, color: '#717171', flexWrap: 'wrap' }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: openLabel === 'Closed' ? '#e53e3e' : '#008A05', display: 'inline-block' }} />
+            <span style={{ fontWeight: 600, color: openLabel === 'Closed' ? '#e53e3e' : '#008A05' }}>{openLabel || 'Hours'}</span>
+            <span>· {openingHours}</span>
+          </div>
+        )}
       </div>
       <Divider />
 

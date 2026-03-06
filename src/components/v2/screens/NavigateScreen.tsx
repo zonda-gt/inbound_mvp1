@@ -64,9 +64,9 @@ export default function NavigateScreen({
     setLocalDest(q);
   }, [searchQuery]);
 
-  const handleSelectSuggestion = useCallback((name: string) => {
+  const handleSelectSuggestion = useCallback((name: string, cn?: string) => {
     setSearchQuery(name);
-    setLocalDest(name);
+    setLocalDest(cn || name);
   }, []);
 
   const handleClear = useCallback(() => {
@@ -122,7 +122,7 @@ export default function NavigateScreen({
             <button
               key={p.name}
               className="v2-nav-sugg-item"
-              onClick={() => handleSelectSuggestion(p.name)}
+              onClick={() => handleSelectSuggestion(p.name, p.cn)}
             >
               <span className="v2-nav-sugg-emoji">{p.emoji}</span>
               <div className="v2-nav-sugg-text">
@@ -407,41 +407,35 @@ export default function NavigateScreen({
         </div>
       )}
 
-      {/* 7. Action Buttons — Design A "Weighted Glass" */}
+      {/* 7. Action Buttons */}
       <div className="v2-nav-acts v2-fade-up v2-d4">
         <div className="v2-nav-acts-row">
           <button
-            className="v2-act-btn-a amap"
+            className="v2-nav-cta v2-nav-cta--primary"
             onClick={() => {
               const dest = encodeURIComponent(data.destination.name);
               window.open(`https://uri.amap.com/search?keyword=${dest}&callnative=1`, "_blank");
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M10 1.5C6.41 1.5 3.5 4.41 3.5 8c0 1.74.72 3.6 1.88 5.25C6.76 15.24 8.64 16.95 10 18.5c1.36-1.55 3.24-3.26 4.62-5.25C15.78 11.6 16.5 9.74 16.5 8c0-3.59-2.91-6.5-6.5-6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
               <circle cx="10" cy="8" r="2.25" fill="currentColor"/>
             </svg>
-            <div className="v2-act-label">
-              <span className="v2-act-label-main">Open in Amap</span>
-              <span className="v2-act-label-sub">Navigate there</span>
-            </div>
+            Open in Amap
           </button>
           <button
-            className="v2-act-btn-a didi"
+            className="v2-nav-cta v2-nav-cta--secondary"
             onClick={() => {
               const [lng, lat] = data.destination.location.split(",");
               window.open(`https://common.diditaxi.com.cn/general/webEntry?sLat=&sLng=&dLat=${lat}&dLng=${lng}&dName=${encodeURIComponent(data.destination.name)}`, "_blank");
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M3.5 12.5V14a1 1 0 001 1h1a1 1 0 001-1v-.5h7v.5a1 1 0 001 1h1a1 1 0 001-1v-1.5m-13 0V10a1 1 0 011-1h.34l1.2-3.1A1.5 1.5 0 016.44 5h7.12a1.5 1.5 0 011.4.9L16.16 9h.34a1 1 0 011 1v2.5m-14 0h14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="6" cy="10.75" r="0.75" fill="currentColor"/>
               <circle cx="14" cy="10.75" r="0.75" fill="currentColor"/>
             </svg>
-            <div className="v2-act-label">
-              <span className="v2-act-label-main">Book DiDi</span>
-              <span className="v2-act-label-sub">Get a ride</span>
-            </div>
+            Book DiDi
           </button>
         </div>
       </div>

@@ -89,7 +89,11 @@ export default function SaveSheet({ isOpen, placeName, onClose, onLoggedIn }: Sa
         ) : (
           <>
             <div className="v2-save-header">
-              <div className="v2-save-icon">🤍</div>
+              <div className="v2-save-icon">
+                <svg viewBox="0 0 32 32" width="44" height="44" fill="#FF385C" stroke="none">
+                  <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                </svg>
+              </div>
               <h2 className="v2-save-title">Save to your wishlist</h2>
               <p className="v2-save-sub">
                 {placeName ? `Sign in to save ${placeName} and build your trip.` : 'Sign in to save places and build your perfect Shanghai trip.'}

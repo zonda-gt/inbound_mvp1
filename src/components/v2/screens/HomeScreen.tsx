@@ -404,6 +404,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                 ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
                 : null;
               const pickMetaItems = [
+                pick.rating ? `★ ${pick.rating}` : null,
                 distanceLabel ? `📍 ${distanceLabel}` : null,
                 pick.price,
                 pick.location,
@@ -461,7 +462,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
       <div className="v2-orig-section v2-fade-up v2-d2">
         <div className="v2-orig-header">
           <div>
-            <div className="v2-orig-title">Attraction Originals</div>
+            <div className="v2-orig-title">Experience Originals</div>
             <div className="v2-orig-subtitle">Hosted by Shanghai&apos;s most interesting places</div>
           </div>
           <button type="button" className="v2-orig-arrow" onClick={() => onNavigate('discover')} aria-label="See more attractions">
@@ -478,6 +479,9 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${item.slug}`)}>
               <div className="v2-orig-image-wrap">
                   <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" />
+                  {(found?.card_type || found?.experience_type) && (
+                    <div className="v2-pick-badge">{found?.card_type || found?.experience_type}</div>
+                  )}
                 <button
                   type="button"
                   className="v2-sh-food-fav"
@@ -489,8 +493,8 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                   </svg>
                 </button>
               </div>
-                <div className="v2-orig-name">{found?.card_hook || title}</div>
-              <div className="v2-orig-loc">{found?.card_type || found?.experience_type || item.subtitle}</div>
+                <div className="v2-orig-name">{title}</div>
+                <div className="v2-orig-hook">{found?.card_hook || ''}</div>
               <div className="v2-orig-meta">{item.meta}</div>
               </div>
             );
@@ -565,33 +569,6 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
         </div>
       </div>
 
-      {/* 7. Dish Passport */}
-      <div className="v2-passport-section v2-fade-up v2-d3">
-        <div className="v2-passport-card" onClick={() => onNavigate('discover')}>
-          <div className="v2-passport-bg-pattern" />
-          <div className="v2-passport-top">
-            <div>
-              <div className="v2-passport-title">🍜 Dish Passport</div>
-              <div className="v2-passport-subtitle">Your Shanghai food journey</div>
-            </div>
-            <div className="v2-passport-badge">Level 2</div>
-          </div>
-          <div className="v2-passport-dishes">
-            <div className="v2-dish-stamp done" title="Xiaolongbao">🥟</div>
-            <div className="v2-dish-stamp done" title="Noodles">🍜</div>
-            <div className="v2-dish-stamp done" title="Scallion pancake">🫓</div>
-            <div className="v2-dish-stamp" title="Peking Duck">🦆</div>
-            <div className="v2-dish-stamp locked" title="Hotpot">🍲</div>
-            <div className="v2-dish-stamp locked" title="Mapo Tofu">🌶️</div>
-          </div>
-          <div className="v2-passport-progress">
-            <div className="v2-progress-bar-wrap">
-              <div className="v2-progress-bar-fill" style={{ width: '50%' }} />
-            </div>
-            <div className="v2-progress-text"><strong>3 of 6</strong> Shanghai classics tried · 3 more to unlock</div>
-          </div>
-        </div>
-      </div>
 
       {/* 8. Pocket Phrases */}
       <div className="v2-phrase-section v2-fade-up v2-d3">
@@ -631,7 +608,6 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
       <div className="v2-vibes-section v2-fade-up v2-d3">
         <div className="v2-sec-hdr">
           <span className="v2-sec-title">Neighbourhood Vibes</span>
-          <span className="v2-sec-link">Map view</span>
         </div>
         <div className="v2-vibes-scroll">
           <div className="v2-vibe-card">
@@ -669,38 +645,6 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
         </div>
       </div>
 
-      {/* 9. Tonight's Plan */}
-      <div className="v2-tonight-section v2-fade-up v2-d4">
-        <div className="v2-sec-hdr" style={{ marginBottom: 10 }}>
-          <span className="v2-sec-title">Tonight&apos;s Plan ✨</span>
-          <span className="v2-sec-link">Customise</span>
-        </div>
-        <div className="v2-tonight-card">
-          <div className="v2-tonight-stars" />
-          <div className="v2-tonight-top">
-            <div className="v2-tonight-title">AI-curated evening for you</div>
-            <div className="v2-tonight-time">From 6pm</div>
-          </div>
-          <div className="v2-tonight-steps">
-            <div className="v2-tonight-step">
-              <div className="v2-tonight-step-num">1</div>
-              <div className="v2-tonight-step-text"><strong>6:30pm</strong> — Xiaolongbao at Din Tai Fung (30 min walk)</div>
-            </div>
-            <div className="v2-tonight-step">
-              <div className="v2-tonight-step-num">2</div>
-              <div className="v2-tonight-step-text"><strong>8:00pm</strong> — Rooftop cocktails at Bar Rouge, The Bund</div>
-            </div>
-            <div className="v2-tonight-step">
-              <div className="v2-tonight-step-num">3</div>
-              <div className="v2-tonight-step-text"><strong>10:00pm</strong> — Night market snacks at Yuyuan Bazaar</div>
-            </div>
-          </div>
-          <div className="v2-tonight-cta" onClick={() => onNavigate('navigate')}>
-            <div className="v2-tonight-cta-text">Start this evening →</div>
-            <div className="v2-tonight-cta-arrow">→</div>
-          </div>
-        </div>
-      </div>
 
       {/* 10. Survival Kit */}
       <div className="v2-survival-section v2-fade-up v2-d4">

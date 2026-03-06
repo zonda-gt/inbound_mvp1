@@ -59,7 +59,7 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
             <button
               key={tab.id}
               type="button"
-              className={`v2-sha-tab ${tab.id === 'experience' ? 'active' : ''}`}
+              className={`v2-sha-tab${tab.id === 'experience' ? ' active' : ''}`}
               onClick={() => handleTopTabClick(tab.id)}
             >
               <div className="v2-sha-tab-icon-wrap">
@@ -184,12 +184,28 @@ function shortHook(hook?: string): string {
 /* ─── Attraction Card (filtered view) ─── */
 
 function AttractionCard({ attraction }: { attraction: AttractionData }) {
+  const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const price = extractPrice(attraction.getting_in?.price_rmb);
   const type = attraction.card_type || attraction.experience_type || '';
   const photos = [...new Set(attraction.images ?? [])].slice(0, 6);
+  const name = attraction.card_name || attraction.attraction_name_en;
+
+  async function handleFav(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
 
   return (
     <a href={`/attractions/${attraction.slug}`} className="v2-eatcat-row" style={{ display: 'block', textDecoration: 'none', color: 'inherit' }}>
+      <SaveSheet
+        isOpen={showSaveSheet}
+        placeName={name}
+        onClose={() => setShowSaveSheet(false)}
+        onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }}
+      />
       <div className="v2-eatcat-photos">
         {photos.length > 0 ? (
           photos.map((src, i) => (
@@ -205,8 +221,16 @@ function AttractionCard({ attraction }: { attraction: AttractionData }) {
       </div>
       <div className="v2-eatcat-info">
         <div className="v2-eatcat-name-row">
-          <div className="v2-eatcat-name">{attraction.card_name || attraction.attraction_name_en}</div>
-          {price && <div className="v2-eatcat-rating">¥{price}</div>}
+          <div className="v2-eatcat-name">{name}</div>
+          <button
+            className="v2-eatcat-fav"
+            onClick={handleFav}
+            aria-label={saved ? 'Unsave' : 'Save'}
+          >
+            <svg viewBox="0 0 32 32" width="20" height="20" fill={saved ? '#FF385C' : 'none'} stroke={saved ? '#FF385C' : '#717171'} strokeWidth="2.5">
+              <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+            </svg>
+          </button>
         </div>
         {attraction.hook && <div className="v2-eatcat-hook">{shortHook(attraction.hook)}</div>}
         {type && <div className="v2-eatcat-cuisine">{type}</div>}

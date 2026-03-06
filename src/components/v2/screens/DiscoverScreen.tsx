@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTimeAwareMessage, searchPlaces, getQuickActions } from '../data/discover-data';
+import { getTimeAwareMessage } from '../data/discover-data';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
 
 interface DiscoverScreenProps {
   onNavigate: (screen: string) => void;
   isActive?: boolean;
+  onSearchOpen?: () => void;
 }
 
 // Grab a diverse mix of attraction slugs across collections for the "Only in Shanghai" scroll
@@ -35,8 +36,7 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
   );
 }
 
-export default function DiscoverScreen({ onNavigate, isActive: screenActive = true }: DiscoverScreenProps) {
-  const [searchOpen, setSearchOpen] = useState(false);
+export default function DiscoverScreen({ onNavigate, isActive: screenActive = true, onSearchOpen }: DiscoverScreenProps) {
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
 
   // Fetch featured restaurants from restaurants_v2
@@ -57,7 +57,7 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
     <div className="v2-scroll-body">
       {/* Sticky search + Eat / Experience / Drink tabs */}
       <div className="v2-sha-sticky-bar">
-        <div className="v2-sha-pill" onClick={() => setSearchOpen(true)}>
+        <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
         </div>
@@ -128,7 +128,7 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
             <div className="v2-sh-section-title">What locals are eating</div>
             <div className="v2-sh-section-sub">Right now, this week</div>
           </div>
-          <div className="v2-sh-see-all">See all &rarr;</div>
+          <div className="v2-sh-see-all" onClick={() => onNavigate('eat')}>See all &rarr;</div>
         </div>
         <div className="v2-sh-hscroll">
           {featuredRestaurants.length > 0 ? featuredRestaurants.map((r: any) => (
@@ -204,10 +204,6 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
 
       <div className="v2-sh-bottom-pad" />
 
-      {/* Search Overlay */}
-      {searchOpen && (
-        <SearchOverlayInline onClose={() => setSearchOpen(false)} />
-      )}
     </div>
   );
 }
@@ -402,100 +398,3 @@ function GemCard({ emoji, tag, name, desc, pills }: { emoji: string; tag: string
   );
 }
 
-/* ─── Inline Search Overlay ─── */
-
-function SearchOverlayInline({ onClose }: { onClose: () => void }) {
-  const [query, setQuery] = useState('');
-  const [quickActions] = useState(getQuickActions);
-  const results = query.trim().length > 1 ? searchPlaces(query) : [];
-  const showResults = query.trim().length > 1;
-
-  return (
-    <div
-      className="v2-sh-search-overlay open"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="v2-sh-search-modal">
-        <div className="v2-sh-search-modal-bar">
-          <span className="v2-sh-search-icon">🔍</span>
-          <input
-            className="v2-sh-search-input"
-            placeholder="noodles near me · open now under ¥50 · something fun indoors"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoFocus
-          />
-          <button className="v2-sh-search-cancel" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-
-        {!showResults && (
-          <div className="v2-sh-search-suggestions">
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-              {quickActions.map((a, i) => (
-                <div
-                  key={i}
-                  className="v2-sh-quick-action"
-                  onClick={() => setQuery(a.query)}
-                >
-                  {a.label}
-                </div>
-              ))}
-            </div>
-            <div className="v2-sh-search-sugg-label">Try asking</div>
-            {[
-              { emoji: '🍜', text: 'Noodles near me', q: 'noodles near me' },
-              { emoji: '⏰', text: 'Open right now under ¥50', q: 'open right now under ¥50' },
-              { emoji: '🏛', text: 'Something fun indoors', q: 'something fun indoors' },
-              { emoji: '🌙', text: 'Late night eats', q: 'late night eats' },
-              { emoji: '☕', text: 'Best coffee in French Concession', q: 'best coffee in French Concession' },
-              { emoji: '🔎', text: 'Hidden spots locals love', q: 'hidden spots locals love' },
-            ].map((s, i) => (
-              <div
-                key={i}
-                className="v2-sh-search-sugg"
-                onClick={() => setQuery(s.q)}
-              >
-                {s.emoji} {s.text}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {showResults && (
-          <div className="v2-sh-search-results">
-            <div className="v2-sh-results-meta">
-              {results.length > 0
-                ? `${results.length} place${results.length !== 1 ? 's' : ''} · sorted by relevance`
-                : 'No matches — try different words'}
-            </div>
-            <div>
-              {results.map((p) => (
-                <div key={p.id} className="v2-sh-result-card">
-                  <div className="v2-sh-result-thumb" style={{ background: p.bg }}>
-                    {p.emoji}
-                  </div>
-                  <div className="v2-sh-result-body">
-                    <div className="v2-sh-result-hook">{p.hook}</div>
-                    <div className="v2-sh-result-name">
-                      {p.name}{' '}
-                      <span style={{ color: 'var(--text-3)', fontSize: 11 }}>{p.cn}</span>
-                    </div>
-                    <div className="v2-sh-result-tags">
-                      {p.open && <span className="v2-sh-result-tag open">● Open now</span>}
-                      <span className="v2-sh-result-tag price">{p.price}</span>
-                      <span className="v2-sh-result-tag">{p.dist}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

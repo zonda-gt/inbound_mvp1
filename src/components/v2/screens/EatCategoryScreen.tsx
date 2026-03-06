@@ -175,22 +175,24 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
             <div className="v2-eatcat-photo v2-eatcat-photo-placeholder">🍽️</div>
           </div>
         )}
-        <button
-          className="v2-sh-food-fav"
-          onClick={handleFav}
-          aria-label={saved ? 'Unsave' : 'Save'}
-        >
-          <svg viewBox="0 0 32 32" width="26" height="26" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
-            <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
-          </svg>
-        </button>
       </div>
 
       {/* Info */}
       <div className="v2-eatcat-info">
         <div className="v2-eatcat-name-row">
           <div className="v2-eatcat-name">{r.name_en}</div>
-          {r.rating != null && <div className="v2-eatcat-rating">★ {r.rating}</div>}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {r.rating != null && <div className="v2-eatcat-rating">★ {r.rating}</div>}
+            <button
+              className="v2-eatcat-fav"
+              onClick={handleFav}
+              aria-label={saved ? 'Unsave' : 'Save'}
+            >
+              <svg viewBox="0 0 32 32" width="20" height="20" fill={saved ? '#FF385C' : 'none'} stroke={saved ? '#FF385C' : '#717171'} strokeWidth="2.5">
+                <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+              </svg>
+            </button>
+          </div>
         </div>
         {r.hook && <div className="v2-eatcat-hook">{r.hook}</div>}
         <div className="v2-eatcat-meta">

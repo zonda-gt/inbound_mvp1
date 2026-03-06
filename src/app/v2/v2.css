@@ -564,7 +564,7 @@
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; margin-bottom: 10px;
 }
-.v2-sec-title { font-size: 19px; font-weight: 800; color: var(--text-1); letter-spacing: -0.3px; }
+.v2-sec-title { font-family: 'DM Sans', sans-serif; font-size: 19px; font-weight: 700; color: var(--text-1); letter-spacing: -0.3px; }
 .v2-sec-link { font-size: 13px; font-weight: 600; color: var(--red); cursor: pointer; }
 
 /* Today's Pick & Attraction Pick */
@@ -688,8 +688,8 @@
   padding: 16px 18px; z-index: 2;
 }
 .v2-pick-name {
-  font-family: 'DM Serif Display', Georgia, serif;
-  font-size: 22px; font-weight: 400; color: white;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size: 22px; font-weight: 600; color: white;
   letter-spacing: -0.2px; line-height: 1.12; margin-bottom: 5px;
 }
 .v2-pick-meta { display: flex; align-items: center; gap: 8px; }
@@ -720,17 +720,18 @@
 .v2-qa-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-align: center; line-height: 1.2; }
 
 /* Attraction Originals */
-.v2-orig-section { padding: 22px 0 0; }
+.v2-orig-section { padding: 22px 0 0; margin-bottom: 24px; }
 .v2-orig-header {
   display: flex; align-items: flex-start; justify-content: space-between;
   padding: 0 20px; margin-bottom: 12px; gap: 12px;
 }
 .v2-orig-title {
-  font-size: 23px; font-weight: 800; color: var(--text-1);
-  letter-spacing: -0.5px; line-height: 1.05;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 19px; font-weight: 700; color: var(--text-1);
+  letter-spacing: -0.3px; line-height: 1.1;
 }
 .v2-orig-subtitle {
-  margin-top: 4px; font-size: 13px; color: var(--text-2);
+  margin-top: 4px; font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--text-2);
   line-height: 1.3;
 }
 .v2-orig-arrow {
@@ -755,6 +756,11 @@
   position: relative; height: 180px;
   border-radius: 24px; overflow: hidden;
 }
+.v2-orig-image-wrap .v2-pick-badge {
+  top: auto; bottom: 10px; left: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px; padding: 3px 8px;
+}
 .v2-orig-image {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
@@ -769,17 +775,25 @@
   z-index: 2;
 }
 .v2-orig-name {
-  margin-top: 8px;
-  font-size: 13px; font-weight: 700; color: var(--text-1);
-  line-height: 1.25; letter-spacing: -0.1px;
+  margin-top: 8px; padding-left: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 700; color: var(--text-1);
+  line-height: 1.25; letter-spacing: -0.2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.v2-orig-hook {
+  margin-top: 3px; padding-left: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 400; color: var(--text-2);
+  line-height: 1.3;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden;
 }
 .v2-orig-loc {
-  margin-top: 4px; font-size: 12px; color: var(--text-2);
+  margin-top: 4px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--text-2);
 }
 .v2-orig-meta {
-  margin-top: 2px; font-size: 12px; color: var(--text-2);
+  margin-top: 2px; padding-left: 6px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--text-2);
 }
 
 /* Dish Passport */
@@ -891,8 +905,8 @@
 .v2-vibe-mood { font-size: 11px; color: rgba(255,255,255,0.65); }
 
 /* Survival Kit */
-.v2-survival-section { padding: 20px 20px 0; }
-.v2-survival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.v2-survival-section { padding: 20px 0 0; }
+.v2-survival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; }
 .v2-survival-card {
   background: white; border-radius: var(--r-lg); padding: 14px;
   cursor: pointer; box-shadow: var(--shadow-sm); border: 1px solid var(--border);
@@ -1474,128 +1488,36 @@
 .v2-act-label-sub { font-size: 11px; font-weight: 500; opacity: 0.75; line-height: 1.2; margin-top: 1px; }
 
 /* ══════ Design A: "Weighted Glass" — Apple/Stripe/Linear ══════ */
-.v2-act-btn-a {
+/* ── Navigation CTA buttons (clean, modern) ── */
+.v2-nav-cta {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  min-height: 54px;
-  padding: 0 20px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 650;
-  font-family: 'DM Sans', 'Inter', -apple-system, sans-serif;
-  letter-spacing: -0.02em;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
   border: none;
   cursor: pointer;
-  transition: transform 0.15s cubic-bezier(0.4,0,0.2,1), box-shadow 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+  transition: opacity 0.15s ease;
 }
-.v2-act-btn-a::before {
-  content: '';
-  position: absolute; top: 0; left: 0; right: 0; height: 50%;
-  background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 100%);
-  border-radius: 14px 14px 0 0;
-  pointer-events: none; z-index: 1;
-}
-.v2-act-btn-a:active { transform: scale(0.975) translateY(0.5px); transition-duration: 0.08s; }
-.v2-act-btn-a svg { flex-shrink: 0; position: relative; z-index: 2; }
-.v2-act-btn-a .v2-act-label { position: relative; z-index: 2; }
+.v2-nav-cta:active { opacity: 0.8; }
+.v2-nav-cta svg { flex-shrink: 0; }
 
-.v2-act-btn-a.amap {
-  background: #2563EB; color: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 16px rgba(37,99,235,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+.v2-nav-cta--primary {
+  background: #1A1A1A;
+  color: #fff;
 }
-.v2-act-btn-a.amap:hover {
-  background: #1D4ED8;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 24px rgba(37,99,235,0.30), inset 0 1px 0 rgba(255,255,255,0.12);
+.v2-nav-cta--secondary {
+  background: #fff;
+  color: #1A1A1A;
+  border: 1.5px solid #E0E0E0;
 }
-
-.v2-act-btn-a.didi {
-  background: #F97316; color: #fff;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 4px 16px rgba(249,115,22,0.25), inset 0 1px 0 rgba(255,255,255,0.15);
-}
-.v2-act-btn-a.didi:hover {
-  background: #EA580C;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 8px 24px rgba(249,115,22,0.30), inset 0 1px 0 rgba(255,255,255,0.15);
-}
-
-/* ══════ Design B: "Lumi" — Airbnb/Spotify/Notion/Arc ══════ */
-.v2-act-btn-b {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 60px;
-  padding: 14px 16px;
-  border-radius: 16px;
-  border: none;
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease, filter 0.25s ease;
-  will-change: transform;
-  isolation: isolate;
-}
-/* Shimmer sweep on hover */
-.v2-act-btn-b::before {
-  content: '';
-  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
-  transition: left 0.6s ease;
-  z-index: 1; pointer-events: none;
-}
-.v2-act-btn-b:hover::before { left: 100%; }
-.v2-act-btn-b:active { transform: scale(0.965); filter: brightness(0.95); transition-duration: 0.08s; }
-
-.v2-act-btn-b-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 36px; height: 36px; border-radius: 10px;
-  background: rgba(255,255,255,0.15);
-  flex-shrink: 0; position: relative; z-index: 2;
-  transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-}
-.v2-act-btn-b:hover .v2-act-btn-b-icon { transform: scale(1.08) translateY(-1px); }
-
-.v2-act-btn-b .v2-act-label { position: relative; z-index: 2; }
-.v2-act-btn-b .v2-act-label-main { color: #fff; }
-.v2-act-btn-b .v2-act-label-sub { color: rgba(255,255,255,0.7); }
-
-.v2-act-btn-b-arrow {
-  margin-left: auto;
-  opacity: 0.4; flex-shrink: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 2;
-}
-.v2-act-btn-b:hover .v2-act-btn-b-arrow { opacity: 0.8; transform: translateX(2px); }
-
-.v2-act-btn-b.amap {
-  background: linear-gradient(135deg, #2B6EF5 0%, #1B4FD8 100%);
-  box-shadow: 0 2px 8px rgba(43,110,245,0.2), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.12);
-}
-.v2-act-btn-b.amap:hover {
-  box-shadow: 0 4px 20px rgba(43,110,245,0.35), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15);
-}
-
-.v2-act-btn-b.didi {
-  background: linear-gradient(135deg, #FF7A1A 0%, #E85D00 100%);
-  box-shadow: 0 2px 8px rgba(255,122,26,0.2), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.12);
-}
-.v2-act-btn-b.didi:hover {
-  box-shadow: 0 4px 20px rgba(255,122,26,0.35), 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15);
-}
-
-@keyframes v2ActBtnEntrance {
-  0% { opacity: 0; transform: translateY(8px) scale(0.98); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
-}
-.v2-act-btn-b.amap { animation: v2ActBtnEntrance 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.1s both; }
-.v2-act-btn-b.didi { animation: v2ActBtnEntrance 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.2s both; }
 
 /* Legacy aliases for backwards compat */
 .v2-btn-big-red {
@@ -1900,7 +1822,7 @@
   display:flex;align-items:center;justify-content:space-between;
 }
 .v2-sh-city-name{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:26px;font-weight:400;
   color:var(--text-1);letter-spacing:-0.3px;
 }
@@ -1950,8 +1872,8 @@
   padding:0 20px;margin-bottom:16px;
 }
 .v2-sh-section-title{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:20px;font-weight:400;color:var(--text-1);
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:20px;font-weight:600;color:var(--text-1);
   letter-spacing:-0.2px;
 }
 .v2-sh-section-sub{
@@ -2008,7 +1930,7 @@
   margin-bottom:4px;
 }
 .v2-sh-cover-name{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:16px;font-weight:400;color:white;
   line-height:1.2;margin-bottom:5px;
 }
@@ -2040,7 +1962,7 @@
   padding:12px;
 }
 .v2-sh-nbhd-name{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:17px;font-weight:400;color:white;
   margin-bottom:3px;
 }
@@ -2087,6 +2009,7 @@
   display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
 }
 .v2-sh-food-name{
+  font-family:'DM Sans',sans-serif;
   font-size:14px;font-weight:600;color:var(--text-1);
   line-height:1.25;
   display:-webkit-box;-webkit-line-clamp:1;
@@ -2095,6 +2018,7 @@
 }
 .v2-sh-food-rating{
   display:flex;align-items:center;gap:1px;
+  font-family:'DM Sans',sans-serif;
   font-size:13px;font-weight:600;color:var(--text-1);
   white-space:nowrap;flex-shrink:0;
 }
@@ -2102,8 +2026,9 @@
 .v2-sh-food-meta{
   margin-top:1px;
 }
-.v2-sh-food-price{font-size:12px;font-weight:400;color:var(--text-2);}
+.v2-sh-food-price{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:400;color:var(--text-2);}
 .v2-sh-food-cuisine{
+  font-family:'DM Sans',sans-serif;
   font-size:11px;font-weight:500;color:#1a8c3a;
   margin-top:2px;
 }
@@ -2183,7 +2108,7 @@
   text-transform:uppercase;color:var(--red);margin-bottom:4px;
 }
 .v2-sh-plan-title{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:16px;font-weight:400;color:var(--text-1);
   line-height:1.25;margin-bottom:6px;
 }
@@ -2235,8 +2160,8 @@
 
 /* ===== HERO MESSAGE (time-aware quote) ===== */
 .v2-sh-hero-message{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:20px;font-weight:400;line-height:1.35;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:20px;font-weight:600;line-height:1.35;
   color:white;
   font-style:italic;
   margin-bottom:14px;
@@ -2449,7 +2374,7 @@
   margin-bottom:6px;
 }
 .v2-fg-hero-title{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:36px;font-weight:400;
   line-height:1.05;color:white;
   margin-bottom:8px;
@@ -2640,8 +2565,8 @@
   padding:0 20px 14px;
 }
 .v2-sha-cluster-sec-title{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:22px;font-weight:400;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:22px;font-weight:600;
   color:var(--text-1);letter-spacing:-0.2px;
 }
 .v2-sha-cluster-sec-seeall{
@@ -2693,7 +2618,7 @@
   margin-bottom:4px;
 }
 .v2-sha-cover-name{
-  font-family:'DM Serif Display',Georgia,serif;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   font-size:15px;font-weight:400;color:white;
   line-height:1.2;margin-bottom:5px;
 }
@@ -2724,8 +2649,8 @@
   color:rgba(255,255,255,0.5);margin-bottom:6px;
 }
 .v2-sha-cover-editorial-title{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:20px;font-weight:400;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:20px;font-weight:600;
   color:white;line-height:1.1;
   margin-bottom:6px;
 }
@@ -2829,8 +2754,8 @@
   color:var(--red);margin-bottom:8px;
 }
 .v2-sha-title{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:32px;font-weight:400;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:32px;font-weight:600;
   color:white;line-height:1.1;
   letter-spacing:-0.5px;margin-bottom:10px;
 }
@@ -2849,8 +2774,8 @@
   margin-bottom:0;
 }
 .v2-sha-cluster-label{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:22px;font-weight:400;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:22px;font-weight:600;
   color:var(--text-1);letter-spacing:-0.2px;
   margin-bottom:3px;
 }
@@ -2900,8 +2825,8 @@
   color:var(--red);margin-bottom:4px;
 }
 .v2-sha-hero-name{
-  font-family:'DM Serif Display',Georgia,serif;
-  font-size:20px;font-weight:400;
+  font-family:var(--font-dm-sans),'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:20px;font-weight:600;
   color:var(--text-1);line-height:1.2;
   margin-bottom:8px;
 }
@@ -3256,9 +3181,12 @@
   font-size:36px;width:100%;height:100%;
 }
 
-/* Fav button positioned on photo strip */
-.v2-eatcat-photos .v2-sh-food-fav{
-  position:absolute;top:10px;right:28px;
+/* Fav button in name row */
+.v2-eatcat-fav{
+  background:none;border:none;padding:0;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
 }
 
 /* Info section below photos */
@@ -3382,7 +3310,7 @@
 
 .v2-search-where-label{
   font-family:'DM Sans',sans-serif;
-  font-size:22px;font-weight:700;
+  font-size:22px;font-weight:600;
   color:var(--text-1);
   margin-bottom:14px;
 }
@@ -3669,6 +3597,8 @@
 .v2-save-icon {
   font-size: 36px;
   margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
 }
 .v2-save-title {
   font-size: 20px;

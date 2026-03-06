@@ -12,6 +12,7 @@ import ShanghaiAllScreen from './screens/ShanghaiAllScreen';
 import EatScreen from './screens/EatScreen';
 import EatCategoryScreen from './screens/EatCategoryScreen';
 import CollectionDetailScreen from './screens/CollectionDetailScreen';
+import SearchOverlay from './SearchOverlay';
 import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
 
@@ -156,6 +157,11 @@ export default function Shell() {
     }
   }, [selectedAttraction]);
 
+  // Search overlay
+  const [searchOpen, setSearchOpen] = useState(false);
+  const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
+  const handleSearchClose = useCallback(() => setSearchOpen(false), []);
+
   const isActive = (screen: Screen) => activeScreen === screen;
   const isCollectionScreen = COLLECTION_IDS.includes(activeScreen);
 
@@ -168,7 +174,7 @@ export default function Shell() {
 
       {/* Discover / Shanghai */}
       <div className={`v2-screen v2-discover ${isActive('discover') ? 'active' : ''}`}>
-        <DiscoverScreen onNavigate={handleNavigate} isActive={isActive('discover')} />
+        <DiscoverScreen onNavigate={handleNavigate} isActive={isActive('discover')} onSearchOpen={handleSearchOpen} />
       </div>
 
       {/* Navigate */}
@@ -188,23 +194,23 @@ export default function Shell() {
 
       {/* Shanghai All */}
       <div className={`v2-screen ${isActive('shanghai-all') ? 'active' : ''}`}>
-        <ShanghaiAllScreen onNavigate={handleNavigate} />
+        <ShanghaiAllScreen onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />
       </div>
 
       {/* Eat / Restaurant Picker */}
       <div className={`v2-screen ${isActive('eat') ? 'active' : ''}`}>
-        {isActive('eat') && <EatCategoryScreen categoryId="chinese" onNavigate={handleNavigate} />}
+        {isActive('eat') && <EatCategoryScreen categoryId="chinese" onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />}
       </div>
 
       {/* Drink */}
       <div className={`v2-screen ${isActive('drink') ? 'active' : ''}`}>
-        {isActive('drink') && <EatCategoryScreen categoryId="bars" topTab="drink" onNavigate={handleNavigate} />}
+        {isActive('drink') && <EatCategoryScreen categoryId="bars" topTab="drink" onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />}
       </div>
 
       {/* Eat Category Detail */}
       {(['eat-chinese', 'eat-asian', 'eat-middle_eastern', 'eat-western', 'eat-bars'] as const).map((id) => (
         <div key={id} className={`v2-screen ${isActive(id) ? 'active' : ''}`}>
-          {isActive(id) && <EatCategoryScreen categoryId={id.replace('eat-', '') as EatCategory} onNavigate={handleNavigate} />}
+          {isActive(id) && <EatCategoryScreen categoryId={id.replace('eat-', '') as EatCategory} onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />}
         </div>
       ))}
 
@@ -214,6 +220,9 @@ export default function Shell() {
           <CollectionDetailScreen collectionId={activeScreen} onNavigate={handleNavigate} onOpenAttraction={handleOpenAttraction} selectedSlug={selectedAttraction?.slug || null} />
         )}
       </div>
+
+      {/* Search Overlay */}
+      <SearchOverlay open={searchOpen} onClose={handleSearchClose} onNavigate={handleNavigate} onOpenAttraction={handleOpenAttraction} />
 
       {/* Bottom Nav */}
       <nav className="v2-bottom-nav">
