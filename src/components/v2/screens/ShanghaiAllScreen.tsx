@@ -1,12 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
+import SaveSheet from '../SaveSheet';
 import type { AttractionData } from '@/types/attraction';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 interface ShanghaiAllScreenProps {
   onNavigate: (screen: string) => void;
+  onSearchOpen?: () => void;
 }
 
 const TOP_TABS = [
@@ -25,7 +33,7 @@ const VIBE_FILTERS: { id: string; emoji: string; label: string }[] = [
   { id: 'after-dark',            emoji: '🌙', label: 'Nightlife'    },
 ];
 
-export default function ShanghaiAllScreen({ onNavigate }: ShanghaiAllScreenProps) {
+export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: ShanghaiAllScreenProps) {
   const [activeVibe, setActiveVibe] = useState<string | null>(null);
   const [compact, setCompact] = useState(false);
 
@@ -42,7 +50,7 @@ export default function ShanghaiAllScreen({ onNavigate }: ShanghaiAllScreenProps
     <div className={`v2-scroll-body${activeVibe ? ' v2-scroll-body--light' : ''}`} onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
       {/* Airbnb-style sticky top bar */}
       <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
-        <div className="v2-sha-pill">
+        <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
         </div>
@@ -235,16 +243,32 @@ function getImageBg(images?: string[]): React.CSSProperties {
 
 function ShaCardFromData({ attraction }: { attraction: AttractionData }) {
   const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const price = extractPrice(attraction.getting_in?.price_rmb);
+  const name = attraction.card_name || attraction.attraction_name_en;
+
+  async function handleFav(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
+
   return (
     <a href={`/attractions/${attraction.slug}`} className="v2-sha-cover-card" style={{ cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+      <SaveSheet
+        isOpen={showSaveSheet}
+        placeName={name}
+        onClose={() => setShowSaveSheet(false)}
+        onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }}
+      />
       <div className="v2-sha-cover-img" style={getImageBg(attraction.images)} />
       <div className="v2-sha-cover-overlay" />
       {price && <div className="v2-sha-cover-badge dark">{"\u00A5"}{price}</div>}
       <button
         type="button"
         className="v2-sh-food-fav"
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved((prev) => !prev); }}
+        onClick={handleFav}
         aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
       >
         <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -253,7 +277,7 @@ function ShaCardFromData({ attraction }: { attraction: AttractionData }) {
       </button>
       <div className="v2-sha-cover-body">
         <div className="v2-sha-cover-tag">{attraction.card_type || attraction.experience_type}</div>
-        <div className="v2-sha-cover-name">{attraction.card_name || attraction.attraction_name_en}</div>
+        <div className="v2-sha-cover-name">{name}</div>
         <div className="v2-sha-cover-hook">{attraction.card_hook || shortHook(attraction.hook)}</div>
       </div>
     </a>

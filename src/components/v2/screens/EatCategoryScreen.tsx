@@ -1,8 +1,15 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
+import SaveSheet from '../SaveSheet';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 const EAT_TABS: { id: EatCategory; label: string }[] = [
   { id: 'chinese', label: 'Chinese' },
@@ -40,9 +47,10 @@ interface EatCategoryScreenProps {
   categoryId: EatCategory;
   onNavigate: (screen: string) => void;
   topTab?: 'eat' | 'drink';
+  onSearchOpen?: () => void;
 }
 
-export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'eat' }: EatCategoryScreenProps) {
+export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'eat', onSearchOpen }: EatCategoryScreenProps) {
   const [activeTab, setActiveTab] = useState<EatCategory>(categoryId);
   const [allRestaurants, setAllRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
   const [compact, setCompact] = useState(false);
@@ -71,7 +79,7 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
     <div className="v2-scroll-body" onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
       {/* Airbnb-style sticky top bar */}
       <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
-        <div className="v2-sha-pill">
+        <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
         </div>
@@ -136,10 +144,24 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
 
 function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
   const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const images = r.images?.length ? r.images : r.image ? [r.image] : [];
+
+  async function handleFav(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
 
   const inner = (
     <div className="v2-eatcat-row">
+      <SaveSheet
+        isOpen={showSaveSheet}
+        placeName={r.name_en}
+        onClose={() => setShowSaveSheet(false)}
+        onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }}
+      />
       {/* Photo scroll */}
       <div className="v2-eatcat-photos">
         {images.length > 0 ? (
@@ -155,7 +177,7 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
         )}
         <button
           className="v2-sh-food-fav"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSaved(!saved); }}
+          onClick={handleFav}
           aria-label={saved ? 'Unsave' : 'Save'}
         >
           <svg viewBox="0 0 32 32" width="26" height="26" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">

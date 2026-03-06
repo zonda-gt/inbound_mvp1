@@ -79,7 +79,7 @@
 .v2-scroll-body {
   flex: 1;
   overflow-y: auto;
-  overflow-x: clip;
+  overflow-x: hidden;
   scrollbar-width: none;
   padding-bottom: 90px;
 }
@@ -3614,5 +3614,381 @@
   font-family:inherit;
   cursor:pointer;
   transition:opacity 0.15s;
+}
+
+/* ══════ Save / Wishlist Sheet ══════ */
+.v2-save-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  animation: v2SaveFadeIn 0.2s ease;
+}
+@keyframes v2SaveFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.v2-save-sheet {
+  position: relative;
+  width: 100%;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 24px 44px;
+  animation: v2SheetUp 0.28s cubic-bezier(0.34,1.1,0.64,1);
+}
+@keyframes v2SheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.v2-save-sheet-handle {
+  width: 36px; height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin: 0 auto 20px;
+}
+.v2-save-close {
+  position: absolute;
+  top: 16px; right: 20px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  border: none;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #1a1a1a;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-save-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.v2-save-icon {
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+.v2-save-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #1a1a1a;
+  margin: 0 0 8px;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+}
+.v2-save-sub {
+  font-size: 14px;
+  color: #6E6E73;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0 12px;
+}
+.v2-save-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.v2-save-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: -apple-system, 'DM Sans', sans-serif;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-save-btn:active { transform: scale(0.975); }
+.v2-save-btn:disabled { opacity: 0.55; cursor: default; }
+.v2-save-apple { background: #000; color: #fff; }
+.v2-save-google {
+  background: #fff; color: #1a1a1a;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+}
+.v2-save-email-btn { background: #f5f5f7; color: #1a1a1a; }
+.v2-save-divider {
+  display: flex; align-items: center; gap: 10px;
+  color: #AEAEB2; font-size: 13px;
+}
+.v2-save-divider::before, .v2-save-divider::after {
+  content: ''; flex: 1; height: 1px; background: #e8e8ed;
+}
+.v2-save-email-link {
+  background: none; border: none;
+  color: #1a1a1a; font-size: 15px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+  text-align: center; padding: 6px 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-save-email-form { display: flex; flex-direction: column; gap: 10px; }
+.v2-save-email-input {
+  width: 100%; padding: 13px 16px;
+  border-radius: 10px; border: 1.5px solid #e8e8ed;
+  background: #fff; color: #1a1a1a;
+  font-size: 15px; font-family: inherit;
+  outline: none; box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.v2-save-email-input:focus { border-color: #000; }
+.v2-save-email-input::placeholder { color: #AEAEB2; }
+.v2-save-error { font-size: 13px; color: #E61E4D; text-align: center; margin: 0; }
+.v2-save-sent {
+  text-align: center; display: flex; flex-direction: column;
+  align-items: center; gap: 8px; padding: 12px 0;
+}
+.v2-save-sent-icon { font-size: 44px; }
+.v2-save-sent-title { font-size: 18px; font-weight: 700; color: #1a1a1a; margin: 0; }
+.v2-save-sent-sub { font-size: 14px; color: #6E6E73; margin: 0; line-height: 1.5; }
+.v2-save-back-btn {
+  margin-top: 8px; background: none; border: none;
+  color: #6E6E73; font-size: 13px; cursor: pointer;
+  text-decoration: underline; font-family: inherit;
+}
+.v2-save-terms {
+  font-size: 11px; color: #AEAEB2; text-align: center;
+  margin: 14px 0 0; line-height: 1.5;
+}
+
+/* ══════ Journal Login Gate ══════ */
+.v2-login-gate {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #06040f;
+}
+
+/* Atmospheric glowing orbs */
+.v2-login-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.v2-login-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+.v2-login-orb-1 {
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, #7C3AED 0%, transparent 70%);
+  top: -60px; left: -40px;
+}
+.v2-login-orb-2 {
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, #C0392B 0%, transparent 70%);
+  top: 60px; right: -30px;
+  opacity: 0.4;
+}
+.v2-login-orb-3 {
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, #1D4ED8 0%, transparent 70%);
+  top: 120px; left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.25;
+}
+
+/* Top visual area */
+.v2-login-visual {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 52px 28px 32px;
+  z-index: 1;
+}
+.v2-login-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.v2-login-brand-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #E61E4D;
+  box-shadow: 0 0 10px rgba(230,30,77,0.8);
+}
+.v2-login-brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  letter-spacing: -0.01em;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+}
+.v2-login-headline {
+  padding-bottom: 4px;
+}
+.v2-login-h1 {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  color: #fff;
+  margin: 0 0 12px;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+}
+.v2-login-tagline {
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.5);
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Bottom sheet */
+.v2-login-sheet {
+  position: relative;
+  z-index: 2;
+  background: #ffffff;
+  border-radius: 28px 28px 0 0;
+  padding: 12px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.3);
+}
+.v2-login-sheet-handle {
+  width: 36px; height: 4px;
+  border-radius: 2px;
+  background: #e0e0e0;
+  margin: 0 auto 16px;
+}
+
+/* Auth buttons */
+.v2-signin-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px 20px;
+  border-radius: 14px;
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: -apple-system, 'DM Sans', 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-signin-btn:active { transform: scale(0.975); transition-duration: 0.06s; }
+.v2-signin-btn:disabled { opacity: 0.55; cursor: default; }
+
+.v2-signin-apple {
+  background: #000;
+  color: #fff;
+}
+.v2-signin-google {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+}
+.v2-signin-email {
+  background: #f5f5f7;
+  color: #1a1a1a;
+}
+
+/* Divider */
+.v2-login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #AEAEB2;
+  font-size: 13px;
+  margin: 2px 0;
+}
+.v2-login-divider::before,
+.v2-login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e8e8ed;
+}
+
+/* Email form */
+.v2-login-email-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.v2-login-email-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e8e8ed;
+  background: #fff;
+  color: #1a1a1a;
+  font-size: 15px;
+  font-family: -apple-system, 'DM Sans', sans-serif;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.v2-login-email-input:focus { border-color: #000; }
+.v2-login-email-input::placeholder { color: #AEAEB2; }
+
+.v2-login-error {
+  font-size: 13px;
+  color: #E61E4D;
+  text-align: center;
+  margin: 0;
+}
+.v2-login-terms {
+  font-size: 11.5px;
+  color: #AEAEB2;
+  text-align: center;
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* Email sent state */
+.v2-login-sent {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+}
+.v2-login-sent-icon { font-size: 48px; }
+.v2-login-sent-title { font-size: 19px; font-weight: 700; color: #1a1a1a; margin: 0; letter-spacing: -0.02em; }
+.v2-login-sent-sub { font-size: 14px; color: #6E6E73; margin: 0; line-height: 1.5; }
+.v2-login-back-btn {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: #6E6E73;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+}
+
+/* Logged-in: sign out button */
+.v2-journal-logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  margin-top: 4px;
+  text-decoration: underline;
 }
 .v2-search-go-btn:active{opacity:0.85;}
