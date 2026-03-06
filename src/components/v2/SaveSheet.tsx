@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -62,9 +63,9 @@ export default function SaveSheet({ isOpen, placeName, onClose, onLoggedIn }: Sa
     else { setEmailSent(true); setLoading(false); }
   }
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div className="v2-save-overlay" onClick={onClose}>
       <div className="v2-save-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="v2-save-sheet-handle" />
@@ -145,6 +146,7 @@ export default function SaveSheet({ isOpen, placeName, onClose, onLoggedIn }: Sa
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
