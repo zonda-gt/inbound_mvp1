@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { getTimeAwareMessage } from '../data/discover-data';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
+import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
+import { createClient } from '@supabase/supabase-js';
+import SaveSheet from '../SaveSheet';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 interface DiscoverScreenProps {
   onNavigate: (screen: string) => void;
@@ -36,8 +44,11 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
   );
 }
 
+const barsList = ALL_EAT_RESTAURANTS.filter((r) => r.category === 'bars');
+
 export default function DiscoverScreen({ onNavigate, isActive: screenActive = true, onSearchOpen }: DiscoverScreenProps) {
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
+  const [compact, setCompact] = useState(false);
 
   // Fetch featured restaurants from restaurants_v2
   const [featuredRestaurants, setFeaturedRestaurants] = useState<any[]>([]);
@@ -54,9 +65,9 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
   }, []);
 
   return (
-    <div className="v2-scroll-body">
+    <div className="v2-scroll-body" onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
       {/* Sticky search + Eat / Experience / Drink tabs */}
-      <div className="v2-sha-sticky-bar">
+      <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
         <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
@@ -144,6 +155,24 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
 
       <div className="v2-sh-divider" />
 
+      {/* SECTION 2B: Bars & Cafes */}
+      <div className="v2-sh-section v2-fade-up v2-d2">
+        <div className="v2-sh-section-hdr">
+          <div>
+            <div className="v2-sh-section-title">Bars &amp; Cafes</div>
+            <div className="v2-sh-section-sub">Where to drink tonight</div>
+          </div>
+          <div className="v2-sh-see-all" onClick={() => onNavigate('drink')}>See all &rarr;</div>
+        </div>
+        <div className="v2-sh-hscroll">
+          {barsList.map((r) => (
+            <BarCoverCard key={r.slug} bar={r} screenActive={screenActive} />
+          ))}
+        </div>
+      </div>
+
+      <div className="v2-sh-divider" />
+
       {/* SECTION 3: Explore by neighbourhood */}
       <div className="v2-sh-section v2-fade-up v2-d2">
         <div className="v2-sh-section-hdr">
@@ -161,44 +190,6 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
           <NeighbourhoodCard bg="linear-gradient(135deg,#0a0a1a,#1a1a2d)" name="The Bund" desc="Art deco skyline · Rooftop bars · Iconic views" count="7 places" />
           <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a1a,#2d2d2d)" name="Xintiandi" desc="Shikumen heritage · Upscale dining · Galleries" count="11 places" />
           <NeighbourhoodCard bg="linear-gradient(135deg,#0a1a0a,#1a2d1a)" name="Jing&apos;an" desc="Ancient temple · Luxury malls · Specialty coffee" count="8 places" />
-        </div>
-      </div>
-
-      <div className="v2-sh-divider" />
-
-      {/* SECTION 4: Plan your day */}
-      <div className="v2-sh-section v2-fade-up v2-d3">
-        <div className="v2-sh-section-hdr">
-          <div>
-            <div className="v2-sh-section-title">Plan your day</div>
-            <div className="v2-sh-section-sub">
-              Curated itineraries by our local team
-            </div>
-          </div>
-          <div className="v2-sh-see-all">See all &rarr;</div>
-        </div>
-        <div className="v2-sh-hscroll">
-          <PlanCard bg="linear-gradient(135deg,#c8b89a,#a89878)" tag="Half day · 4–5 hrs" title="The perfect French Concession afternoon" stops={['☕ Coffee', '🛍 Boutiques', '🍷 Wine bar']} />
-          <PlanCard bg="linear-gradient(135deg,#0a0a1a,#1a1a2d)" tag="Evening · 5–6 hrs" title="Bund to bar — the classic Shanghai night" stops={['🌆 Sunset Bund', '🍜 Dinner', '🎵 Live music']} />
-          <PlanCard bg="linear-gradient(135deg,#1a0a0a,#2d1a1a)" tag="Full day · 8 hrs" title="Old Shanghai — Tianzifang to Xintiandi" stops={['🏮 Tianzifang', '🥟 Dumplings', '🏛 Xintiandi']} />
-        </div>
-      </div>
-
-      <div className="v2-sh-divider" />
-
-      {/* SECTION 5: Hidden gems */}
-      <div className="v2-sh-section v2-fade-up v2-d3">
-        <div className="v2-sh-section-hdr">
-          <div>
-            <div className="v2-sh-section-title">Hidden gems this month</div>
-            <div className="v2-sh-section-sub">Not on the tourist trail</div>
-          </div>
-          <div className="v2-sh-see-all">See all &rarr;</div>
-        </div>
-        <div className="v2-sh-gem-list">
-          <GemCard emoji="🎭" tag="Experience" name="The Paramount Ballroom&apos;s secret bar" desc="Most visitors only see the main floor. Ask for the side tables — no minimum spend, best view of the band." pills={['🌃 Nightlife', '¥200–500']} />
-          <GemCard emoji="🏯" tag="Culture" name="Jing&apos;an Temple at 7 AM" desc="Before the crowds arrive, monks chant in the golden halls. Free to enter before 8 AM on weekdays." pills={['🕌 Temple', 'Free entry']} />
-          <GemCard emoji="🌿" tag="Neighbourhood" name="Wukang Road on a Tuesday morning" desc="The most photographed street in Shanghai is empty on weekday mornings. Golden light through the plane trees." pills={['📸 Photo spot', 'Free']} />
         </div>
       </div>
 
@@ -265,13 +256,22 @@ function shortHook(hook?: string): string {
 
 function AttractionCoverCard({ attraction, screenActive = true }: { attraction: import('@/types/attraction').AttractionData; screenActive?: boolean }) {
   const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
   const img = attraction.images?.[0];
+  const name = attraction.card_name || attraction.attraction_name_en;
+  async function handleFav(e: React.MouseEvent) {
+    e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
   return (
     <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${attraction.slug}`)}>
+      <SaveSheet isOpen={showSaveSheet} placeName={name} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       {img ? (
         <ViewTransition name={screenActive ? `hero-attraction-${attraction.slug}` : undefined}>
-          <SmoothImage key={`${attraction.slug}-${img}`} className="v2-sh-cover-img" src={img} alt={attraction.card_name || attraction.attraction_name_en} />
+          <SmoothImage key={`${attraction.slug}-${img}`} className="v2-sh-cover-img" src={img} alt={name} />
         </ViewTransition>
       ) : (
         <div className="v2-sh-cover-img" style={{ background: 'linear-gradient(135deg,#1a1a2d,#2d2d4a)' }} />
@@ -279,7 +279,7 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
       <div className="v2-sh-cover-overlay" />
       <button
         className="v2-sh-food-fav"
-        onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
+        onClick={handleFav}
         aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
       >
         <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -288,7 +288,7 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
       </button>
       <div className="v2-sh-cover-body">
         <div className="v2-sh-cover-tag">{attraction.card_type || attraction.experience_type}</div>
-        <div className="v2-sh-cover-name">{attraction.card_name || attraction.attraction_name_en}</div>
+        <div className="v2-sh-cover-name">{name}</div>
         <div className="v2-sh-cover-hook">{attraction.card_hook || shortHook(attraction.hook)}</div>
       </div>
     </div>
@@ -303,6 +303,45 @@ function CoverCardSkeleton() {
         <div style={{ height: 10, width: 60, background: 'rgba(255,255,255,0.08)', borderRadius: 5, marginBottom: 6 }} />
         <div style={{ height: 14, width: 120, background: 'rgba(255,255,255,0.08)', borderRadius: 7, marginBottom: 6 }} />
         <div style={{ height: 10, width: 100, background: 'rgba(255,255,255,0.05)', borderRadius: 5 }} />
+      </div>
+    </div>
+  );
+}
+
+function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screenActive?: boolean }) {
+  const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
+  const router = useRouter();
+  async function handleFav(e: React.MouseEvent) {
+    e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
+  return (
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} onClick={() => bar.slug && router.push(`/restaurants/${bar.slug}`)}>
+      <SaveSheet isOpen={showSaveSheet} placeName={bar.name_en} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
+      {bar.image ? (
+        <ViewTransition name={screenActive && bar.slug ? `hero-restaurant-${bar.slug}` : undefined}>
+          <SmoothImage className="v2-sh-cover-img" src={bar.image} alt={bar.name_en} />
+        </ViewTransition>
+      ) : (
+        <div className="v2-sh-cover-img" style={{ background: 'linear-gradient(135deg,#1a1a2d,#2d2d4a)' }} />
+      )}
+      <div className="v2-sh-cover-overlay" />
+      <button
+        className="v2-sh-food-fav"
+        onClick={handleFav}
+        aria-label={saved ? 'Unsave' : 'Save'}
+      >
+        <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
+          <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+        </svg>
+      </button>
+      <div className="v2-sh-cover-body">
+        <div className="v2-sh-cover-tag">{bar.cuisine_label}</div>
+        <div className="v2-sh-cover-name">{bar.name_en}</div>
+        <div className="v2-sh-cover-hook">{shortHook(bar.hook)}</div>
       </div>
     </div>
   );
@@ -326,9 +365,17 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
   slug: string; image: string | null; name: string; hook: string; price: string; rating: string; cuisine: string; screenActive?: boolean;
 }) {
   const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
+  async function handleFav(e: React.MouseEvent) {
+    e.stopPropagation();
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) { setShowSaveSheet(true); return; }
+    setSaved((s) => !s);
+  }
   const card = (
     <div className="v2-sh-food-card">
+      <SaveSheet isOpen={showSaveSheet} placeName={name} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       <div className="v2-sh-food-img-wrap">
         {image ? (
           <ViewTransition name={screenActive && slug ? `hero-restaurant-${slug}` : undefined}>
@@ -339,8 +386,8 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
         )}
         <button
           className="v2-sh-food-fav"
-          onClick={(e) => { e.stopPropagation(); setSaved(!saved); }}
-          aria-label="Save"
+          onClick={handleFav}
+          aria-label={saved ? 'Unsave' : 'Save'}
         >
           <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
             <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />

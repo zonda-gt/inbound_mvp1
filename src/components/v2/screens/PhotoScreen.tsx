@@ -304,38 +304,33 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
         </div>
       )}
 
-      {/* ───── Top Bar ───── */}
-      <div className="v2-cam-top">
-        <button className="v2-cam-btn" onClick={() => { if (capturedImage) handleReset(); else onNavigate("home"); }}>
-          ←
-        </button>
-        <span className="v2-cam-mode-label">📷 Photo AI</span>
-        <button className="v2-cam-btn" style={{ opacity: 0.5 }}>⚡</button>
-      </div>
+      {/* ───── Close Button ───── */}
+      <button
+        className="v2-cam-close"
+        onClick={() => { if (capturedImage) handleReset(); else onNavigate("home"); }}
+        aria-label="Close"
+      >
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
 
-      {/* ───── Mode Selector (only before capture) ───── */}
-      {!capturedImage && !hasResult && (
-        <div className="v2-cam-modes">
-          {(["TRANSLATE", "IDENTIFY", "MENU"] as const).map((mode) => (
-            <button
-              key={mode}
-              className={`v2-cam-mode-opt${activeMode === mode ? " active" : ""}`}
-              onClick={() => setActiveMode(mode)}
-            >
-              {mode}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mode selector removed — always defaults to IDENTIFY */}
 
       {/* ───── Camera Controls (live feed, not captured) ───── */}
       {!capturedImage && !hasResult && (
         <div className="v2-cam-controls">
-          <button className="v2-cam-gallery" onClick={() => fileInputRef.current?.click()}>🖼️</button>
+          <button className="v2-cam-gallery" onClick={() => fileInputRef.current?.click()} aria-label="Open gallery">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="3" />
+              <circle cx="8.5" cy="8.5" r="1.5" fill="white" stroke="none" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+          </button>
           <button className="v2-cam-shutter" onClick={handleCapture}>
             <span className="v2-cam-shutter-inner" />
           </button>
-          <button className="v2-cam-flip" onClick={handleFlip}>🔄</button>
+          <div style={{ width: 44 }} />
         </div>
       )}
 

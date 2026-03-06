@@ -224,8 +224,8 @@ export default function Shell() {
       {/* Search Overlay */}
       <SearchOverlay open={searchOpen} onClose={handleSearchClose} onNavigate={handleNavigate} onOpenAttraction={handleOpenAttraction} />
 
-      {/* Bottom Nav */}
-      <nav className="v2-bottom-nav">
+      {/* Bottom Nav — hidden when Lens is active */}
+      <nav className={`v2-bottom-nav${activeScreen === 'photo' ? ' v2-bottom-nav--hidden' : ''}`}>
           {navItems.map((item) => {
             const isItemActive = (screenToTab[activeScreen] || 'discover') === item.id;
 

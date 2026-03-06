@@ -101,6 +101,12 @@
   justify-content: space-around;
   padding: 9px 8px 0;
   z-index: 200;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.v2-bottom-nav--hidden {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
 }
 .v2-nav-btn {
   display: flex;
@@ -574,7 +580,7 @@
 /* Card */
 .v2-pick-card {
   border-radius: 16px; overflow: hidden; position: relative;
-  height: 260px; cursor: pointer;
+  height: 220px; cursor: pointer;
   box-shadow:
     0 1px 2px rgba(0,0,0,0.06),
     0 4px 12px rgba(0,0,0,0.08),
@@ -1615,6 +1621,14 @@
 .v2-vf-focus::after { bottom: -2px; right: -2px; border-bottom: 3px solid #ffdc00; border-right: 3px solid #ffdc00; }
 
 /* Camera controls */
+.v2-cam-close {
+  position: absolute; top: 16px; left: 16px; z-index: 10;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(10px);
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
 .v2-cam-top {
   position: relative; z-index: 10;
   display: flex; align-items: center; justify-content: space-between;
@@ -1642,15 +1656,19 @@
 }
 .v2-cam-mode-opt.active { color: white; border-bottom: 2px solid var(--gold); }
 .v2-cam-controls {
-  position: absolute; bottom: 100px; left: 0; right: 0; z-index: 10;
-  display: flex; align-items: center; justify-content: center; gap: 44px;
+  position: absolute; bottom: 48px; left: 0; right: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center; gap: 36px;
+  padding: 0 32px;
 }
 .v2-cam-gallery {
-  width: 52px; height: 52px; border-radius: var(--r-md);
-  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
+  width: 44px; height: 44px; border-radius: 10px;
+  background: rgba(255,255,255,0.12);
+  border: 2px solid rgba(255,255,255,0.5);
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px; cursor: pointer; overflow: hidden;
+  cursor: pointer; overflow: hidden;
+  transition: transform 0.15s ease;
 }
+.v2-cam-gallery:active { transform: scale(0.9); }
 .v2-cam-shutter {
   width: 74px; height: 74px; border-radius: 50%;
   background: rgba(255,255,255,0.2); border: 3px solid rgba(255,255,255,0.5);
@@ -1659,12 +1677,6 @@
 }
 .v2-cam-shutter:active { transform: scale(0.92); }
 .v2-cam-shutter-inner { width: 60px; height: 60px; border-radius: 50%; background: white; }
-.v2-cam-flip {
-  width: 52px; height: 52px; border-radius: 50%;
-  background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; cursor: pointer;
-}
 
 /* AI result panel */
 .v2-ai-result-panel {

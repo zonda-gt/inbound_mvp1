@@ -101,7 +101,7 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
         <>
           {visibleCollections.map((col) => (
             <div key={col.id} id={`sha-section-${col.id}`}>
-              <CollectionCluster collectionId={col.id} onNavigate={onNavigate} />
+              <CollectionCluster collectionId={col.id} onSeeAll={() => setActiveVibe(col.id)} />
             </div>
           ))}
           <div style={{ height: 20 }} />
@@ -118,7 +118,7 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
 
 /* ─── Collection Cluster (All view) ─── */
 
-function CollectionCluster({ collectionId, onNavigate }: { collectionId: string; onNavigate: (screen: string) => void }) {
+function CollectionCluster({ collectionId, onSeeAll }: { collectionId: string; onSeeAll: () => void }) {
   const col = COLLECTION_LIST.find((c) => c.id === collectionId)!;
   const previewSlugs = col.slugs.slice(0, 4);
   const { attractions, loading } = useCollectionData(previewSlugs);
@@ -127,7 +127,7 @@ function CollectionCluster({ collectionId, onNavigate }: { collectionId: string;
     <div className="v2-sha-cluster-section">
       <div className="v2-sha-cluster-sec-hdr">
         <div className="v2-sha-cluster-sec-title">{col.emoji} {col.title}</div>
-        <div className="v2-sha-cluster-sec-seeall" onClick={() => onNavigate(col.id)}>See all &rarr;</div>
+        <div className="v2-sha-cluster-sec-seeall" onClick={onSeeAll}>See all &rarr;</div>
       </div>
       <div className="v2-sha-hscroll">
         {loading ? (
