@@ -340,7 +340,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
         <div style={{
           position: "absolute", inset: 0, zIndex: 8,
           display: "flex", flexDirection: "column",
-          background: "#0a0a0a",
+          background: "#0a0a0a", overflow: "hidden",
         }}>
           {/* Image at top */}
           {imagePreview && (
@@ -353,61 +353,63 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
             </div>
           )}
 
-          {/* Bottom sheet */}
-          <div
-            ref={resultRef}
-            style={{
-              flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch",
-              background: "#0a0a0a",
-              borderRadius: "16px 16px 0 0",
-              marginTop: -12,
-              position: "relative", zIndex: 1,
-            }}
-          >
+          {/* Bottom sheet — fixed header + scrollable body */}
+          <div style={{
+            flex: 1, display: "flex", flexDirection: "column",
+            background: "#0a0a0a", borderRadius: "16px 16px 0 0", marginTop: -12,
+            overflow: "hidden",
+          }}>
             {/* Grab handle */}
-            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px" }}>
+            <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 6px", flexShrink: 0 }}>
               <div style={{ width: 36, height: 4, borderRadius: 2, background: "rgba(255,255,255,.25)" }} />
             </div>
 
-            <div style={{ padding: "4px 16px 32px" }}>
-              {/* Profile row */}
-              <div style={{ display: "flex", gap: 12, marginBottom: 16, alignItems: "center" }}>
-                {imagePreview && (
-                  <img src={imagePreview} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: "cover", border: "2px solid rgba(255,255,255,.1)" }} />
-                )}
-                <span style={{
-                  fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                  letterSpacing: 1.2, color: "#D0021B",
-                  background: "rgba(208,2,27,.12)", padding: "4px 10px", borderRadius: 6,
-                }}>
-                  ✦ {activeMode}
-                </span>
-                <div style={{ flex: 1 }} />
-                {imagePreview && (
-                  <button
-                    onClick={() => {
-                      const a = document.createElement("a");
-                      a.href = imagePreview;
-                      a.download = `photo-ai-${Date.now()}.jpg`;
-                      a.click();
-                    }}
-                    style={{
-                      width: 36, height: 36, borderRadius: 18,
-                      background: "rgba(255,255,255,.1)", border: "none",
-                      color: "#fff", fontSize: 16, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                    aria-label="Save photo"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                      <polyline points="7 10 12 15 17 10"/>
-                      <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                  </button>
-                )}
-              </div>
+            {/* Profile row — stays fixed */}
+            <div style={{ display: "flex", gap: 12, padding: "0 16px 12px", alignItems: "center", flexShrink: 0 }}>
+              {imagePreview && (
+                <img src={imagePreview} alt="" style={{ width: 40, height: 40, borderRadius: 20, objectFit: "cover", border: "2px solid rgba(255,255,255,.1)" }} />
+              )}
+              <span style={{
+                fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                letterSpacing: 1.2, color: "#D0021B",
+                background: "rgba(208,2,27,.12)", padding: "4px 10px", borderRadius: 6,
+              }}>
+                ✦ {activeMode}
+              </span>
+              <div style={{ flex: 1 }} />
+              {imagePreview && (
+                <button
+                  onClick={() => {
+                    const a = document.createElement("a");
+                    a.href = imagePreview;
+                    a.download = `photo-ai-${Date.now()}.jpg`;
+                    a.click();
+                  }}
+                  style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    background: "rgba(255,255,255,.1)", border: "none",
+                    color: "#fff", fontSize: 16, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                  aria-label="Save photo"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                </button>
+              )}
+            </div>
 
+            {/* Scrollable text content */}
+            <div
+              ref={resultRef}
+              style={{
+                flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain",
+                padding: "0 16px 32px",
+              }}
+            >
               {/* AI Response text */}
               <div style={{ fontSize: 15, color: "#fff", lineHeight: 1.7 }}>
                 {response ? renderResponse(response) : (
@@ -433,8 +435,12 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
               {!loading && response && (
                 <button
                   onClick={() => {
-                    const msg = encodeURIComponent(response.slice(0, 500));
-                    window.location.href = `/chat?context=${msg}`;
+                    sessionStorage.setItem('photo-chat-context', JSON.stringify({
+                      imageUrl: imagePreview,
+                      aiResponse: response,
+                      mode: activeMode,
+                    }));
+                    window.location.href = '/chat';
                   }}
                   style={{
                     marginTop: 20, padding: 0, border: "none", background: "none",

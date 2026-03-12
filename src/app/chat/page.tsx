@@ -108,6 +108,10 @@ function ChatPageInner() {
   const attractionHandledRef = useRef(false);
   const restaurantHandledRef = useRef(false);
 
+  // Image + mode carried from the Lens screen — used to route to /api/lens-chat instead of /api/chat
+  const [lensImage, setLensImage] = useState<{ base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" } | null>(null);
+  const [lensMode, setLensMode] = useState<string | undefined>(undefined);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [toolStatus, setToolStatus] = useState<string | null>(null);
@@ -131,6 +135,26 @@ function ChatPageInner() {
   const [gpsPermissionStatus, setGpsPermissionStatus] = useState<
     "granted" | "denied" | "dismissed" | null
   >(null);
+
+  // Read Lens photo context from sessionStorage on mount (must be useEffect — SSR can't access sessionStorage)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('photo-chat-context');
+    if (!stored) return;
+    sessionStorage.removeItem('photo-chat-context');
+    try {
+      const { imageUrl, aiResponse, mode } = JSON.parse(stored);
+      setMessages([
+        { id: '1', role: 'user', content: '', imageUrl },
+        { id: '2', role: 'assistant', content: aiResponse },
+      ]);
+      if (imageUrl?.startsWith('data:')) {
+        const [header, base64] = imageUrl.split(',');
+        const mediaType = (header.match(/data:(image\/\w+);/) || [])[1] as "image/jpeg" | "image/png" | "image/gif" | "image/webp" || 'image/jpeg';
+        setLensImage({ base64, mediaType });
+        setLensMode(mode);
+      }
+    } catch { /* ignore parse errors */ }
+  }, []);
 
   // Initialize tracking on mount
   useEffect(() => {
@@ -213,6 +237,34 @@ function ChatPageInner() {
 
     return () => clearTimeout(hardTimeout);
   }, []);
+
+  // Called when user taps "Enable Location" in the banner after initially denying
+  const handleLocationGranted = async (lat: number, lng: number) => {
+    setGpsPermissionStatus("granted");
+    realCoordsRef.current = { lat, lng };
+    if (isInChina(lat, lng)) {
+      const coords = `${lng},${lat}`;
+      setUserLocation(coords);
+      setIsDemoMode(false);
+      setDemoReason(null);
+      try {
+        const response = await fetch('/api/reverse-geocode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location: coords }),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserCity(data.city);
+        }
+      } catch (error) {
+        console.error('Failed to get city from coordinates:', error);
+      }
+    } else {
+      setIsDemoMode(true);
+      setDemoReason("outside_china");
+    }
+  };
 
   // Context entity for pre-loaded cards from restaurant/attraction detail pages
   const [contextEntity, setContextEntity] = useState<{ type: "restaurant" | "attraction"; name: string } | null>(null);
@@ -365,9 +417,10 @@ function ChatPageInner() {
           }
         }
 
-        // Route to /api/ask for entity-specific Q&A, /api/chat for general chat
+        // Route to appropriate API endpoint
         const isEntityAsk = !!(restaurantSlug || attractionSlug);
-        const apiUrl = isEntityAsk ? "/api/ask" : "/api/chat";
+        const isLensChat = !!lensImage;
+        const apiUrl = isEntityAsk ? "/api/ask" : isLensChat ? "/api/lens-chat" : "/api/chat";
 
         const requestPayload = isEntityAsk
           ? {
@@ -383,6 +436,12 @@ function ChatPageInner() {
               userLat: freshLat,
               userLng: freshLng,
               isDemoMode,
+            }
+          : isLensChat
+          ? {
+              messages: apiMessages,
+              image: lensImage,
+              mode: lensMode,
             }
           : {
               messages: apiMessages,
@@ -814,7 +873,7 @@ function ChatPageInner() {
       }}>
         <button
           onClick={() => {
-            if (restaurantSlug || attractionSlug) {
+            if (restaurantSlug || attractionSlug || lensImage) {
               router.back();
             } else {
               router.push("/");
@@ -827,11 +886,12 @@ function ChatPageInner() {
         </button>
         <h1 style={{ fontSize: 16, fontWeight: 600, color: "#1A1A1A", letterSpacing: "-0.01em" }}>
           Hello<span style={{ color: "#D0021B" }}>China</span>
+          <span style={{ fontSize: 11, fontWeight: 400, color: "#999", marginLeft: 6 }}>AI</span>
         </h1>
       </header>
 
       {/* Preview banner */}
-      {locationRequested && <PreviewBanner hasLocation={!!userLocation} city={userCity} isDemoMode={isDemoMode} demoReason={demoReason} />}
+      {locationRequested && <PreviewBanner hasLocation={!!userLocation} city={userCity} isDemoMode={isDemoMode} demoReason={demoReason} onLocationGranted={handleLocationGranted} />}
 
       {/* Location prompt (shown briefly while waiting) */}
       {!locationRequested && (

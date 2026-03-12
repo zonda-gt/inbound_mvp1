@@ -73,7 +73,7 @@ const TODAY_PICKS = [
     lat: 31.220944879784632,
     lng: 121.47896878278914,
     reason: 'Warm wood interior, calm lighting, and low-pressure service rhythm.',
-    badge: '✦ AI Pick · Japanese',
+    badge: 'Japanese',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/edo-japanese-restaurant/review_101_0.jpeg',
   },
   {
@@ -85,7 +85,7 @@ const TODAY_PICKS = [
     lat: 31.23589486124896,
     lng: 121.46202001508684,
     reason: 'Refined vegan tasting menu with strong service and thoughtful presentation.',
-    badge: '✦ AI Pick · Vegan',
+    badge: 'Vegan',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/ru-pure-vegan/review_41_0.jpeg',
   },
   {
@@ -97,7 +97,7 @@ const TODAY_PICKS = [
     lat: 31.228481348411652,
     lng: 121.45870208689705,
     reason: 'Classic Shanghainese dishes in a polished room with reliable quality.',
-    badge: '✦ AI Pick · Shanghainese',
+    badge: 'Shanghainese',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/xinya-tea-house/review_187_0.jpeg',
   },
   {
@@ -109,7 +109,7 @@ const TODAY_PICKS = [
     lat: 31.20821810684588,
     lng: 121.40788812911273,
     reason: 'Big flavors, great value, and easy group ordering for first-timers.',
-    badge: '✦ AI Pick · Xinjiang',
+    badge: 'Xinjiang',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/restaurant-images/once-upon-xinjiang-wusun/review_0_0.jpeg',
   },
 ];
@@ -122,7 +122,7 @@ const ATTRACTION_PICKS = [
     meta: '~¥120 entry',
     location: 'Suzhou Creek',
     reason: 'World-class photo exhibitions in a riverside warehouse with a rooftop bar.',
-    badge: '✦ AI Pick · Attraction',
+    badge: 'Attraction',
     image: 'https://exybdmfburmyseaqchat.supabase.co/storage/v1/object/public/attraction-images/fotografiska-shanghai/review_212_0.jpeg',
   },
   {
@@ -132,7 +132,7 @@ const ATTRACTION_PICKS = [
     meta: 'From ¥520',
     location: "Jing'an",
     reason: 'An immersive theatre masterpiece — wander freely through a noir dreamscape.',
-    badge: '✦ AI Pick · Theatre',
+    badge: 'Theatre',
     image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=1200&q=80',
   },
   {
@@ -142,7 +142,7 @@ const ATTRACTION_PICKS = [
     meta: 'From ¥299',
     location: 'Lingang, Pudong',
     reason: 'Massive aquarium with orca shows and underwater tunnels — great for families.',
-    badge: '✦ AI Pick · Family',
+    badge: 'Family',
     image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
   },
 ];
@@ -232,6 +232,33 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
         onError={() => setLoaded(true)}
       />
     </>
+  );
+}
+
+// ── Pocket Phrase card with audio ───────────────────────────────
+interface PhraseData { en: string; cn: string; pinyin: string; audio: string }
+
+function PhraseCard({ phrase }: { phrase: PhraseData }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const play = () => {
+    if (playing) return;
+    if (!audioRef.current) {
+      audioRef.current = new Audio(phrase.audio);
+      audioRef.current.addEventListener('ended', () => setPlaying(false));
+    }
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+  };
+
+  return (
+    <div className="v2-phrase-card" onClick={play}>
+      <div className="v2-phrase-en">{phrase.en}</div>
+      <div className="v2-phrase-cn">{phrase.cn}</div>
+      <div className="v2-phrase-pinyin">{phrase.pinyin}</div>
+      <div className="v2-phrase-audio">{playing ? '🔊 Playing...' : '🔊 Tap to hear'}</div>
+    </div>
   );
 }
 
@@ -381,6 +408,15 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             {greeting} <span className="wave">👋</span><br />Ready to explore?
           </div>
         </div>
+      </div>
+
+      {/* Promo Card */}
+      <div className="v2-fade-up v2-d1" style={{ padding: '0 20px', marginTop: 8, cursor: 'pointer' }} onClick={() => onNavigate('photo')}>
+        <img
+          src="/card-real-A.png"
+          alt="Try AI Lens"
+          style={{ width: '100%', borderRadius: 16, display: 'block' }}
+        />
       </div>
 
       {/* 4. Today's Pick */}
@@ -577,30 +613,14 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
           <span className="v2-sec-link">See all</span>
         </div>
         <div className="v2-phrase-scroll">
-          <div className="v2-phrase-card">
-            <div className="v2-phrase-en">No spicy please</div>
-            <div className="v2-phrase-cn">不要辣</div>
-            <div className="v2-phrase-pinyin">Bù yào là</div>
-            <div className="v2-phrase-audio">🔊 Tap to hear</div>
-          </div>
-          <div className="v2-phrase-card">
-            <div className="v2-phrase-en">The bill please</div>
-            <div className="v2-phrase-cn">买单</div>
-            <div className="v2-phrase-pinyin">Mǎi dān</div>
-            <div className="v2-phrase-audio">🔊 Tap to hear</div>
-          </div>
-          <div className="v2-phrase-card">
-            <div className="v2-phrase-en">Where is the toilet?</div>
-            <div className="v2-phrase-cn">厕所在哪里？</div>
-            <div className="v2-phrase-pinyin">Cèsuǒ zài nǎlǐ?</div>
-            <div className="v2-phrase-audio">🔊 Tap to hear</div>
-          </div>
-          <div className="v2-phrase-card">
-            <div className="v2-phrase-en">I&apos;m allergic to...</div>
-            <div className="v2-phrase-cn">我对...过敏</div>
-            <div className="v2-phrase-pinyin">Wǒ duì... guòmǐn</div>
-            <div className="v2-phrase-audio">🔊 Tap to hear</div>
-          </div>
+          {[
+            { en: 'No spicy please', cn: '不要辣', pinyin: 'Bù yào là', audio: '/audio/no-spicy.mp3' },
+            { en: 'The bill please', cn: '买单', pinyin: 'Mǎi dān', audio: '/audio/the-bill.mp3' },
+            { en: 'Where is the toilet?', cn: '厕所在哪里？', pinyin: 'Cèsuǒ zài nǎlǐ?', audio: '/audio/where-toilet.mp3' },
+            { en: "I'm allergic to...", cn: '我对...过敏', pinyin: 'Wǒ duì... guòmǐn', audio: '/audio/allergic.mp3' },
+          ].map((p) => (
+            <PhraseCard key={p.audio} phrase={p} />
+          ))}
         </div>
       </div>
 

@@ -78,7 +78,7 @@ const M_ICO = ['🔮','💡','🌅','👀','🔑'];
 
 function Divider() { return <><div style={{ height: 32 }} /><div style={{ height: 1, background: '#ebebeb', margin: '0 20px' }} /><div style={{ height: 32 }} /></>; }
 
-function SH({ children }: { children: React.ReactNode }) { return <div style={{ padding: '0 20px' }}><div className="dm-serif" style={{ fontSize: 22, color: '#222', lineHeight: 1.25, marginBottom: 16 }}>{children}</div></div>; }
+function SH({ children }: { children: React.ReactNode }) { return <div style={{ padding: '0 20px' }}><div style={{ fontSize: 22, fontWeight: 700, color: '#222', lineHeight: 1.25, letterSpacing: '-0.02em', marginBottom: 16 }}>{children}</div></div>; }
 
 function Coll({ title, children, open: defaultOpen = false }: { title: string; children: React.ReactNode; open?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -178,7 +178,7 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
             <path d="M17 43C17 43 33 27.2 33 17C33 8.16 25.84 1 17 1C8.16 1 1 8.16 1 17C1 27.2 17 43 17 43Z" fill="#1A1A1A" stroke="#fff" stroke-width="1.5"/>
             <circle cx="17" cy="16" r="5.5" fill="#fff"/>
           </svg>
-          <div style="margin-top:2px;padding:3px 10px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:8px;font-size:12px;font-weight:700;color:#1A1A1A;white-space:nowrap;font-family:'Inter','DM Sans',-apple-system,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:-0.01em">${name}</div>
+          <div style="margin-top:2px;padding:3px 10px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:8px;font-size:12px;font-weight:700;color:#1A1A1A;white-space:nowrap;font-family:'DM Sans',-apple-system,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.12);letter-spacing:-0.01em">${name}</div>
         </div>`
       : `<div style="filter:drop-shadow(0 2px 6px rgba(0,0,0,.2))">
           <svg width="34" height="44" viewBox="0 0 34 44" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -607,9 +607,9 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   });
 
   return (
-    <div style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
-      .dm-serif{font-family:'DM Serif Display',Georgia,serif}
+    <div className="at-page" style={{ fontFamily: "var(--font-dm-sans-global), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
+      <style>{`
+      .at-page *{box-sizing:border-box}
       .hl-scroll::-webkit-scrollbar{display:none}
       .hl-scroll{scrollbar-width:none}
       .img-viewer-scroll::-webkit-scrollbar{display:none}
@@ -684,7 +684,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       {/* ═══ TITLE ═══ */}
       <div style={{ padding: '24px 20px 0' }}>
         {types.length > 0 && <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>{types.map((t: string, i: number) => <span key={i} style={{ fontSize: 11, fontWeight: 600, color: '#717171', background: '#f7f7f7', padding: '4px 10px', borderRadius: 20, letterSpacing: .3, textTransform: 'capitalize' }}>{t}</span>)}</div>}
-        <h1 className="dm-serif" style={{ fontSize: 26, fontWeight: 400, color: '#222', lineHeight: 1.2, letterSpacing: -.2, marginBottom: 4 }}>{data.attraction_name_en}</h1>
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: '#222', lineHeight: 1.2, letterSpacing: '-0.03em', marginBottom: 4 }}>{data.attraction_name_en}</h1>
         <p style={{ fontSize: 13, color: '#717171', marginBottom: 0 }}>{data.attraction_name_cn}</p>
         {tn.recommended && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, fontSize: 13, color: '#484848', fontWeight: 500 }}>
@@ -703,14 +703,14 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
 
       {/* ═══ HOOK ═══ */}
       {data.hook && (<><div style={{ padding: '0 20px' }}>
-        <p className="dm-serif" style={{ fontSize: 18, fontStyle: 'italic', color: '#222', lineHeight: 1.5 }}>&ldquo;{data.hook}&rdquo;</p>
+        <p style={{ fontSize: 18, fontStyle: 'italic', color: '#222', lineHeight: 1.5 }}>&ldquo;{data.hook}&rdquo;</p>
         {data.vibe && <p style={{ fontSize: 13, color: '#717171', marginTop: 10, lineHeight: 1.55 }}>{data.vibe}</p>}
       </div></>)}
 
       {/* ═══ STAT STRIP ═══ */}
       {stats.length > 0 && (<div style={{ display: 'flex', margin: '20px 20px 0', border: '1px solid #e0e0e0', borderRadius: 12, overflow: 'hidden' }}>
         {stats.map((s, i) => (<div key={i} style={{ flex: 1, textAlign: 'center', padding: '12px 6px', borderRight: i < stats.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
-          <div className="dm-serif" style={{ fontSize: 17, color: '#222' }}>{s.value}</div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#222' }}>{s.value}</div>
           <div style={{ fontSize: 10, color: '#717171', fontWeight: 500, marginTop: 2, letterSpacing: .2 }}>{s.label}</div>
         </div>))}
       </div>)}
@@ -719,7 +719,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       {/* ═══ MAKE-OR-BREAK ═══ */}
       {data.foreigner_top_question && (<><div style={{ margin: '0 20px', padding: 18, background: '#f7f7f7', borderRadius: 12 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: '#D0021B', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Make-or-Break Question</div>
-        <div className="dm-serif" style={{ fontSize: 17, color: '#222', marginBottom: 10, lineHeight: 1.3 }}>&ldquo;{data.foreigner_top_question}&rdquo;</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: '#222', marginBottom: 10, lineHeight: 1.3 }}>&ldquo;{data.foreigner_top_question}&rdquo;</div>
         <div style={{ fontSize: 14, color: '#484848', lineHeight: 1.6 }}><RM text={data.foreigner_top_answer} lines={3} /></div>
       </div>
       {data.experience_format_note && <Coll title="How it works"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>{data.experience_format_note}</div></Coll>}
@@ -729,7 +729,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       {gi.price_rmb && (<><SH>Pricing &amp; booking</SH>
         <div style={{ margin: '0 20px', padding: 16, background: '#222', borderRadius: 12, color: '#fff', marginBottom: priceBreakdown.length ? 0 : 14 }}>
           <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, color: 'rgba(255,255,255,.5)', marginBottom: 2 }}>Realistic budget</div>
-          <div className="dm-serif" style={{ fontSize: 24 }}>{shortPrice || String(gi.price_rmb).split('.')[0]}</div>
+          <div style={{ fontSize: 24, fontWeight: 700 }}>{shortPrice || String(gi.price_rmb).split('.')[0]}</div>
           {gi.price_usd && <div style={{ fontSize: 12, color: 'rgba(255,255,255,.5)', marginTop: 2 }}>{typeof gi.price_usd === 'number' ? `~$${gi.price_usd}` : gi.price_usd}</div>}
         </div>
         {priceBreakdown.length > 0 && priceBreakdown.map((row: { item: string; price: string; highlight?: boolean }, i: number) => (
