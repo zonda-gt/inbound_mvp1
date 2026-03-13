@@ -505,6 +505,12 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const [toast, setToast] = useState('');
   const [staffPhrase, setStaffPhrase] = useState<PhraseData | null>(null);
 
+  // Prefetch Ask and Go destinations
+  useEffect(() => {
+    router.prefetch(`/chat?attraction=${data.slug}`);
+    router.prefetch('/navigate');
+  }, [router, data.slug]);
+
   async function handleFav() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
@@ -595,7 +601,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
     }
     return parsed ? 'Closed' : '';
   })();
-  const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
+  const handleAsk = onAsk || (() => { router.push(`/chat?attraction=${data.slug}`); });
   const handleNav = onNavigate || (() => {
     const params = new URLSearchParams();
     params.set('name', data.attraction_name_cn || data.attraction_name_en);

@@ -416,8 +416,15 @@ export default function NavigateScreen({
           <button
             className="v2-nav-cta v2-nav-cta--primary"
             onClick={() => {
+              const [lng, lat] = data.destination.location.split(",");
               const dest = encodeURIComponent(data.destination.name);
-              window.open(`https://uri.amap.com/search?keyword=${dest}&callnative=1`, "_blank");
+              const deepLink = `iosamap://path?dlat=${lat}&dlon=${lng}&dname=${dest}&dev=0&t=0`;
+              const webFallback = `https://uri.amap.com/search?keyword=${dest}&callnative=1`;
+              const start = Date.now();
+              window.location.href = deepLink;
+              setTimeout(() => {
+                if (Date.now() - start < 1500) window.open(webFallback, "_blank");
+              }, 800);
             }}
           >
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
@@ -430,7 +437,14 @@ export default function NavigateScreen({
             className="v2-nav-cta v2-nav-cta--secondary"
             onClick={() => {
               const [lng, lat] = data.destination.location.split(",");
-              window.open(`https://common.diditaxi.com.cn/general/webEntry?sLat=&sLng=&dLat=${lat}&dLng=${lng}&dName=${encodeURIComponent(data.destination.name)}`, "_blank");
+              const dest = encodeURIComponent(data.destination.name);
+              const deepLink = `didapinche://app?dlat=${lat}&dlng=${lng}&dname=${dest}`;
+              const webFallback = `https://common.diditaxi.com.cn/general/webEntry?sLat=&sLng=&dLat=${lat}&dLng=${lng}&dName=${dest}`;
+              const start = Date.now();
+              window.location.href = deepLink;
+              setTimeout(() => {
+                if (Date.now() - start < 1500) window.open(webFallback, "_blank");
+              }, 800);
             }}
           >
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">

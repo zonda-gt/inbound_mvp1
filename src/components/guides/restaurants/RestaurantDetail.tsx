@@ -229,6 +229,12 @@ export default function RestaurantDetail({ data }: { data: any }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
 
+  // Prefetch Ask and Go destinations
+  useEffect(() => {
+    router.prefetch(`/chat?restaurant=${data.slug}`);
+    router.prefetch('/navigate');
+  }, [router, data.slug]);
+
   async function handleFav() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
@@ -410,7 +416,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
   };
 
   const handleAsk = () => {
-    window.location.href = `/chat?restaurant=${data.slug}`;
+    router.push(`/chat?restaurant=${data.slug}`);
   };
 
   const handleNav = () => {

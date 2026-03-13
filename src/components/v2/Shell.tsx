@@ -92,16 +92,48 @@ function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
 export default function Shell() {
   const [activeScreen, setActiveScreenRaw] = useState<Screen>('home');
 
-  // Restore saved screen after hydration (avoids SSR/client mismatch)
+  // Restore saved screen + scroll position after hydration
   useEffect(() => {
     const saved = sessionStorage.getItem('v2-screen');
     if (saved && saved in screenToTab) setActiveScreenRaw(saved as Screen);
+
+    // Restore scroll after DOM updates with the correct active screen
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const screenId = saved || 'home';
+        const scrollTop = sessionStorage.getItem(`v2-scroll-${screenId}`);
+        if (scrollTop) {
+          const el = document.querySelector('.v2-screen.active .v2-scroll-body');
+          if (el) el.scrollTop = parseInt(scrollTop);
+        }
+      });
+    });
   }, []);
 
   const setActiveScreen = useCallback((screen: Screen) => {
     setActiveScreenRaw(screen);
     sessionStorage.setItem('v2-screen', screen);
   }, []);
+
+  // Save scroll position of active screen (so it survives full-page navigation)
+  useEffect(() => {
+    const el = document.querySelector('.v2-screen.active .v2-scroll-body');
+    if (!el) return;
+
+    let ticking = false;
+    const onScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(() => {
+          sessionStorage.setItem(`v2-scroll-${activeScreen}`, String(el.scrollTop));
+          ticking = false;
+        });
+      }
+    };
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [activeScreen]);
 
   const handleNavigate = useCallback((screen: string) => {
     setActiveScreen(screen as Screen);
