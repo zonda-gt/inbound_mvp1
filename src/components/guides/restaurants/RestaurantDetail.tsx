@@ -1,6 +1,13 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import SaveSheet from '@/components/v2/SaveSheet';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -216,8 +223,18 @@ function ViewerSwipe({
 
 export default function RestaurantDetail({ data }: { data: any }) {
   const [saved, setSaved] = useState(false);
+  const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState('');
+
+  async function handleFav() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setSaveSheet({ open: true, name: data.name_en, onConfirm: () => setSaved((prev) => !prev) });
+      return;
+    }
+    setSaved((prev) => !prev);
+  }
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
 
@@ -359,7 +376,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
   const locationLine = [neighborhood, city].filter(Boolean).join(', ');
   const headerCnLine = [nameCn, locationLine].filter(Boolean).join(' · ');
 
-  const footerSub = [neighborhood, cuisineSubtype || cuisineType].filter(Boolean).join(' · ');
+  const footerSub = neighborhood || '';
 
   const showToast = (message: string) => {
     setToast(message);
@@ -647,8 +664,8 @@ export default function RestaurantDetail({ data }: { data: any }) {
         <button className="nav-btn" onClick={() => window.history.back()} aria-label="Back">←</button>
         <span className="nav-title">{nameEn}</span>
         <div className="nav-right">
-          <button className="nav-btn" onClick={handleShare} aria-label="Share">↗</button>
-          <button className="nav-btn" onClick={() => setSaved((prev) => !prev)} aria-label="Save" style={{ color: saved ? '#D0021B' : '#222' }}>{saved ? '♥' : '♡'}</button>
+          <button className="nav-btn" onClick={handleShare} aria-label="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+          <button className="nav-btn" onClick={handleFav} aria-label="Save" style={{ color: saved ? '#D0021B' : '#222' }}>{saved ? '♥' : '♡'}</button>
         </div>
       </nav>
 
@@ -1098,6 +1115,13 @@ export default function RestaurantDetail({ data }: { data: any }) {
           onSwipeDown={() => setGalleryMode('grid')}
         />
       ) : null}
+
+      <SaveSheet
+        isOpen={saveSheet.open}
+        placeName={saveSheet.name}
+        onClose={() => setSaveSheet({ open: false })}
+        onLoggedIn={() => { saveSheet.onConfirm?.(); setSaveSheet({ open: false }); }}
+      />
     </div>
   );
 }

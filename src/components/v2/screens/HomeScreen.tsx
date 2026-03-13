@@ -398,8 +398,19 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             <span className="v2-logo-text">Hello<em>China</em></span>
           </div>
           <div className="v2-home-top-right">
-            <div className="v2-notif-btn">🔔<div className="v2-notif-dot" /></div>
-            <div className="v2-avatar-btn">A</div>
+            <button
+              type="button"
+              className="v2-share-btn v2-share-btn--primary"
+              onClick={() => {
+                if (navigator.share) {
+                  navigator.share({ title: 'HelloChina', text: 'Your AI travel companion for China', url: window.location.origin });
+                } else {
+                  navigator.clipboard.writeText(window.location.origin);
+                }
+              }}
+            >
+              SHARE <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" y1="2" x2="12" y2="15" /></svg>
+            </button>
           </div>
         </div>
         <div className="v2-home-greeting">
@@ -622,6 +633,21 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             <PhraseCard key={p.audio} phrase={p} />
           ))}
         </div>
+      </div>
+
+      {/* 8b. Feedback CTA */}
+      <div className="v2-feedback-cta v2-fade-up v2-d3">
+        <div className="v2-feedback-cta-text">
+          <div className="v2-feedback-cta-title">Help us improve</div>
+          <div className="v2-feedback-cta-sub">We&apos;re building this for travellers like you. Tell us what you think!</div>
+        </div>
+        <button
+          type="button"
+          className="v2-feedback-cta-btn"
+          onClick={() => onNavigate('feedback')}
+        >
+          Give Feedback
+        </button>
       </div>
 
       {/* 9. Neighbourhood Vibes */}

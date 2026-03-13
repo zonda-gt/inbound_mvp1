@@ -3,6 +3,13 @@
 import { useState, useEffect, useCallback, useRef, ViewTransition } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
+import { createClient } from '@supabase/supabase-js';
+import SaveSheet from '@/components/v2/SaveSheet';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+);
 
 // ════════════════════════════════════════════════════════════════
 // ATTRACTION PAGE v2 — Universal Template Engine
@@ -512,8 +519,18 @@ function ViewerSwipe({
 export default function AttractionPage({ data, onAsk, onNavigate, onBack, layoutId, scrollRef }: { data: any; onAsk?: () => void; onNavigate?: () => void; onBack?: () => void; layoutId?: string; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
   const [navScrolled, setNavScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
   const [toast, setToast] = useState('');
   const [staffPhrase, setStaffPhrase] = useState<PhraseData | null>(null);
+
+  async function handleFav() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      setSaveSheet({ open: true, name: data.card_name || data.attraction_name_en, onConfirm: () => setSaved((prev) => !prev) });
+      return;
+    }
+    setSaved((prev) => !prev);
+  }
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
   const [mapCoords, setMapCoords] = useState<{ lng: number; lat: number } | null>(null);
@@ -619,6 +636,14 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       .at-img-skel{position:absolute;inset:0;background:linear-gradient(90deg,#ececee 25%,#f6f6f7 50%,#ececee 75%);background-size:200% 100%;animation:at-skel-shimmer 1.25s ease-in-out infinite;opacity:1;transition:opacity .24s ease}
       .at-img-skel.loaded{opacity:0;pointer-events:none}
       @keyframes at-skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+      .sticky-footer{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid rgba(0,0,0,.06);padding:12px 20px calc(12px + env(safe-area-inset-bottom));z-index:100;display:flex;justify-content:space-between;align-items:center}
+      .footer-price{font-size:18px;font-weight:800}
+      .footer-sub{font-size:12px;color:#717171}
+      .footer-btns{display:flex;gap:10px}
+      .btn-ask{padding:12px 22px;border-radius:14px;font-size:15px;font-weight:600;border:1.5px solid #ddd;background:#fff;color:#222;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;transition:all .2s ease;letter-spacing:-.01em}
+      .btn-ask:active{background:#f5f5f5;transform:scale(.97)}
+      .btn-go{padding:12px 28px;border-radius:14px;font-size:15px;font-weight:600;border:none;background:linear-gradient(135deg,#e8382e 0%,#c41e14 100%);color:#fff;cursor:pointer;display:flex;align-items:center;gap:7px;font-family:'DM Sans',sans-serif;box-shadow:0 2px 12px rgba(196,30,20,.28);transition:all .2s ease;letter-spacing:-.01em}
+      .btn-go:active{transform:scale(.97);box-shadow:0 1px 6px rgba(196,30,20,.3)}
       `}</style>
 
       {/* ═══ NAV ═══ */}
@@ -626,8 +651,8 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         <button onClick={onBack || (() => window.history.back())} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
         <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 600, color: '#222', opacity: navScrolled ? 1 : 0, transition: 'opacity .3s', whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.card_name || data.attraction_name_en}</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>⤴</button>
-          <button onClick={() => { setSaved(!saved); showToast(saved ? 'Removed' : 'Saved to your trip'); }} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: saved ? '#D0021B' : '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>{saved ? '♥' : '♡'}</button>
+          <button onClick={() => { if (navigator.share) { navigator.share({ url: window.location.href, title: data.card_name || data.attraction_name_en }); } else { navigator.clipboard.writeText(window.location.href).catch(() => {}); showToast('Link copied'); } }} aria-label="Share" style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+          <button onClick={handleFav} style={{ width: 32, height: 32, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: saved ? '#D0021B' : '#222', fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>{saved ? '♥' : '♡'}</button>
         </div>
       </nav>
 
@@ -870,11 +895,24 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       <div style={{ height: 60 }} />
 
       {/* ═══ STICKY BOTTOM (dual CTA) ═══ */}
-      <div style={{ position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 430, background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid #ebebeb', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, zIndex: 100 }}>
-        <div style={{ fontSize: 10, color: '#717171' }}><strong style={{ fontSize: 15, fontWeight: 700, color: '#222', display: 'block' }}>{shortPrice || 'See pricing'}</strong>per person</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={handleAsk} style={{ padding: '10px 14px', borderRadius: 10, background: '#fff', color: '#222', fontSize: 13, fontWeight: 600, border: '1.5px solid #222', cursor: 'pointer', whiteSpace: 'nowrap' }}>💬 Ask</button>
-          <button onClick={handleNav} style={{ padding: '10px 14px', borderRadius: 10, background: '#D0021B', color: '#fff', fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>🧭 Go</button>
+      <div className="sticky-footer">
+        <div>
+          <div className="footer-price">{shortPrice || 'See pricing'}</div>
+          <div className="footer-sub">{(() => { const m = (data.address_cn || '').match(/(.{2,3}区)/); return m ? m[1] : 'per person'; })()}</div>
+        </div>
+        <div className="footer-btns">
+          <button className="btn-ask" onClick={handleAsk}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+            </svg>
+            Ask
+          </button>
+          <button className="btn-go" onClick={handleNav}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
+            GO
+          </button>
         </div>
       </div>
 
@@ -945,6 +983,13 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
 
       {/* ═══ SHOW-TO-STAFF OVERLAY ═══ */}
       <StaffOverlay phrase={staffPhrase} onClose={() => setStaffPhrase(null)} />
+
+      <SaveSheet
+        isOpen={saveSheet.open}
+        placeName={saveSheet.name}
+        onClose={() => setSaveSheet({ open: false })}
+        onLoggedIn={() => { saveSheet.onConfirm?.(); setSaveSheet({ open: false }); }}
+      />
     </div>
   );
 }

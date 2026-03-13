@@ -93,6 +93,11 @@ export async function POST(request: NextRequest) {
       getDrivingRoute(originCoords, place.location),
     ]);
 
+    console.log("[Navigation]", destination, "origin:", originCoords, "→", place.location,
+      "transit:", transit ? `${transit.totalDuration}min` : "null",
+      "driving:", driving ? `${driving.duration}min` : "null",
+      "walking:", walking ? `${walking.duration}min` : "null");
+
     const result: NavigationResult = {
       destination: {
         name: place.name,

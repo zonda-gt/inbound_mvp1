@@ -181,11 +181,14 @@ export async function getTransitRoute(
     const res = await fetch(`${BASE_V5}/direction/transit/integrated?${params}`);
     const data = await res.json();
 
-    if (
-      data.status !== "1" ||
-      !data.route?.transits?.length
-    )
+    if (data.status !== "1") {
+      console.warn("[Amap transit] API error:", data.info || data.infocode, "origin:", origin, "dest:", destination);
       return null;
+    }
+    if (!data.route?.transits?.length) {
+      console.warn("[Amap transit] No transit routes found. origin:", origin, "dest:", destination, "city:", cityCode);
+      return null;
+    }
 
     const transit = data.route.transits[0];
     const segments: TransitSegment[] = [];

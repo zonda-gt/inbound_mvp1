@@ -12,6 +12,7 @@ import ShanghaiAllScreen from './screens/ShanghaiAllScreen';
 import EatScreen from './screens/EatScreen';
 import EatCategoryScreen from './screens/EatCategoryScreen';
 import CollectionDetailScreen from './screens/CollectionDetailScreen';
+import FeedbackScreen from './screens/FeedbackScreen';
 import SearchOverlay from './SearchOverlay';
 import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
@@ -19,7 +20,7 @@ import { COLLECTION_IDS } from './data/collections-data';
 type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
 type EatCategoryScreenId = 'eat-chinese' | 'eat-asian' | 'eat-middle_eastern' | 'eat-western' | 'eat-bars';
-type Screen = NavTab | 'shanghai-all' | 'eat' | 'drink' | EatCategoryScreenId | CollectionScreen;
+type Screen = NavTab | 'shanghai-all' | 'eat' | 'drink' | 'feedback' | EatCategoryScreenId | CollectionScreen;
 
 const collectionScreenToTab: Record<string, NavTab> = {};
 COLLECTION_IDS.forEach((id) => { collectionScreenToTab[id] = 'discover'; });
@@ -32,6 +33,7 @@ const screenToTab: Record<string, NavTab> = {
   journal: 'journal',
   'shanghai-all': 'discover',
   'eat': 'discover',
+  'feedback': 'home',
   'drink': 'discover',
   'eat-chinese': 'discover',
   'eat-asian': 'discover',
@@ -219,6 +221,11 @@ export default function Shell() {
         {isCollectionScreen && (
           <CollectionDetailScreen collectionId={activeScreen} onNavigate={handleNavigate} onOpenAttraction={handleOpenAttraction} selectedSlug={selectedAttraction?.slug || null} />
         )}
+      </div>
+
+      {/* Feedback */}
+      <div className={`v2-screen ${isActive('feedback') ? 'active' : ''}`}>
+        {isActive('feedback') && <FeedbackScreen onNavigate={handleNavigate} />}
       </div>
 
       {/* Search Overlay */}
