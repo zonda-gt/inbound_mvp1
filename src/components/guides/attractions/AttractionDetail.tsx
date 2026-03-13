@@ -237,26 +237,6 @@ function LocationMap({ lng, lat, name, onNav }: { lng: number; lat: number; name
         viewMode: '2D',
       });
       addMarker(map, AMap, true);
-      // Show user's current location
-      AMap.plugin('AMap.Geolocation', () => {
-        const geolocation = new AMap.Geolocation({
-          enableHighAccuracy: true,
-          showButton: false,
-          showMarker: true,
-          showCircle: true,
-          markerOptions: {
-            content: '<div style="width:14px;height:14px;background:#4285F4;border:3px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(66,133,244,.5)"></div>',
-            offset: new AMap.Pixel(-7, -7),
-          },
-          circleOptions: {
-            fillColor: 'rgba(66,133,244,0.1)',
-            strokeColor: 'rgba(66,133,244,0.3)',
-            strokeWeight: 1,
-          },
-        });
-        map.addControl(geolocation);
-        geolocation.getCurrentPosition();
-      });
       fullMapInst.current = map;
     }, 50);
     return () => { clearTimeout(timer); if (map) { map.destroy(); fullMapInst.current = null; } };

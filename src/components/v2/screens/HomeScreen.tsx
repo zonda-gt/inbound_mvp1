@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 import SaveSheet from '../SaveSheet';
+import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -133,7 +134,7 @@ const ATTRACTION_PICKS = [
     location: "Jing'an",
     reason: 'An immersive theatre masterpiece — wander freely through a noir dreamscape.',
     badge: 'Theatre',
-    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=800&q=75',
   },
   {
     slug: 'shanghai-haichang-ocean-park',
@@ -143,7 +144,7 @@ const ATTRACTION_PICKS = [
     location: 'Lingang, Pudong',
     reason: 'Massive aquarium with orca shows and underwater tunnels — great for families.',
     badge: 'Family',
-    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=800&q=75',
   },
 ];
 
@@ -154,7 +155,7 @@ const ORIGINAL_ATTRACTIONS = [
     title: 'Sleep No More Shanghai',
     subtitle: 'Beijing West Rd, Jing’an',
     meta: 'From ¥520 / guest',
-    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1527224857830-43a7acc85260?auto=format&fit=crop&w=800&q=75',
   },
   {
     slug: 'xtreme-play-sports-entertainment-world',
@@ -162,7 +163,7 @@ const ORIGINAL_ATTRACTIONS = [
     title: 'Extreme PLAY Sports World',
     subtitle: 'Baoshan District, Shanghai',
     meta: 'From ¥98 / guest',
-    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=75',
   },
   {
     slug: 'mengtian-music-livehouse',
@@ -170,7 +171,7 @@ const ORIGINAL_ATTRACTIONS = [
     title: 'Mengtian LiveHouse at Paramount',
     subtitle: "Jing'an Temple, Shanghai",
     meta: 'From ¥200 / guest',
-    image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=800&q=75',
   },
   {
     slug: 'shanghai-haichang-ocean-park',
@@ -178,7 +179,7 @@ const ORIGINAL_ATTRACTIONS = [
     title: 'Shanghai Haichang Ocean Park',
     subtitle: 'Lingang, Pudong',
     meta: 'From ¥299 / guest',
-    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=1200&q=80',
+    image: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?auto=format&fit=crop&w=800&q=75',
   },
 ];
 const ATTRACTION_PICK_SLUGS = ATTRACTION_PICKS.map((item) => item.slug);
@@ -214,7 +215,7 @@ function formatDistance(meters: number): string {
   return `${Math.round(km)}km away`;
 }
 
-function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
+function SmoothImage({ src, alt, className, lazy = false }: { src: string; alt: string; className: string; lazy?: boolean }) {
   const [loaded, setLoaded] = useState(false);
   const imgRef = useCallback((img: HTMLImageElement | null) => {
     if (img && img.complete && img.naturalWidth > 0) setLoaded(true);
@@ -228,6 +229,7 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
         className={`${className} v2-lazy-img ${loaded ? 'loaded' : ''}`}
         src={src}
         alt={alt}
+        loading={lazy ? 'lazy' : undefined}
         onLoad={() => setLoaded(true)}
         onError={() => setLoaded(true)}
       />
@@ -296,6 +298,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   const router = useRouter();
+  const origScroll = useScrollSafeClick();
   const openTodayPick = (slug: string) => {
     router.push(`/restaurants/${slug}`);
   };
@@ -523,9 +526,9 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             const title = found?.card_name || found?.attraction_name_en || item.title;
             const saved = !!savedOriginalBySlug[item.slug];
             return (
-              <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${item.slug}`)}>
+              <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} {...origScroll.handlers} onClick={() => { if (origScroll.wasScroll()) return; router.push(`/attractions/${item.slug}`); }}>
               <div className="v2-orig-image-wrap">
-                  <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" />
+                  <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" lazy />
                   {(found?.card_type || found?.experience_type) && (
                     <div className="v2-pick-badge">{found?.card_type || found?.experience_type}</div>
                   )}
@@ -572,7 +575,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               return (
                 <div key={pick.slug} className="v2-pick-slide" onClick={() => onAttrCardClick(pick.slug)}>
                   <ViewTransition name={screenActive ? `hero-attraction-${pick.slug}` : undefined}>
-                    <SmoothImage src={image} alt={name} className="v2-pick-card-img" />
+                    <SmoothImage src={image} alt={name} className="v2-pick-card-img" lazy />
                   </ViewTransition>
                   <div className="v2-pick-overlay" />
                   <div className="v2-pick-badge">{pick.badge}</div>
@@ -657,7 +660,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
         </div>
         <div className="v2-vibes-scroll">
           <div className="v2-vibe-card">
-            <SmoothImage src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" className="v2-vibe-bg-img" />
+            <SmoothImage src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">French Concession</div>
@@ -665,7 +668,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             </div>
           </div>
           <div className="v2-vibe-card">
-            <SmoothImage src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" className="v2-vibe-bg-img" />
+            <SmoothImage src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">The Bund</div>
@@ -673,7 +676,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             </div>
           </div>
           <div className="v2-vibe-card">
-            <SmoothImage src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" className="v2-vibe-bg-img" />
+            <SmoothImage src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">Xintiandi</div>
@@ -681,7 +684,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             </div>
           </div>
           <div className="v2-vibe-card">
-            <SmoothImage src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" className="v2-vibe-bg-img" />
+            <SmoothImage src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
               <div className="v2-vibe-name">People&apos;s Square</div>

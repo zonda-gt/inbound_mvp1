@@ -8,6 +8,7 @@ import { useCollectionData } from '../hooks/useCollectionData';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
 import { createClient } from '@supabase/supabase-js';
 import SaveSheet from '../SaveSheet';
+import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -65,7 +66,7 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
   }, []);
 
   return (
-    <div className="v2-scroll-body" onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
+    <div className="v2-scroll-body" onScroll={(e) => { const shouldCompact = e.currentTarget.scrollTop > 30; if (shouldCompact !== compact) setCompact(shouldCompact); }}>
       {/* Sticky search + Eat / Experience / Drink tabs */}
       <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
         <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
@@ -258,6 +259,7 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
   const [saved, setSaved] = useState(false);
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
+  const scroll = useScrollSafeClick();
   const img = attraction.images?.[0];
   const name = attraction.card_name || attraction.attraction_name_en;
   async function handleFav(e: React.MouseEvent) {
@@ -267,7 +269,7 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
     setSaved((s) => !s);
   }
   return (
-    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/attractions/${attraction.slug}`)}>
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; router.push(`/attractions/${attraction.slug}`); }}>
       <SaveSheet isOpen={showSaveSheet} placeName={name} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       {img ? (
         <ViewTransition name={screenActive ? `hero-attraction-${attraction.slug}` : undefined}>
@@ -312,6 +314,7 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
   const [saved, setSaved] = useState(false);
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
+  const scroll = useScrollSafeClick();
   async function handleFav(e: React.MouseEvent) {
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
@@ -319,7 +322,7 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
     setSaved((s) => !s);
   }
   return (
-    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} onClick={() => bar.slug && router.push(`/restaurants/${bar.slug}`)}>
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; bar.slug && router.push(`/restaurants/${bar.slug}`); }}>
       <SaveSheet isOpen={showSaveSheet} placeName={bar.name_en} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       {bar.image ? (
         <ViewTransition name={screenActive && bar.slug ? `hero-restaurant-${bar.slug}` : undefined}>
@@ -367,6 +370,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
   const [saved, setSaved] = useState(false);
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
+  const scroll = useScrollSafeClick();
   async function handleFav(e: React.MouseEvent) {
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
@@ -407,7 +411,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
     </div>
   );
   if (!slug) return card;
-  return <div style={{ cursor: 'pointer' }} onClick={() => router.push(`/restaurants/${slug}`)}>{card}</div>;
+  return <div style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; router.push(`/restaurants/${slug}`); }}>{card}</div>;
 }
 
 function PlanCard({ bg, tag, title, stops }: { bg: string; tag: string; title: string; stops: string[]; }) {

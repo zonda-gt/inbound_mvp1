@@ -181,22 +181,22 @@ export default function Shell() {
 
       {/* Navigate */}
       <div className={`v2-screen v2-navigate ${isActive('navigate') ? 'active' : ''}`}>
-        <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} referrer={navReferrer} />
+        {isActive('navigate') && <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} referrer={navReferrer} />}
       </div>
 
       {/* Photo AI */}
       <div className={`v2-screen v2-photo ${isActive('photo') ? 'active' : ''}`}>
-        <PhotoScreen onNavigate={handleNavigate} isActive={isActive('photo')} />
+        {isActive('photo') && <PhotoScreen onNavigate={handleNavigate} isActive />}
       </div>
 
       {/* Journal */}
       <div className={`v2-screen v2-journal ${isActive('journal') ? 'active' : ''}`}>
-        <JournalScreen onNavigate={handleNavigate} />
+        {isActive('journal') && <JournalScreen onNavigate={handleNavigate} />}
       </div>
 
       {/* Shanghai All */}
       <div className={`v2-screen ${isActive('shanghai-all') ? 'active' : ''}`}>
-        <ShanghaiAllScreen onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />
+        {isActive('shanghai-all') && <ShanghaiAllScreen onNavigate={handleNavigate} onSearchOpen={handleSearchOpen} />}
       </div>
 
       {/* Eat / Restaurant Picker */}

@@ -193,6 +193,9 @@ export default function NavigateScreen({
 
   return (
     <div className="v2-scroll-body">
+      {/* 0. Book Your Seats */}
+      <BookingCard destinationName={data.destination.name} />
+
       {/* 1. Header */}
       <section className="v2-nav-hdr v2-fade-up v2-d1">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
@@ -440,6 +443,238 @@ export default function NavigateScreen({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ─── Booking Card (concierge booking) ─── */
+
+type BookingState = "collapsed" | "form" | "submitted";
+
+function BookingCard({ destinationName }: { destinationName: string }) {
+  const [state, setState] = useState<BookingState>("collapsed");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("19:00");
+  const [guests, setGuests] = useState(2);
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+
+  // Default date to tomorrow
+  useEffect(() => {
+    if (!date) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      setDate(tomorrow.toISOString().split("T")[0]);
+    }
+  }, [date]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!date || !time || !email.trim()) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinationName,
+          bookingDate: date,
+          bookingTime: time,
+          partySize: guests,
+          guestEmail: email.trim(),
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBookingId(data.id || null);
+      }
+      setState("submitted");
+    } catch {
+      setState("submitted");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatDate = (d: string) => {
+    if (!d) return "";
+    const dt = new Date(d + "T00:00:00");
+    return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const formatTime = (t: string) => {
+    const [h, m] = t.split(":");
+    const hr = parseInt(h);
+    return `${hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+  };
+
+  // ── Collapsed state ──
+  if (state === "collapsed") {
+    return (
+      <section className="v2-book-section v2-fade-up v2-d1">
+        <div className="v2-book-card v2-book-collapsed" onClick={() => setState("form")}>
+          <div className="v2-book-collapsed-left">
+            <div className="v2-book-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+            </div>
+            <div>
+              <div className="v2-book-title">Book your seats</div>
+              <div className="v2-book-sub">We&apos;ll reserve for you — no Chinese apps needed</div>
+            </div>
+          </div>
+          <div className="v2-book-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // ── Submitted state ──
+  if (state === "submitted") {
+    return (
+      <section className="v2-book-section v2-fade-up v2-d1">
+        <div className="v2-book-card v2-book-submitted">
+          <div className="v2-book-submitted-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34C759" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M8 12l2.5 2.5L16 9" />
+            </svg>
+          </div>
+          <div className="v2-book-submitted-title">Booking Requested</div>
+          <div className="v2-book-submitted-details">
+            {destinationName} &middot; {formatDate(date)} &middot; {formatTime(time)} &middot; {guests} guest{guests !== 1 ? "s" : ""}
+          </div>
+          <div className="v2-book-submitted-note">
+            We&apos;ll email you at <strong>{email}</strong> once your reservation is confirmed.
+          </div>
+          {bookingId && (
+            <a className="v2-book-status-link" href={`/booking/${bookingId}`}>
+              View Booking Status
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </a>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  // ── Form state ──
+  return (
+    <section className="v2-book-section v2-fade-up v2-d1">
+      <div className="v2-book-card">
+        <div className="v2-book-form-header">
+          <div className="v2-book-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div>
+            <div className="v2-book-title">Book your seats</div>
+            <div className="v2-book-sub">at {destinationName}</div>
+          </div>
+          <button className="v2-book-close" onClick={() => setState("collapsed")} aria-label="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form className="v2-book-form" onSubmit={handleSubmit}>
+          <div className="v2-book-field">
+            <label className="v2-book-label">Date</label>
+            <input
+              className="v2-book-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              required
+            />
+          </div>
+
+          <div className="v2-book-field">
+            <label className="v2-book-label">Time</label>
+            <select
+              className="v2-book-input"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              required
+            >
+              {["11:00","11:30","12:00","12:30","13:00","13:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"].map((t) => (
+                <option key={t} value={t}>{formatTime(t)}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="v2-book-field">
+            <label className="v2-book-label">Guests</label>
+            <div className="v2-book-stepper">
+              <button
+                type="button"
+                className="v2-book-stepper-btn"
+                onClick={() => setGuests((g) => Math.max(1, g - 1))}
+                disabled={guests <= 1}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </button>
+              <span className="v2-book-stepper-val">{guests}</span>
+              <button
+                type="button"
+                className="v2-book-stepper-btn"
+                onClick={() => setGuests((g) => Math.min(20, g + 1))}
+                disabled={guests >= 20}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="v2-book-field">
+            <label className="v2-book-label">Email</label>
+            <input
+              className="v2-book-input"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+
+          <button
+            className="v2-book-submit"
+            type="submit"
+            disabled={submitting || !date || !time || !email.trim()}
+          >
+            {submitting ? "Submitting..." : "Submit Booking Request"}
+          </button>
+
+          <div className="v2-book-info">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            We&apos;ll book on your behalf and confirm within a few hours
+          </div>
+        </form>
+      </div>
+    </section>
   );
 }
 

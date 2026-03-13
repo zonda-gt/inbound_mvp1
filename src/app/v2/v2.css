@@ -491,7 +491,7 @@
   transition: background 0.2s;
   display: flex; align-items: center; gap: 4px; white-space: nowrap;
 }
-.v2-share-btn--primary { padding: 10px 20px; font-size: 14px; border-radius: 24px; gap: 6px; }
+.v2-share-btn--primary { padding: 10px 20px; font-size: 14px; border-radius: 12px; gap: 6px; }
 .v2-share-btn:active { background: rgba(255,255,255,0.3); }
 
 /* Feedback Screen */
@@ -940,16 +940,18 @@
 /* Neighbourhood Vibes */
 /* Feedback CTA */
 .v2-feedback-cta {
-  margin: 24px 20px 0; padding: 18px 20px;
-  background: #f5f5f5; border-radius: var(--r-lg);
+  margin: 24px 20px 0; padding: 20px;
+  background: #fff; border-radius: var(--r-lg);
   display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  border: 1px solid rgba(0,0,0,.06);
 }
 .v2-feedback-cta-title { font-size: 15px; font-weight: 700; color: var(--text-1); }
 .v2-feedback-cta-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
 .v2-feedback-cta-btn {
-  flex-shrink: 0; padding: 8px 16px; border-radius: 20px;
+  flex-shrink: 0; padding: 10px 20px; border-radius: 14px;
   background: var(--red); color: white; border: none;
-  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-size: 14px; font-weight: 700; cursor: pointer;
   white-space: nowrap; transition: opacity 0.2s;
 }
 .v2-feedback-cta-btn:active { opacity: 0.8; }
@@ -1383,6 +1385,154 @@
 .v2-step-tag.stops { background: #F2F2F7; color: var(--text-2); }
 .v2-step-tag.walk { background: rgba(52,199,89,0.08); color: #1a8c3a; }
 .v2-step-tag.metro { background: rgba(0,122,255,0.08); color: var(--blue); }
+
+/* ── Concierge Booking Card ── */
+.v2-book-section { padding: 20px 20px 0; }
+.v2-book-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+}
+
+/* Collapsed state */
+.v2-book-collapsed {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 14px 16px 16px; cursor: pointer;
+  transition: all .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-book-collapsed:active { background: #FAFAFA; }
+.v2-book-collapsed-left { display: flex; align-items: center; gap: 12px; }
+.v2-book-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(228,0,43,0.06);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: var(--red);
+}
+.v2-book-title {
+  font-size: 15px; font-weight: 700; color: var(--text-1);
+  letter-spacing: -0.2px;
+}
+.v2-book-sub {
+  font-size: 12px; color: var(--text-2); margin-top: 2px;
+  line-height: 1.4;
+}
+.v2-book-arrow {
+  color: var(--text-2); flex-shrink: 0;
+  display: flex; align-items: center;
+}
+
+/* Form header */
+.v2-book-form-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 16px 0;
+}
+.v2-book-close {
+  margin-left: auto; background: none; border: none;
+  color: var(--text-2); cursor: pointer; padding: 4px;
+  border-radius: 8px; display: flex; align-items: center;
+  transition: all .15s ease;
+}
+.v2-book-close:active { background: #F0F0F0; }
+
+/* Form */
+.v2-book-form {
+  padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.v2-book-field {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.v2-book-label {
+  font-size: 12px; font-weight: 600; color: var(--text-2);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.v2-book-input {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid #E5E5EA; border-radius: 12px;
+  font-size: 15px; font-family: 'DM Sans', -apple-system, sans-serif;
+  color: var(--text-1); background: #FAFAFA;
+  transition: border-color .2s ease;
+  -webkit-appearance: none; appearance: none;
+}
+.v2-book-input:focus {
+  outline: none; border-color: var(--red);
+  background: #fff; box-shadow: 0 0 0 3px rgba(228,0,43,0.06);
+}
+
+/* Guest stepper */
+.v2-book-stepper {
+  display: flex; align-items: center; gap: 0;
+  border: 1.5px solid #E5E5EA; border-radius: 12px;
+  overflow: hidden; background: #FAFAFA;
+}
+.v2-book-stepper-btn {
+  width: 48px; height: 48px; border: none;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-1); transition: all .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-book-stepper-btn:active { background: #ECECEC; }
+.v2-book-stepper-btn:disabled { opacity: 0.3; cursor: default; }
+.v2-book-stepper-btn:disabled:active { background: transparent; }
+.v2-book-stepper-val {
+  flex: 1; text-align: center;
+  font-size: 17px; font-weight: 700; color: var(--text-1);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Submit button */
+.v2-book-submit {
+  width: 100%; padding: 14px; border: none;
+  border-radius: 14px; font-size: 15px; font-weight: 700;
+  background: linear-gradient(135deg, #e8382e 0%, #c41e14 100%);
+  color: #fff; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; letter-spacing: -0.01em;
+  box-shadow: 0 2px 12px rgba(196,30,20,.22);
+  transition: all .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.v2-book-submit:active { transform: scale(.98); box-shadow: 0 1px 6px rgba(196,30,20,.3); }
+.v2-book-submit:disabled {
+  opacity: 0.5; cursor: default;
+  transform: none; box-shadow: none;
+}
+
+/* Info line */
+.v2-book-info {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-2); line-height: 1.4;
+  padding-top: 2px;
+}
+.v2-book-info svg { flex-shrink: 0; color: var(--text-2); }
+
+/* Submitted state */
+.v2-book-submitted { padding: 24px 20px; text-align: center; }
+.v2-book-submitted-icon { margin-bottom: 12px; }
+.v2-book-submitted-title {
+  font-size: 18px; font-weight: 800; color: var(--text-1);
+  letter-spacing: -0.3px; margin-bottom: 8px;
+}
+.v2-book-submitted-details {
+  font-size: 13px; color: var(--text-2); margin-bottom: 14px;
+  line-height: 1.5;
+}
+.v2-book-submitted-note {
+  font-size: 13px; color: var(--text-2); line-height: 1.5;
+  margin-bottom: 18px;
+}
+.v2-book-submitted-note strong { color: var(--text-1); font-weight: 600; }
+.v2-book-status-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 14px; font-weight: 600; color: var(--red);
+  text-decoration: none; padding: 10px 20px;
+  border: 1.5px solid rgba(228,0,43,0.2);
+  border-radius: 12px; transition: all .15s ease;
+}
+.v2-book-status-link:active { background: rgba(228,0,43,0.04); }
 
 /* Taxi ride card — Uber-inspired dark card */
 .v2-taxi-card {

@@ -76,7 +76,7 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
   }, [allRestaurants]);
 
   return (
-    <div className="v2-scroll-body" onScroll={(e) => setCompact(e.currentTarget.scrollTop > 30)}>
+    <div className="v2-scroll-body" onScroll={(e) => { const shouldCompact = e.currentTarget.scrollTop > 30; if (shouldCompact !== compact) setCompact(shouldCompact); }}>
       {/* Airbnb-style sticky top bar */}
       <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
         <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
