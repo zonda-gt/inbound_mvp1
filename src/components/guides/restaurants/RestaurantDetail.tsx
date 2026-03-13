@@ -488,7 +488,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
         }
 
         .nav{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
-        .nav-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;color:#222;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+        .nav-btn{width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;color:#222;box-shadow:0 1px 4px rgba(0,0,0,.12)}
         .nav-title{font-size:16px;font-weight:700}
         .nav-right{display:flex;gap:8px}
 
@@ -664,8 +664,8 @@ export default function RestaurantDetail({ data }: { data: any }) {
         <button className="nav-btn" onClick={() => window.history.back()} aria-label="Back">←</button>
         <span className="nav-title">{nameEn}</span>
         <div className="nav-right">
-          <button className="nav-btn" onClick={handleShare} aria-label="Share"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
-          <button className="nav-btn" onClick={handleFav} aria-label="Save" style={{ color: saved ? '#D0021B' : '#222' }}>{saved ? '♥' : '♡'}</button>
+          <button className="nav-btn" onClick={handleShare} aria-label="Share"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+          <button className="nav-btn" onClick={handleFav} aria-label="Save" style={{ color: saved ? '#D0021B' : '#222', fontSize: 22 }}>{saved ? '♥' : '♡'}</button>
         </div>
       </nav>
 
