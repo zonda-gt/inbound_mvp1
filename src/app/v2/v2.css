@@ -2122,6 +2122,8 @@
   display:flex;gap:12px;
   overflow-x:auto;padding:0 20px 4px;
   scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;
 }
 .v2-sh-hscroll::-webkit-scrollbar{display:none;}
 
@@ -2132,6 +2134,7 @@
   position:relative;cursor:pointer;
   box-shadow:0 4px 20px rgba(0,0,0,0.12);
   transition:transform 0.25s ease;
+  touch-action:manipulation;
 }
 .v2-sh-cover-card:active{transform:scale(0.97);}
 .v2-sh-cover-img{
@@ -2214,6 +2217,7 @@
   flex-shrink:0;width:180px;
   cursor:pointer;
   transition:transform 0.2s ease;
+  touch-action:manipulation;
 }
 .v2-sh-food-card:active{transform:scale(0.97);}
 .v2-sh-food-img-wrap{
@@ -3396,6 +3400,7 @@
   padding:0 20px;
   scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
+  touch-action:pan-x pan-y;
 }
 .v2-eatcat-photos::-webkit-scrollbar{display:none;}
 .v2-eatcat-photo-wrap{

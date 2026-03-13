@@ -199,7 +199,7 @@ export default function NavigateScreen({
       {/* 1. Header */}
       <section className="v2-nav-hdr v2-fade-up v2-d1">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <button className="v2-nav-back-btn" onClick={() => { if (referrer) { window.location.href = referrer; } else { handleClear(); } }}>←</button>
+          <button className="v2-nav-back-btn" onClick={() => { handleClear(); }}>←</button>
           <h1 className="v2-nav-hdr-title" style={{ margin: 0 }}>Getting There</h1>
         </div>
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import SaveSheet from '@/components/v2/SaveSheet';
 
@@ -222,6 +223,7 @@ function ViewerSwipe({
 }
 
 export default function RestaurantDetail({ data }: { data: any }) {
+  const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
   const [menuOpen, setMenuOpen] = useState(false);
@@ -413,11 +415,11 @@ export default function RestaurantDetail({ data }: { data: any }) {
 
   const handleNav = () => {
     const params = new URLSearchParams();
-    params.set('nav', nameCn || nameEn);
+    params.set('name', nameCn || nameEn);
     if (nameCn) params.set('nameCn', nameCn);
     if (addressCn) params.set('addr', addressCn);
     params.set('from', `/restaurants/${data.slug}`);
-    window.location.href = `/v2?${params.toString()}`;
+    router.push(`/navigate?${params.toString()}`);
   };
 
   const vibeCards = vibeCaptions.length > 0

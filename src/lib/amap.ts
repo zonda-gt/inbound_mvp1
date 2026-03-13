@@ -6,9 +6,9 @@ const PLACE_SHOW_FIELDS = "business,photos,navi,indoor";
 // Amap API can reject coordinates with too many decimal places (INVALID_PARAMS)
 // Browser geolocation returns 14-15 decimals; Amap expects ≤6
 function roundCoords(coords: string): string {
-  const parts = coords.split(",");
+  const parts = coords.trim().split(",");
   if (parts.length !== 2) return coords;
-  return parts.map(p => parseFloat(p).toFixed(6)).join(",");
+  return parts.map(p => parseFloat(p.trim()).toFixed(6)).join(",");
 }
 
 // Amap V5 API sometimes returns polyline as a nested object { polyline: "..." } instead of a string
@@ -175,8 +175,8 @@ export async function getTransitRoute(
   city?: string,
 ): Promise<TransitRoute | null> {
   try {
-    // Amap v5 transit API requires city adcode (e.g. "021") not Chinese name
-    const cityCode = city === "上海" || !city ? "021" : city;
+    // Amap v5 transit API: use adcode for Shanghai (310000)
+    const cityCode = city === "上海" || !city ? "310000" : city;
     const params = new URLSearchParams({
       origin: roundCoords(origin),
       destination: roundCoords(destination),
@@ -186,11 +186,12 @@ export async function getTransitRoute(
       city2: cityCode,
       show_fields: "cost,polyline",
     });
-    const res = await fetch(`${BASE_V5}/direction/transit/integrated?${params}`);
+    const url = `${BASE_V5}/direction/transit/integrated?${params}`;
+    const res = await fetch(url);
     const data = await res.json();
 
     if (data.status !== "1") {
-      console.warn("[Amap transit] API error:", data.info || data.infocode, "origin:", origin, "dest:", destination);
+      console.warn("[Amap transit] API error:", data.info || data.infocode, "rounded origin:", roundCoords(origin), "rounded dest:", roundCoords(destination), "raw origin:", origin);
       return null;
     }
     if (!data.route?.transits?.length) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, ViewTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
 import { createClient } from '@supabase/supabase-js';
@@ -497,6 +498,7 @@ function ViewerSwipe({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default function AttractionPage({ data, onAsk, onNavigate, onBack, layoutId, scrollRef }: { data: any; onAsk?: () => void; onNavigate?: () => void; onBack?: () => void; layoutId?: string; scrollRef?: React.RefObject<HTMLDivElement | null> }) {
+  const router = useRouter();
   const [navScrolled, setNavScrolled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
@@ -596,11 +598,11 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const handleAsk = onAsk || (() => { window.location.href = `/chat?attraction=${data.slug}`; });
   const handleNav = onNavigate || (() => {
     const params = new URLSearchParams();
-    params.set('nav', data.attraction_name_cn || data.attraction_name_en);
+    params.set('name', data.attraction_name_cn || data.attraction_name_en);
     if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
     if (data.address_cn) params.set('addr', data.address_cn);
     params.set('from', `/attractions/${data.slug}`);
-    window.location.href = `/v2?${params.toString()}`;
+    router.push(`/navigate?${params.toString()}`);
   });
 
   return (
