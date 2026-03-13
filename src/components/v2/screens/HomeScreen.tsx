@@ -299,6 +299,14 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
   const router = useRouter();
   const origScroll = useScrollSafeClick();
+
+  // Prefetch all card destinations so navigation is near-instant
+  useEffect(() => {
+    TODAY_PICKS.forEach(p => router.prefetch(`/restaurants/${p.slug}`));
+    ATTRACTION_PICKS.forEach(p => router.prefetch(`/attractions/${p.slug}`));
+    ORIGINAL_ATTRACTIONS.forEach(p => router.prefetch(`/attractions/${p.slug}`));
+  }, [router]);
+
   const openTodayPick = (slug: string) => {
     router.push(`/restaurants/${slug}`);
   };
