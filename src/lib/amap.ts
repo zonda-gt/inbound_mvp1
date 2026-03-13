@@ -3,6 +3,14 @@ const BASE_V3 = "https://restapi.amap.com/v3";
 const BASE_V5 = "https://restapi.amap.com/v5";
 const PLACE_SHOW_FIELDS = "business,photos,navi,indoor";
 
+// Amap API can reject coordinates with too many decimal places (INVALID_PARAMS)
+// Browser geolocation returns 14-15 decimals; Amap expects ≤6
+function roundCoords(coords: string): string {
+  const parts = coords.split(",");
+  if (parts.length !== 2) return coords;
+  return parts.map(p => parseFloat(p).toFixed(6)).join(",");
+}
+
 // Amap V5 API sometimes returns polyline as a nested object { polyline: "..." } instead of a string
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractPolyline(val: any): string | undefined {
@@ -170,8 +178,8 @@ export async function getTransitRoute(
     // Amap v5 transit API requires city adcode (e.g. "021") not Chinese name
     const cityCode = city === "上海" || !city ? "021" : city;
     const params = new URLSearchParams({
-      origin,
-      destination,
+      origin: roundCoords(origin),
+      destination: roundCoords(destination),
       key: AMAP_KEY,
       strategy: "0",
       city1: cityCode,
@@ -251,8 +259,8 @@ export async function getWalkingRoute(
 ): Promise<WalkingRoute | null> {
   try {
     const params = new URLSearchParams({
-      origin,
-      destination,
+      origin: roundCoords(origin),
+      destination: roundCoords(destination),
       key: AMAP_KEY,
       show_fields: "cost,polyline",
     });
@@ -293,8 +301,8 @@ export async function getDrivingRoute(
 ): Promise<DrivingRoute | null> {
   try {
     const params = new URLSearchParams({
-      origin,
-      destination,
+      origin: roundCoords(origin),
+      destination: roundCoords(destination),
       key: AMAP_KEY,
       strategy: "32",
       show_fields: "cost,polyline",
