@@ -1221,22 +1221,22 @@
 
 /* ===== NAVIGATE ===== */
 .v2-navigate { background: var(--surface-alt); }
-.v2-nav-hdr { background: white; padding: 20px; border-bottom: 1px solid var(--border); }
-.v2-nav-hdr-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 16px; }
+.v2-nav-hdr { background: white; padding: 12px 20px; margin-top: 36px; border-top: 1px solid var(--border); }
+.v2-nav-hdr-title { font-size: 15px; font-weight: 700; letter-spacing: -0.2px; margin-bottom: 10px; color: var(--text-2); }
 .v2-route-card {
-  background: var(--surface-alt); border-radius: var(--r-lg);
-  padding: 14px 16px; border: 1.5px solid var(--border);
+  background: var(--surface-alt); border-radius: var(--r-md);
+  padding: 10px 14px; border: 1px solid var(--border);
 }
-.v2-route-row { display: flex; align-items: center; gap: 10px; }
-.v2-route-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.v2-route-row { display: flex; align-items: center; gap: 8px; }
+.v2-route-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .v2-route-dot.o { background: var(--green); }
 .v2-route-dot.d { background: var(--red); }
 .v2-route-line-v {
-  width: 2px; height: 18px; background: var(--border-med);
-  margin-left: 4px; margin: 4px 0 4px 4px;
+  width: 1.5px; height: 12px; background: var(--border-med);
+  margin: 2px 0 2px 3px;
 }
-.v2-route-lbl { font-size: 12px; color: var(--text-3); font-weight: 500; }
-.v2-route-val { font-size: 15px; color: var(--text-1); font-weight: 700; letter-spacing: -0.2px; }
+.v2-route-lbl { font-size: 11px; color: var(--text-3); font-weight: 500; }
+.v2-route-val { font-size: 13px; color: var(--text-1); font-weight: 600; letter-spacing: -0.2px; }
 .v2-route-input-wrap{ display:flex;align-items:center;flex:1;min-width:0; }
 .v2-route-input{
   flex:1;min-width:0;font-size:15px;font-weight:700;letter-spacing:-0.2px;
@@ -1246,24 +1246,24 @@
 .v2-route-input::placeholder{ color:var(--text-3);font-weight:500; }
 
 /* Mode toggle */
-.v2-mode-toggle { display: flex; gap: 8px; padding: 16px 20px 0; }
+.v2-mode-toggle { display: flex; gap: 6px; padding: 4px 20px 0; }
 .v2-mode-btn {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 5px; padding: 14px 8px; border-radius: var(--r-lg);
-  background: white; border: 2px solid var(--border);
+  gap: 3px; padding: 8px 6px; border-radius: var(--r-md);
+  background: white; border: 1.5px solid var(--border);
   cursor: pointer; transition: all 0.2s ease;
 }
 .v2-mode-btn.active { border-color: var(--red); background: var(--red-bg); }
 .v2-mode-btn:active { transform: scale(0.96); }
 .v2-mode-icon {
-  font-size: 22px;
+  font-size: 16px;
   display: flex; align-items: center; justify-content: center;
 }
-.v2-mode-time { font-size: 17px; font-weight: 800; color: var(--text-1); letter-spacing: -0.3px; }
+.v2-mode-time { font-size: 14px; font-weight: 800; color: var(--text-1); letter-spacing: -0.3px; }
 .v2-mode-btn.active .v2-mode-time { color: var(--red); }
-.v2-mode-label { font-size: 11px; font-weight: 600; color: var(--text-3); }
+.v2-mode-label { font-size: 10px; font-weight: 600; color: var(--text-3); }
 .v2-mode-btn.active .v2-mode-label { color: var(--red); }
-.v2-mode-cost { font-size: 11px; color: var(--text-3); }
+.v2-mode-cost { font-size: 10px; color: var(--text-3); }
 
 /* Map */
 .v2-map-wrap {
@@ -1394,21 +1394,29 @@
 /* ── Concierge Booking Card ── */
 .v2-book-section { padding: 20px 20px 0; }
 .v2-book-card {
-  background: #fff;
-  border: 1px solid var(--border);
+  background: #FFF5F5;
+  border: 2px solid rgba(196,30,20,.15);
+  border-left: 4px solid var(--red);
   border-radius: var(--r-lg);
   overflow: hidden;
-  box-shadow: 0 1px 6px rgba(0,0,0,.06);
+  box-shadow: 0 4px 20px rgba(196,30,20,.12);
+  animation: v2BookGlow 2s ease-out;
+}
+@keyframes v2BookGlow {
+  0% { box-shadow: 0 0 30px rgba(196,30,20,.3); }
+  100% { box-shadow: 0 4px 20px rgba(196,30,20,.12); }
 }
 
 /* ── OpenTable-style booking ── */
 .v2-book-ot { padding: 20px; }
 .v2-book-ot-header { margin-bottom: 16px; }
 .v2-book-ot-title {
+  font-family: 'DM Sans', var(--font-dm), sans-serif;
   font-size: 18px; font-weight: 800; color: var(--text-1);
   letter-spacing: -0.3px;
 }
 .v2-book-ot-sub {
+  font-family: 'DM Sans', var(--font-dm), sans-serif;
   font-size: 13px; color: var(--text-2); margin-top: 4px;
 }
 

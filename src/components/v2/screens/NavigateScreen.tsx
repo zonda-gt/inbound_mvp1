@@ -185,26 +185,13 @@ export default function NavigateScreen({
   if (loading) {
     return (
       <div className="v2-scroll-body">
-        <section className="v2-nav-hdr v2-fade-up v2-d1">
-          <h1 className="v2-nav-hdr-title">Getting There</h1>
-          <div className="v2-route-card">
-            <div className="v2-route-row">
-              <span className="v2-route-dot o" />
-              <span className="v2-route-lbl">From</span>
-              <span className="v2-route-val">{isDemo ? "People's Square (人民广场)" : "Your Location"}</span>
-            </div>
-            <div className="v2-route-line-v" />
-            <div className="v2-route-row">
-              <span className="v2-route-dot d" />
-              <span className="v2-route-lbl">To</span>
-              <span className="v2-route-val">{activeDest}</span>
-            </div>
+        <div className="v2-nav-car-loading v2-fade-up v2-d1">
+          <div className="v2-nav-car-road">
+            <div className="v2-nav-car-dashes" />
+            <div className="v2-nav-car-emoji">🚗</div>
           </div>
-        </section>
-        <div className="v2-nav-loading v2-fade-up v2-d2">
-          <div className="v2-nav-skel" style={{ height: 80, marginBottom: 16 }} />
-          <div className="v2-nav-skel" style={{ height: 140, marginBottom: 16 }} />
-          <div className="v2-nav-skel" style={{ height: 200 }} />
+          <div className="v2-nav-car-text">Finding the best route...</div>
+          <div className="v2-nav-car-dest">{activeDest}</div>
         </div>
       </div>
     );
@@ -486,7 +473,7 @@ export default function NavigateScreen({
               <path d="M10 1.5C6.41 1.5 3.5 4.41 3.5 8c0 1.74.72 3.6 1.88 5.25C6.76 15.24 8.64 16.95 10 18.5c1.36-1.55 3.24-3.26 4.62-5.25C15.78 11.6 16.5 9.74 16.5 8c0-3.59-2.91-6.5-6.5-6.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/>
               <circle cx="10" cy="8" r="2.25" fill="currentColor"/>
             </svg>
-            Open in Amap
+            View in Amap
           </button>
           <button
             className="v2-nav-cta v2-nav-cta--secondary"
@@ -518,30 +505,25 @@ export default function NavigateScreen({
 
 /* ─── Booking Card (OpenTable-style) ─── */
 
-/** Generate 30-min time slots starting 2 hours from now (gives you time to book).
- *  Slots run from that start until 21:00, capped at restaurant hours. */
-function generateTimeSlots(): string[] {
-  const now = new Date();
-  // 2 hours from now, rounded up to next :00 or :30
-  const startMin = (now.getHours() + 2) * 60 + now.getMinutes();
-  const roundedStart = Math.ceil(startMin / 30) * 30;
-  // Earliest possible slot is 11:00, latest is 21:00
+/** Generate 30-min time slots. For today: starts 2 hours from now.
+ *  For future dates: full range 11:00–21:00. */
+function generateTimeSlots(isToday: boolean): string[] {
   const earliest = 11 * 60; // 11:00
   const latest = 21 * 60;   // 21:00
-  const first = Math.max(roundedStart, earliest);
+  let first = earliest;
+
+  if (isToday) {
+    const now = new Date();
+    const startMin = (now.getHours() + 2) * 60 + now.getMinutes();
+    const roundedStart = Math.ceil(startMin / 30) * 30;
+    first = Math.max(roundedStart, earliest);
+  }
+
   const slots: string[] = [];
   for (let m = first; m <= latest; m += 30) {
     const hh = String(Math.floor(m / 60)).padStart(2, "0");
     const mm = String(m % 60).padStart(2, "0");
     slots.push(`${hh}:${mm}`);
-  }
-  // If it's too late and no slots generated, show tomorrow's full range
-  if (slots.length === 0) {
-    for (let m = earliest; m <= latest; m += 30) {
-      const hh = String(Math.floor(m / 60)).padStart(2, "0");
-      const mm = String(m % 60).padStart(2, "0");
-      slots.push(`${hh}:${mm}`);
-    }
   }
   return slots;
 }
@@ -555,14 +537,16 @@ function formatTime12(t: string) {
 function BookingCard({ destinationName }: { destinationName: string }) {
   const [guests, setGuests] = useState(2);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
-  const [date, setDate] = useState("");
+  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const [date, setDate] = useState(todayStr);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const timeSlotsRef = useRef<HTMLDivElement>(null);
-  const timeSlots = useMemo(() => generateTimeSlots(), []);
+  const isToday = date === todayStr;
+  const timeSlots = useMemo(() => generateTimeSlots(isToday), [isToday]);
 
   // Ref to track state for cleanup
   const selectedTimeRef = useRef(selectedTime);
@@ -576,17 +560,25 @@ function BookingCard({ destinationName }: { destinationName: string }) {
     };
   }, [destinationName]);
 
-  // Default date to tomorrow
+  // If today has no slots left, auto-switch to tomorrow
   useEffect(() => {
-    if (!date) {
+    if (isToday && timeSlots.length === 0) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       setDate(tomorrow.toISOString().split("T")[0]);
     }
-  }, [date]);
+  }, [isToday, timeSlots]);
+
+  // Clear selected time when date changes and slots shift
+  useEffect(() => {
+    if (selectedTime && !timeSlots.includes(selectedTime)) {
+      setSelectedTime(null);
+    }
+  }, [timeSlots, selectedTime]);
 
   const formatDate = (d: string) => {
     if (!d) return "Select date";
+    if (d === todayStr) return "Today";
     const dt = new Date(d + "T00:00:00");
     return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   };
@@ -664,7 +656,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
       <div className="v2-book-card v2-book-ot">
         {/* Header */}
         <div className="v2-book-ot-header">
-          <div className="v2-book-ot-title">Book my seats</div>
+          <div className="v2-book-ot-title">Book My Seats</div>
           <div className="v2-book-ot-sub">We&apos;ll handle everything</div>
         </div>
 
@@ -766,7 +758,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
               </svg>
-              We&apos;ll book on your behalf and confirm within a few hours
+              We will send you confirmation within 2 hours
             </div>
           </form>
         )}
