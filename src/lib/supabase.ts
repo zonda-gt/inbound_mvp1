@@ -26,15 +26,25 @@ export function getSupabaseServerClient() {
   return serverClient;
 }
 
-// Frontend client with anon key (for client-side action logging)
+// Frontend client with anon key — singleton so auth session is cached across components
+let browserClient: SupabaseClient | undefined;
+
+export function getSupabaseBrowserClient(): SupabaseClient {
+  if (browserClient) return browserClient;
+  browserClient = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+  );
+  return browserClient;
+}
+
+// Legacy alias — returns null when env vars missing (used by logging.ts)
 export function getSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn("Supabase credentials not configured - logging disabled");
     return null;
   }
-
-  return createClient(supabaseUrl, supabaseAnonKey);
+  return getSupabaseBrowserClient();
 }

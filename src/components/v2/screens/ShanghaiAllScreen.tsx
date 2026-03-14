@@ -1,16 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
 import SaveSheet from '../SaveSheet';
 import type { AttractionData } from '@/types/attraction';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 interface ShanghaiAllScreenProps {
   onNavigate: (screen: string) => void;
@@ -195,7 +193,10 @@ function AttractionCard({ attraction }: { attraction: AttractionData }) {
     e.preventDefault(); e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'attraction', attraction.slug); }
+    else { savePlace(supabase, { place_type: 'attraction', place_slug: attraction.slug, place_name: name, place_image: photos[0] }); }
   }
 
   return (
@@ -275,7 +276,10 @@ function ShaCardFromData({ attraction }: { attraction: AttractionData }) {
     e.preventDefault(); e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'attraction', attraction.slug); }
+    else { savePlace(supabase, { place_type: 'attraction', place_slug: attraction.slug, place_name: name, place_image: attraction.images?.[0] }); }
   }
 
   return (

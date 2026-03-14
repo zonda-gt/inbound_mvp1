@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import type { EatRestaurant } from './eat-restaurants';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 interface DbRow {
   slug: string;
@@ -36,7 +33,7 @@ let inFlight: Promise<EatRestaurant[]> | null = null;
 
 async function fetchFromSupabase(restaurants: EatRestaurant[]): Promise<EatRestaurant[]> {
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('restaurants_v2')
       .select('slug, images, profile, foreigner_hook');
@@ -72,7 +69,7 @@ async function fetchFromSupabase(restaurants: EatRestaurant[]): Promise<EatResta
 
 /** Returns cached data instantly, then revalidates from Supabase in the background */
 export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Promise<EatRestaurant[]> {
-  if (!supabaseUrl || !supabaseAnonKey) return restaurants;
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return restaurants;
 
   // 1. Memory cache — instant
   if (memCache) {

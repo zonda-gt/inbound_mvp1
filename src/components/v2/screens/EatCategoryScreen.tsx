@@ -1,15 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
 import SaveSheet from '../SaveSheet';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 const EAT_TABS: { id: EatCategory; label: string }[] = [
   { id: 'chinese', label: 'Chinese' },
@@ -151,7 +149,10 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
     e.preventDefault(); e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'restaurant', r.slug || ''); }
+    else { savePlace(supabase, { place_type: 'restaurant', place_slug: r.slug || '', place_name: r.name_en, place_image: images[0] || undefined }); }
   }
 
   const inner = (

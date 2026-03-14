@@ -4,13 +4,10 @@ import { useState, useEffect, useCallback, useRef, ViewTransition } from 'react'
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import SaveSheet from '@/components/v2/SaveSheet';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 // ════════════════════════════════════════════════════════════════
 // ATTRACTION PAGE v2 — Universal Template Engine
@@ -439,16 +436,15 @@ function ViewerSwipe({
       style={{
         position: 'fixed', inset: 0, zIndex: 270,
         background: `rgba(255,255,255,${opacity})`,
-        display: 'flex', flexDirection: 'column',
         transition: swiping ? 'none' : 'background .25s ease',
       }}
     >
-      {/* Header */}
-      <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Header — overlaid so image can center in full viewport */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           type="button"
           onClick={onSwipeDown}
-          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#222', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.12)' }}
           aria-label="Back to all photos"
         >
           ←
@@ -459,16 +455,16 @@ function ViewerSwipe({
         <button
           type="button"
           onClick={onClose}
-          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#222', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.12)' }}
           aria-label="Close photo viewer"
         >
           ✕
         </button>
       </div>
 
-      {/* Swipeable image area */}
+      {/* Image area — centers in full viewport */}
       <div
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'none' }}
+        style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -486,7 +482,7 @@ function ViewerSwipe({
             alt={`${altPrefix} photo ${viewerIndex + 1}`}
             loading="eager"
             wrapperStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            imgStyle={{ maxWidth: '100%', maxHeight: '70vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16 }}
+            imgStyle={{ maxWidth: '100%', maxHeight: '80vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16 }}
           />
         </div>
       </div>
@@ -649,7 +645,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         <motion.div
           layoutId={layoutId}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 290, borderRadius: 12, overflow: 'hidden' }}
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 3, height: 290, borderRadius: 12, overflow: 'hidden', WebkitMaskImage: '-webkit-radial-gradient(white, black)', isolation: 'isolate' as const }}
         >
           {[0,1,2,3].map(i => {
             const r = ['12px 3px 3px 3px', '3px 12px 3px 3px', '3px 3px 3px 12px', '3px 3px 12px 3px'][i];
@@ -680,7 +676,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
               {!images[i] && '\uD83D\uDCF7'}
               {i === 3 && images.length > 4 && (
                 <button onClick={(e) => { e.stopPropagation(); setGalleryMode('grid'); }}
-                  style={{ position: 'absolute', bottom: 10, right: 10, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
+                  style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 2, width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,255,255,.9)', border: '1px solid rgba(0,0,0,.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="8.5" height="8.5" rx="1.5" stroke="#222" strokeWidth="1.5"/><path d="M6 4V2.5A1.5 1.5 0 017.5 1H13.5A1.5 1.5 0 0115 2.5V8.5A1.5 1.5 0 0113.5 10H12" stroke="#222" strokeWidth="1.5"/></svg>
                 </button>
               )}
@@ -946,11 +942,11 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
                 }}
                 aria-label={`Open photo ${idx + 1}`}
               >
-                <DetailSmoothImage
+                <img
                   src={src}
                   alt={`${data.attraction_name_en} gallery ${idx + 1}`}
-                  wrapperStyle={{ width: '100%', borderRadius: 6 }}
-                  imgStyle={{ width: '100%', height: 'auto' }}
+                  loading="lazy"
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 6, background: '#efefef' }}
                 />
               </button>
             ))}

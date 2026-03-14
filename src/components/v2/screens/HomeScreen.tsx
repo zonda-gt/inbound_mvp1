@@ -2,16 +2,14 @@
 
 import { type TouchEvent, useRef, useState, useEffect, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 import SaveSheet from '../SaveSheet';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 // ── Weather helpers ─────────────────────────────────────────────
 
@@ -271,11 +269,18 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const [savedOriginalBySlug, setSavedOriginalBySlug] = useState<Record<string, boolean>>({});
   const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
 
-  async function handleFav(e: React.MouseEvent, name: string, onConfirm: () => void) {
+  type SaveMeta = { slug: string; type: 'restaurant' | 'attraction'; image?: string };
+
+  async function handleFav(e: React.MouseEvent, name: string, isSaved: boolean, meta: SaveMeta, onConfirm: () => void) {
     e.stopPropagation(); e.preventDefault();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setSaveSheet({ open: true, name, onConfirm }); return; }
     onConfirm();
+    if (isSaved) {
+      unsavePlace(supabase, meta.type, meta.slug);
+    } else {
+      savePlace(supabase, { place_type: meta.type, place_slug: meta.slug, place_name: name, place_image: meta.image });
+    }
   }
   const [dragOffsetPx, setDragOffsetPx] = useState(0);
   const [isSwipingPick, setIsSwipingPick] = useState(false);
@@ -490,7 +495,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                   <button
                     type="button"
                     className="v2-sh-food-fav"
-                    onClick={(e) => handleFav(e, pick.name, () => setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
+                    onClick={(e) => handleFav(e, pick.name, saved, { slug: pick.slug, type: 'restaurant' }, () => setSavedBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
                     aria-label={saved ? 'Unsave restaurant' : 'Save restaurant'}
                   >
                     <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -543,7 +548,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                 <button
                   type="button"
                   className="v2-sh-food-fav"
-                  onClick={(e) => handleFav(e, title, () => setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] })))}
+                  onClick={(e) => handleFav(e, title, saved, { slug: item.slug, type: 'attraction', image }, () => setSavedOriginalBySlug((prev) => ({ ...prev, [item.slug]: !prev[item.slug] })))}
                   aria-label={saved ? `Unsave ${title}` : `Save ${title}`}
                 >
                   <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">
@@ -601,7 +606,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
                   <button
                     type="button"
                     className="v2-sh-food-fav"
-                    onClick={(e) => handleFav(e, pick.name, () => setSavedAttrBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
+                    onClick={(e) => handleFav(e, pick.name, saved, { slug: pick.slug, type: 'attraction', image }, () => setSavedAttrBySlug((prev) => ({ ...prev, [pick.slug]: !prev[pick.slug] })))}
                     aria-label={saved ? 'Unsave attraction' : 'Save attraction'}
                   >
                     <svg viewBox="0 0 32 32" width="24" height="24" fill={saved ? '#FF385C' : 'rgba(0,0,0,0.5)'} stroke="white" strokeWidth="2">

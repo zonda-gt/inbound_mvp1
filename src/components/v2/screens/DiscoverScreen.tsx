@@ -6,14 +6,12 @@ import { getTimeAwareMessage } from '../data/discover-data';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import SaveSheet from '../SaveSheet';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 interface DiscoverScreenProps {
   onNavigate: (screen: string) => void;
@@ -266,7 +264,10 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'attraction', attraction.slug); }
+    else { savePlace(supabase, { place_type: 'attraction', place_slug: attraction.slug, place_name: name, place_image: img }); }
   }
   return (
     <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; router.push(`/attractions/${attraction.slug}`); }}>
@@ -319,7 +320,10 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'restaurant', bar.slug || ''); }
+    else { savePlace(supabase, { place_type: 'restaurant', place_slug: bar.slug || '', place_name: bar.name_en, place_image: bar.image || undefined }); }
   }
   return (
     <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; bar.slug && router.push(`/restaurants/${bar.slug}`); }}>
@@ -375,7 +379,10 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setShowSaveSheet(true); return; }
+    const wasSaved = saved;
     setSaved((s) => !s);
+    if (wasSaved) { unsavePlace(supabase, 'restaurant', slug); }
+    else { savePlace(supabase, { place_type: 'restaurant', place_slug: slug, place_name: name, place_image: image || undefined }); }
   }
   const card = (
     <div className="v2-sh-food-card">

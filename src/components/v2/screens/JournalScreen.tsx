@@ -1,13 +1,170 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { getSavedPlaces, unsavePlace, fetchExtrasForSavedPlaces, type SavedPlace, type SavedPlaceExtra } from '@/lib/saved-places';
+import { useGeolocation } from '../hooks/useGeolocation';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function formatDist(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
+}
+
+/* ── Carousel with snap-scroll + dots ── */
+function ImageCarousel({ images, placeholder }: { images: string[]; placeholder: string }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const count = images.length;
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || count <= 1) return;
+    function onScroll() {
+      if (!el) return;
+      const idx = Math.round(el.scrollLeft / el.clientWidth);
+      setActive(idx);
+    }
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [count]);
+
+  if (count === 0) {
+    return (
+      <div className="v2-saved-vcard-placeholder">{placeholder}</div>
+    );
+  }
+
+  return (
+    <>
+      <div className="v2-saved-carousel" ref={scrollRef}>
+        {images.map((src, i) => (
+          <img key={i} src={src} alt="" className="v2-saved-carousel-slide" draggable={false} />
+        ))}
+      </div>
+      {count > 1 && (
+        <div className="v2-saved-dots">
+          {images.map((_, i) => (
+            <span key={i} className={`v2-saved-dot${i === active ? ' active' : ''}`} />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function SavedPlacesList({ user, onNavigate }: { user: User; onNavigate: (screen: string) => void }) {
+  const [places, setPlaces] = useState<SavedPlace[]>([]);
+  const [extraMap, setExtraMap] = useState<Record<string, SavedPlaceExtra>>({});
+  const [loading, setLoading] = useState(true);
+  const { location: userLoc } = useGeolocation();
+  const userCoords = userLoc ? (() => { const [lng, lat] = userLoc.split(',').map(Number); return (lat && lng) ? { lat, lng } : null; })() : null;
+
+  const load = useCallback(async () => {
+    const data = await getSavedPlaces(supabase);
+    setPlaces(data);
+    setLoading(false);
+    if (data.length > 0) {
+      const extras = await fetchExtrasForSavedPlaces(supabase, data);
+      setExtraMap(extras);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function handleUnsave(place: SavedPlace) {
+    setPlaces((prev) => prev.filter((p) => p.id !== place.id));
+    await unsavePlace(supabase, place.place_type, place.place_slug);
+  }
+
+  function handleTap(place: SavedPlace) {
+    const route = place.place_type === 'restaurant'
+      ? `/restaurants/${place.place_slug}`
+      : `/attractions/${place.place_slug}`;
+    window.location.href = route;
+  }
+
+  if (loading) {
+    return (
+      <section className="v2-saved-section v2-fade-up v2-d2" style={{ padding: '40px 20px', textAlign: 'center' }}>
+        <p style={{ color: '#AEAEB2', fontSize: 14 }}>Loading saved places...</p>
+      </section>
+    );
+  }
+
+  if (places.length === 0) {
+    return (
+      <section className="v2-saved-empty v2-fade-up v2-d2">
+        <div className="v2-saved-empty-icon">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#AEAEB2" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </div>
+        <p className="v2-saved-empty-title">No saved places yet</p>
+        <p className="v2-saved-empty-sub">Tap the heart on any restaurant or attraction to save it here.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="v2-saved-section v2-fade-up v2-d2">
+      <div className="v2-sec-hdr" style={{ padding: 0 }}>
+        <h2 className="v2-sec-title">Saved Places</h2>
+        <span className="v2-sec-link" style={{ color: '#AEAEB2' }}>{places.length} saved</span>
+      </div>
+
+      <div className="v2-saved-grid">
+        {places.map((place) => {
+          const key = `${place.place_type}:${place.place_slug}`;
+          const extra = extraMap[key];
+          const images = extra?.images?.length ? extra.images : (place.place_image ? [place.place_image] : []);
+          const hook = extra?.hook || '';
+          const placeholder = place.place_type === 'restaurant' ? '🍜' : '🏛️';
+          const dist = (userCoords && extra?.lat && extra?.lng)
+            ? formatDist(haversineKm(userCoords.lat, userCoords.lng, extra.lat, extra.lng))
+            : null;
+          const meta = [extra?.price, extra?.neighborhood, dist].filter(Boolean);
+
+          return (
+            <div key={place.id} className="v2-saved-vcard" onClick={() => handleTap(place)}>
+              <div className="v2-saved-vcard-img">
+                <ImageCarousel images={images} placeholder={placeholder} />
+                <button
+                  className="v2-saved-vcard-heart"
+                  onClick={(e) => { e.stopPropagation(); handleUnsave(place); }}
+                  aria-label="Remove saved place"
+                >
+                  <svg viewBox="0 0 32 32" width="24" height="24" fill="#FF385C" stroke="white" strokeWidth="2">
+                    <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+                  </svg>
+                </button>
+                <div className="v2-saved-vcard-badge">
+                  {place.place_type === 'restaurant' ? 'Restaurant' : 'Attraction'}
+                </div>
+              </div>
+              <div className="v2-saved-vcard-info">
+                <h3 className="v2-saved-vcard-name">{place.place_name}</h3>
+                {meta.length > 0 && (
+                  <p className="v2-saved-vcard-meta">{meta.join(' · ')}</p>
+                )}
+                {hook && <p className="v2-saved-vcard-hook">{hook}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
 
 interface JournalScreenProps {
   onNavigate: (screen: string) => void;
@@ -154,155 +311,36 @@ export default function JournalScreen({ onNavigate }: JournalScreenProps) {
     );
   }
 
-  // Logged in — show journal
+  // Logged in — show saved places + account
+  const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || 'Traveler';
+  const userEmail = user.email || '';
+
   return (
     <div className="v2-scroll-body">
-      {/* ───── 1. Header ───── */}
-      <section className="v2-journal-hdr v2-fade-up v2-d1">
-        <div className="v2-journal-title-row">
-          <h1 className="v2-journal-title">My Journey</h1>
-          <button className="v2-journal-add-btn">+</button>
-        </div>
-        <p className="v2-journal-sub">
-          Shanghai &middot; Day 4 of your trip
-        </p>
-        <button className="v2-journal-logout-btn" onClick={handleLogout}>Sign out</button>
-      </section>
-
-      {/* ───── 2. Trip Stats ───── */}
-      <section className="v2-trip-stats v2-fade-up v2-d1">
-        <div className="v2-trip-stat">
-          <span className="v2-trip-stat-num red">12</span>
-          <span className="v2-trip-stat-label">Places visited</span>
-        </div>
-        <div className="v2-trip-stat">
-          <span className="v2-trip-stat-num">3</span>
-          <span className="v2-trip-stat-label">Dishes tried</span>
-        </div>
-        <div className="v2-trip-stat">
-          <span className="v2-trip-stat-num">8</span>
-          <span className="v2-trip-stat-label">Photos scanned</span>
-        </div>
-      </section>
-
-      {/* ───── 3. Dish Passport ───── */}
-      <section className="v2-passport-section v2-fade-up v2-d2">
-        <div className="v2-passport-card">
-          <div className="v2-passport-bg-pattern" />
-          <div className="v2-passport-top">
-            <div>
-              <h3 className="v2-passport-title">🍜 Dish Passport</h3>
-              <p className="v2-passport-subtitle">
-                3 of 6 Shanghai classics
-              </p>
+      {/* ───── Account Header ───── */}
+      <section className="v2-account-hdr v2-fade-up v2-d1">
+        <div className="v2-account-row">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="" className="v2-account-avatar" referrerPolicy="no-referrer" />
+          ) : (
+            <div className="v2-account-avatar v2-account-avatar-fallback">
+              {displayName.charAt(0).toUpperCase()}
             </div>
-            <span className="v2-passport-badge">Level 2</span>
-          </div>
-          <div className="v2-passport-dishes">
-            <span className="v2-dish-stamp done">🥟</span>
-            <span className="v2-dish-stamp done">🍜</span>
-            <span className="v2-dish-stamp done">🫓</span>
-            <span className="v2-dish-stamp">🦆</span>
-            <span className="v2-dish-stamp locked">🍲</span>
-            <span className="v2-dish-stamp locked">🌶️</span>
-          </div>
-          <div className="v2-passport-progress">
-            <div className="v2-progress-bar-wrap">
-              <div className="v2-progress-bar-fill" style={{ width: "50%" }} />
-            </div>
-            <p className="v2-progress-text">
-              3 of 6 unlocked &middot; Try Peking Duck next!
-            </p>
+          )}
+          <div className="v2-account-info">
+            <h2 className="v2-account-name">{displayName}</h2>
+            <p className="v2-account-email">{userEmail}</p>
           </div>
         </div>
       </section>
 
-      {/* ───── 4. Saved Places ───── */}
-      <section className="v2-saved-section v2-fade-up v2-d3">
-        <div className="v2-sec-hdr" style={{ padding: 0 }}>
-          <h2 className="v2-sec-title">Saved Places</h2>
-          <button className="v2-sec-link">Map view</button>
-        </div>
+      {/* ───── Saved Places ───── */}
+      <SavedPlacesList user={user} onNavigate={onNavigate} />
 
-        <div className="v2-saved-card" onClick={() => onNavigate("navigate")}>
-          <div className="v2-saved-img">🍜</div>
-          <div className="v2-saved-body">
-            <h3 className="v2-saved-name">Xun Yu Ji Noodles</h3>
-            <div className="v2-saved-meta">
-              <span className="v2-pill gray">¥38</span>
-              <span className="v2-pill gray">320m away</span>
-            </div>
-          </div>
-          <div className="v2-saved-right">
-            <span className="v2-saved-visited">✓ Visited</span>
-            <span className="v2-saved-nav">→</span>
-          </div>
-        </div>
-
-        <div className="v2-saved-card" onClick={() => onNavigate("navigate")}>
-          <div className="v2-saved-img">🍱</div>
-          <div className="v2-saved-body">
-            <h3 className="v2-saved-name">COMMUNE Reserve</h3>
-            <div className="v2-saved-meta">
-              <span className="v2-pill gray">¥130</span>
-              <span className="v2-pill gray">440m away</span>
-            </div>
-          </div>
-          <div className="v2-saved-right">
-            <span className="v2-pill gray">Tonight?</span>
-            <span className="v2-saved-nav">→</span>
-          </div>
-        </div>
-
-        <div className="v2-saved-card" onClick={() => onNavigate("navigate")}>
-          <div className="v2-saved-img">🌃</div>
-          <div className="v2-saved-body">
-            <h3 className="v2-saved-name">Bar Rouge, The Bund</h3>
-            <div className="v2-saved-meta">
-              <span className="v2-pill gray">¥80 cocktails</span>
-            </div>
-          </div>
-          <div className="v2-saved-right">
-            <span className="v2-pill gold">On plan</span>
-            <span className="v2-saved-nav">→</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ───── 5. Trip Diary ───── */}
-      <section className="v2-diary-section v2-fade-up v2-d4">
-        <div className="v2-sec-hdr" style={{ padding: 0 }}>
-          <h2 className="v2-sec-title">Trip Diary</h2>
-          <button className="v2-sec-link">+ Add note</button>
-        </div>
-
-        <div className="v2-diary-card">
-          <p className="v2-diary-date">Thursday, 26 Feb &middot; Day 4</p>
-          <p className="v2-diary-text">
-            Finally tried xiaolongbao at Din Tai Fung &mdash; the soup inside
-            explodes in your mouth. Worth every minute of the queue. Used the
-            photo AI to figure out what the mystery dish next to me was (turned
-            out to be scallion pancake, now obsessed).
-          </p>
-          <div className="v2-diary-photos">
-            <div className="v2-diary-photo"><div className="v2-diary-photo-ph">🥟</div></div>
-            <div className="v2-diary-photo"><div className="v2-diary-photo-ph">🍜</div></div>
-            <div className="v2-diary-photo"><div className="v2-diary-photo-ph">🫓</div></div>
-          </div>
-        </div>
-
-        <div className="v2-diary-card">
-          <p className="v2-diary-date">Wednesday, 25 Feb &middot; Day 3</p>
-          <p className="v2-diary-text">
-            Took the metro to The Bund &mdash; the navigation feature told me
-            exactly which exit to use. Sunset over Pudong was unreal. Had
-            cocktails at Bar Rouge, felt very fancy for ¥80.
-          </p>
-          <div className="v2-diary-photos">
-            <div className="v2-diary-photo"><div className="v2-diary-photo-ph">🌃</div></div>
-            <div className="v2-diary-photo"><div className="v2-diary-photo-ph">🍸</div></div>
-          </div>
-        </div>
+      {/* ───── Sign Out ───── */}
+      <section className="v2-account-footer v2-fade-up v2-d3">
+        <button className="v2-signout-btn" onClick={handleLogout}>Sign out</button>
       </section>
 
       <div className="v2-spacer-lg" />

@@ -2,13 +2,10 @@
 
 import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import SaveSheet from '@/components/v2/SaveSheet';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-);
+const supabase = getSupabaseBrowserClient();
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -169,15 +166,15 @@ function ViewerSwipe({
       style={{
         position: 'fixed', inset: 0, zIndex: 270,
         background: `rgba(255,255,255,${opacity})`,
-        display: 'flex', flexDirection: 'column',
         transition: swiping ? 'none' : 'background .25s ease',
       }}
     >
-      <div style={{ padding: '14px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Header — overlaid so image can center in full viewport */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           type="button"
           onClick={onSwipeDown}
-          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#222', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.12)' }}
           aria-label="Back to all photos"
         >
           ←
@@ -188,15 +185,16 @@ function ViewerSwipe({
         <button
           type="button"
           onClick={onClose}
-          style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,.08)', color: '#222', cursor: 'pointer', fontSize: 16 }}
+          style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', color: '#222', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,0,0,.12)' }}
           aria-label="Close photo viewer"
         >
           ✕
         </button>
       </div>
 
+      {/* Image area — centers in full viewport */}
       <div
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'none' }}
+        style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', touchAction: 'none' }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -214,7 +212,7 @@ function ViewerSwipe({
             alt={`${altPrefix} photo ${viewerIndex + 1}`}
             loading="eager"
             wrapperStyle={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            imgStyle={{ maxWidth: '100%', maxHeight: '70vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16 }}
+            imgStyle={{ maxWidth: '100%', maxHeight: '80vh', width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 16 }}
           />
         </div>
       </div>
@@ -500,7 +498,7 @@ export default function RestaurantDetail({ data }: { data: any }) {
         .nav-title{font-size:16px;font-weight:700}
         .nav-right{display:flex;gap:8px}
 
-        .hero-grid{display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:220px 150px;gap:3px;margin:0 12px;border-radius:12px;overflow:hidden}
+        .hero-grid{display:grid;grid-template-columns:1.2fr 1fr;grid-template-rows:220px 150px;gap:3px;margin:0 12px;border-radius:12px;overflow:hidden;-webkit-mask-image:-webkit-radial-gradient(white,black);isolation:isolate}
         .hero-slot{position:relative;overflow:hidden;background:var(--gray-100)}
         .hero-slot:first-child{grid-row:1/-1}
         .hero-img{width:100%;height:100%;object-fit:cover;display:block}
@@ -1101,11 +1099,11 @@ export default function RestaurantDetail({ data }: { data: any }) {
                 }}
                 aria-label={`Open photo ${idx + 1}`}
               >
-                <SmoothImage
+                <img
                   src={src}
                   alt={`${nameEn} gallery ${idx + 1}`}
-                  wrapperStyle={{ width: '100%', borderRadius: 20 }}
-                  imgStyle={{ width: '100%', height: 'auto' }}
+                  loading="lazy"
+                  style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 20, background: '#efefef' }}
                 />
               </button>
             ))}
