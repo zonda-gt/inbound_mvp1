@@ -8,15 +8,20 @@ function NavigatePageInner() {
   const params = useSearchParams();
   const router = useRouter();
 
+  const referrer = params.get('from') || null;
+  // Extract slug and type from referrer path (e.g. "/attractions/my-slug")
+  const slug = referrer?.split('/').pop() || undefined;
+  const placeType = referrer?.includes('/restaurants/') ? 'restaurant' as const : 'attraction' as const;
+
   const destination = params.get('name')
     ? {
         name: params.get('name')!,
         chineseName: params.get('nameCn') || undefined,
         address: params.get('addr') || undefined,
+        slug,
+        placeType: referrer ? placeType : undefined,
       }
     : null;
-
-  const referrer = params.get('from') || null;
 
   return (
     <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: '#fff' }}>

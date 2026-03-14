@@ -326,9 +326,11 @@ export default function Shell() {
                   onNavigate={() => {
                     handleCloseAttraction();
                     handleNavigateToDestination({
-                      name: attractionData.attraction_name_cn || attractionData.attraction_name_en,
+                      name: attractionData.card_name || attractionData.attraction_name_en,
                       chineseName: attractionData.attraction_name_cn,
                       address: attractionData.address_cn || attractionData.address_en,
+                      slug: attractionData.slug,
+                      placeType: 'attraction',
                     });
                   }}
                   layoutId={`attraction-hero-${selectedAttraction.slug}`}

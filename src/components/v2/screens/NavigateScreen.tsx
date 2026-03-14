@@ -6,12 +6,19 @@ import { useNavigation } from "../hooks/useNavigation";
 import { useAMap } from "@/hooks/useAMap";
 import type { TransitSegment, TransitRoute, WalkingRoute, DrivingRoute } from "@/lib/amap";
 import { track } from '@/lib/analytics';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
+import SaveSheet from '../SaveSheet';
+
+const supabase = getSupabaseBrowserClient();
 
 export type NavigateDestination = {
   name: string;
   chineseName?: string;
   address?: string;
   location?: string;
+  slug?: string;
+  placeType?: 'restaurant' | 'attraction';
 };
 
 interface NavigateScreenProps {
@@ -41,11 +48,14 @@ export default function NavigateScreen({
   const [searchQuery, setSearchQuery] = useState("");
   const [localDest, setLocalDest] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState<TransportMode>("metro");
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [showSaveSheet, setShowSaveSheet] = useState(false);
 
   const { location: gpsLocation, city, isDemo } = useGeolocation();
 
-  // Use external destination if provided, otherwise local search
-  const activeDest = externalDest?.name || localDest;
+  // Use Chinese name for Amap search (better results), fall back to English name
+  const activeDest = externalDest?.chineseName || externalDest?.name || localDest;
   const { data, loading, error } = useNavigation(activeDest, gpsLocation, city);
 
   // Suppress unused var warning — onNavigate available for future use
@@ -83,6 +93,37 @@ export default function NavigateScreen({
     const text = `${data.destination.name}\n${data.destination.address}`;
     navigator.clipboard.writeText(text).catch(() => {});
   }, [data]);
+
+  // Parse slug from referrer if not in destination (e.g. "/attractions/my-slug" → "my-slug")
+  const placeSlug = externalDest?.slug || referrer?.split('/').pop() || '';
+  const placeType: 'restaurant' | 'attraction' = externalDest?.placeType || (referrer?.includes('/restaurants/') ? 'restaurant' : 'attraction');
+
+  // Check saved status on mount
+  useEffect(() => {
+    if (!placeSlug) return;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const { data: rows } = await supabase
+        .from('saved_places')
+        .select('id')
+        .eq('place_slug', placeSlug)
+        .eq('place_type', placeType)
+        .limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [placeSlug, placeType]);
+
+  async function handleFav() {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) { setShowSaveSheet(true); return; }
+    const name = externalDest?.name || data?.destination?.name || '';
+    const wasSaved = saved;
+    setSaved(s => !s);
+    if (wasSaved) { unsavePlace(supabase, placeType, placeSlug); }
+    else { savePlace(supabase, { place_type: placeType, place_slug: placeSlug, place_name: name }); }
+    track('place_save', { slug: placeSlug, type: placeType, action: wasSaved ? 'unsave' : 'save' });
+  }
 
   // ───── SEARCH STATE ─────
   if (!activeDest && !loading) {
@@ -150,7 +191,7 @@ export default function NavigateScreen({
             <div className="v2-route-row">
               <span className="v2-route-dot o" />
               <span className="v2-route-lbl">From</span>
-              <span className="v2-route-val">{isDemo ? "People's Square (Demo)" : "Your Location"}</span>
+              <span className="v2-route-val">{isDemo ? "People's Square (人民广场)" : "Your Location"}</span>
             </div>
             <div className="v2-route-line-v" />
             <div className="v2-route-row">
@@ -190,33 +231,43 @@ export default function NavigateScreen({
   if (!data) return null;
 
   const { transit, walking, driving } = data;
+  // Prefer English name from external destination, fall back to Amap Chinese name
+  const displayName = externalDest?.name || data.destination.name;
 
   // Build polylines for the active mode
   const routePolylines = buildRoutePolylines(activeMode, transit, walking, driving);
 
   return (
-    <div className="v2-scroll-body">
-      {/* 0. Book Your Seats */}
-      <BookingCard destinationName={data.destination.name} />
-
-      {/* 1. Header */}
-      <section className="v2-nav-hdr v2-fade-up v2-d1">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <button className="v2-nav-back-btn" onClick={() => { handleClear(); }}>←</button>
-          <h1 className="v2-nav-hdr-title" style={{ margin: 0 }}>Getting There</h1>
+    <div className="v2-scroll-body" onScroll={(e) => { const scrolled = e.currentTarget.scrollTop > 10; if (scrolled !== navScrolled) setNavScrolled(scrolled); }}>
+      {/* 0. Sticky nav bar — matches AttractionDetail */}
+      <nav style={{ position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '28px 16px 10px', transition: 'background .3s, box-shadow .3s', ...(navScrolled ? { background: 'rgba(255,255,255,.97)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', boxShadow: '0 1px 0 rgba(0,0,0,.06)' } : {}) }}>
+        <button onClick={() => { handleClear(); }} style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
+        <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 600, color: '#222', whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</span>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => { if (navigator.share) { navigator.share({ url: window.location.href, title: displayName }).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href).catch(() => {}); } }} aria-label="Share" style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+          <button onClick={handleFav} aria-label={saved ? 'Unsave' : 'Save'} style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: saved ? '#D0021B' : '#222', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>{saved ? '♥' : '♡'}</button>
         </div>
+      </nav>
+      <SaveSheet isOpen={showSaveSheet} placeName={displayName} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
+
+      {/* 1. Book Your Seats */}
+      <BookingCard destinationName={displayName} />
+
+      {/* 2. Header */}
+      <section className="v2-nav-hdr v2-fade-up v2-d1">
+        <h1 className="v2-nav-hdr-title">Getting There</h1>
 
         <div className="v2-route-card">
           <div className="v2-route-row">
             <span className="v2-route-dot o" />
             <span className="v2-route-lbl">From</span>
-            <span className="v2-route-val">{isDemo ? "People's Square (Demo)" : "Your Location"}</span>
+            <span className="v2-route-val">{isDemo ? "People's Square (人民广场)" : "Your Location"}</span>
           </div>
           <div className="v2-route-line-v" />
           <div className="v2-route-row">
             <span className="v2-route-dot d" />
             <span className="v2-route-lbl">To</span>
-            <span className="v2-route-val">{data.destination.name}</span>
+            <span className="v2-route-val">{displayName}</span>
           </div>
         </div>
       </section>
@@ -226,7 +277,7 @@ export default function NavigateScreen({
         {transit && (
           <button
             className={`v2-mode-btn${activeMode === "metro" ? " active" : ""}`}
-            onClick={() => { track('navigate_mode_select', { mode: 'metro', destination: data?.destination?.name || '' }); setActiveMode("metro"); }}
+            onClick={() => { track('navigate_mode_select', { mode: 'metro', destination: displayName }); setActiveMode("metro"); }}
           >
             <span className="v2-mode-icon">🚇</span>
             <span className="v2-mode-time">{transit.totalDuration} min</span>
@@ -238,7 +289,7 @@ export default function NavigateScreen({
         {driving && (
           <button
             className={`v2-mode-btn${activeMode === "taxi" ? " active" : ""}`}
-            onClick={() => { track('navigate_mode_select', { mode: 'taxi', destination: data?.destination?.name || '' }); setActiveMode("taxi"); }}
+            onClick={() => { track('navigate_mode_select', { mode: 'taxi', destination: displayName }); setActiveMode("taxi"); }}
           >
             <span className="v2-mode-icon">🚕</span>
             <span className="v2-mode-time">{driving.duration} min</span>
@@ -250,7 +301,7 @@ export default function NavigateScreen({
         {walking && (
           <button
             className={`v2-mode-btn${activeMode === "walk" ? " active" : ""}`}
-            onClick={() => { track('navigate_mode_select', { mode: 'walk', destination: data?.destination?.name || '' }); setActiveMode("walk"); }}
+            onClick={() => { track('navigate_mode_select', { mode: 'walk', destination: displayName }); setActiveMode("walk"); }}
           >
             <span className="v2-mode-icon">🚶</span>
             <span className="v2-mode-time">{walking.duration} min</span>
@@ -264,7 +315,7 @@ export default function NavigateScreen({
       <RouteMap
         originLocation={data.origin}
         destLocation={data.destination.location}
-        destName={data.destination.name}
+        destName={displayName}
         isDemo={isDemo}
         polylines={routePolylines}
       />
@@ -465,28 +516,62 @@ export default function NavigateScreen({
   );
 }
 
-/* ─── Booking Card (concierge booking) ─── */
+/* ─── Booking Card (OpenTable-style) ─── */
 
-type BookingState = "collapsed" | "form" | "submitted";
+/** Generate 30-min time slots starting 2 hours from now (gives you time to book).
+ *  Slots run from that start until 21:00, capped at restaurant hours. */
+function generateTimeSlots(): string[] {
+  const now = new Date();
+  // 2 hours from now, rounded up to next :00 or :30
+  const startMin = (now.getHours() + 2) * 60 + now.getMinutes();
+  const roundedStart = Math.ceil(startMin / 30) * 30;
+  // Earliest possible slot is 11:00, latest is 21:00
+  const earliest = 11 * 60; // 11:00
+  const latest = 21 * 60;   // 21:00
+  const first = Math.max(roundedStart, earliest);
+  const slots: string[] = [];
+  for (let m = first; m <= latest; m += 30) {
+    const hh = String(Math.floor(m / 60)).padStart(2, "0");
+    const mm = String(m % 60).padStart(2, "0");
+    slots.push(`${hh}:${mm}`);
+  }
+  // If it's too late and no slots generated, show tomorrow's full range
+  if (slots.length === 0) {
+    for (let m = earliest; m <= latest; m += 30) {
+      const hh = String(Math.floor(m / 60)).padStart(2, "0");
+      const mm = String(m % 60).padStart(2, "0");
+      slots.push(`${hh}:${mm}`);
+    }
+  }
+  return slots;
+}
+
+function formatTime12(t: string) {
+  const [h, m] = t.split(":");
+  const hr = parseInt(h);
+  return `${hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? "PM" : "AM"}`;
+}
 
 function BookingCard({ destinationName }: { destinationName: string }) {
-  const [state, setState] = useState<BookingState>("collapsed");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("19:00");
   const [guests, setGuests] = useState(2);
+  const [showGuestPicker, setShowGuestPicker] = useState(false);
+  const [date, setDate] = useState("");
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const timeSlotsRef = useRef<HTMLDivElement>(null);
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
 
-  // Ref to track current state for cleanup (booking_abandoned)
-  const stateRef = useRef(state);
-  useEffect(() => { stateRef.current = state; }, [state]);
+  // Ref to track state for cleanup
+  const selectedTimeRef = useRef(selectedTime);
+  useEffect(() => { selectedTimeRef.current = selectedTime; }, [selectedTime]);
 
-  // Track booking abandonment on unmount
   useEffect(() => {
     return () => {
-      if (stateRef.current === 'form') {
-        track('booking_abandoned', { destination: destinationName, step_reached: 'form' });
+      if (selectedTimeRef.current) {
+        track('booking_abandoned', { destination: destinationName, step_reached: 'time_selected' });
       }
     };
   }, [destinationName]);
@@ -500,9 +585,20 @@ function BookingCard({ destinationName }: { destinationName: string }) {
     }
   }, [date]);
 
+  const formatDate = (d: string) => {
+    if (!d) return "Select date";
+    const dt = new Date(d + "T00:00:00");
+    return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  };
+
+  const handleTimeSelect = (t: string) => {
+    track('booking_form_open', { destination: destinationName });
+    setSelectedTime(t);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !time || !email.trim()) return;
+    if (!date || !selectedTime || !email.trim()) return;
 
     setSubmitting(true);
     try {
@@ -512,7 +608,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
         body: JSON.stringify({
           destinationName,
           bookingDate: date,
-          bookingTime: time,
+          bookingTime: selectedTime,
           partySize: guests,
           guestEmail: email.trim(),
         }),
@@ -522,57 +618,18 @@ function BookingCard({ destinationName }: { destinationName: string }) {
         setBookingId(data.id || null);
         track('booking_submit', { destination: destinationName, guests });
       }
-      setState("submitted");
+      setSubmitted(true);
+      setSelectedTime(null);
     } catch {
-      setState("submitted");
+      setSubmitted(true);
+      setSelectedTime(null);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const formatDate = (d: string) => {
-    if (!d) return "";
-    const dt = new Date(d + "T00:00:00");
-    return dt.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  };
-
-  const formatTime = (t: string) => {
-    const [h, m] = t.split(":");
-    const hr = parseInt(h);
-    return `${hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? "PM" : "AM"}`;
-  };
-
-  // ── Collapsed state ──
-  if (state === "collapsed") {
-    return (
-      <section className="v2-book-section v2-fade-up v2-d1">
-        <div className="v2-book-card v2-book-collapsed" onClick={() => { track('booking_form_open', { destination: destinationName }); setState("form"); }}>
-          <div className="v2-book-collapsed-left">
-            <div className="v2-book-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <div>
-              <div className="v2-book-title">Book your seats</div>
-              <div className="v2-book-sub">We&apos;ll reserve for you — no Chinese apps needed</div>
-            </div>
-          </div>
-          <div className="v2-book-arrow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   // ── Submitted state ──
-  if (state === "submitted") {
+  if (submitted) {
     return (
       <section className="v2-book-section v2-fade-up v2-d1">
         <div className="v2-book-card v2-book-submitted">
@@ -584,7 +641,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
           </div>
           <div className="v2-book-submitted-title">Booking Requested</div>
           <div className="v2-book-submitted-details">
-            {destinationName} &middot; {formatDate(date)} &middot; {formatTime(time)} &middot; {guests} guest{guests !== 1 ? "s" : ""}
+            {destinationName} &middot; {formatDate(date)} &middot; {guests} guest{guests !== 1 ? "s" : ""}
           </div>
           <div className="v2-book-submitted-note">
             We&apos;ll email you at <strong>{email}</strong> once your reservation is confirmed.
@@ -602,110 +659,117 @@ function BookingCard({ destinationName }: { destinationName: string }) {
     );
   }
 
-  // ── Form state ──
   return (
     <section className="v2-book-section v2-fade-up v2-d1">
-      <div className="v2-book-card">
-        <div className="v2-book-form-header">
-          <div className="v2-book-icon">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div className="v2-book-card v2-book-ot">
+        {/* Header */}
+        <div className="v2-book-ot-header">
+          <div className="v2-book-ot-title">Book my seats</div>
+          <div className="v2-book-ot-sub">We&apos;ll handle everything</div>
+        </div>
+
+        {/* Selectors row: guests + date */}
+        <div className="v2-book-ot-selectors">
+          {/* Guest pill */}
+          <div className="v2-book-ot-pill-wrap">
+            <button
+              className="v2-book-ot-pill"
+              onClick={() => setShowGuestPicker(!showGuestPicker)}
+              type="button"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <span>{guests} guest{guests !== 1 ? "s" : ""}</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {showGuestPicker && (
+              <div className="v2-book-ot-dropdown">
+                {[1,2,3,4,5,6,7,8].map((n) => (
+                  <button
+                    key={n}
+                    className={`v2-book-ot-dropdown-item${guests === n ? " active" : ""}`}
+                    onClick={() => { setGuests(n); setShowGuestPicker(false); }}
+                    type="button"
+                  >
+                    {n} guest{n !== 1 ? "s" : ""}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Date pill */}
+          <label className="v2-book-ot-pill v2-book-ot-date-pill">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
               <line x1="16" y1="2" x2="16" y2="6"/>
               <line x1="8" y1="2" x2="8" y2="6"/>
               <line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-          </div>
-          <div>
-            <div className="v2-book-title">Book your seats</div>
-            <div className="v2-book-sub">at {destinationName}</div>
-          </div>
-          <button className="v2-book-close" onClick={() => setState("collapsed")} aria-label="Close">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form className="v2-book-form" onSubmit={handleSubmit}>
-          <div className="v2-book-field">
-            <label className="v2-book-label">Date</label>
+            <span>{formatDate(date)}</span>
             <input
-              className="v2-book-input"
               type="date"
+              className="v2-book-ot-date-input"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               min={new Date().toISOString().split("T")[0]}
-              required
             />
-          </div>
+          </label>
+        </div>
 
-          <div className="v2-book-field">
-            <label className="v2-book-label">Time</label>
-            <select
-              className="v2-book-input"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              required
+        {/* Time slots row */}
+        <div className="v2-book-ot-times-label">Select a time</div>
+        <div className="v2-book-ot-times" ref={timeSlotsRef}>
+          {timeSlots.map((t) => (
+            <button
+              key={t}
+              type="button"
+              className={`v2-book-ot-time-btn${selectedTime === t ? " active" : ""}`}
+              onClick={() => handleTimeSelect(t)}
             >
-              {["11:00","11:30","12:00","12:30","13:00","13:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30","21:00"].map((t) => (
-                <option key={t} value={t}>{formatTime(t)}</option>
-              ))}
-            </select>
-          </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+              {formatTime12(t)}
+            </button>
+          ))}
+        </div>
 
-          <div className="v2-book-field">
-            <label className="v2-book-label">Guests</label>
-            <div className="v2-book-stepper">
-              <button
-                type="button"
-                className="v2-book-stepper-btn"
-                onClick={() => setGuests((g) => Math.max(1, g - 1))}
-                disabled={guests <= 1}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </button>
-              <span className="v2-book-stepper-val">{guests}</span>
-              <button
-                type="button"
-                className="v2-book-stepper-btn"
-                onClick={() => setGuests((g) => Math.min(20, g + 1))}
-                disabled={guests >= 20}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-              </button>
+        {/* Email + submit (appears after selecting a time) */}
+        {selectedTime && (
+          <form className="v2-book-ot-confirm" onSubmit={handleSubmit}>
+            <div className="v2-book-ot-confirm-summary">
+              {formatDate(date)} at {formatTime12(selectedTime)} &middot; {guests} guest{guests !== 1 ? "s" : ""}
             </div>
-          </div>
-
-          <div className="v2-book-field">
-            <label className="v2-book-label">Email</label>
             <input
-              className="v2-book-input"
+              className="v2-book-ot-email"
               type="email"
-              placeholder="your@email.com"
+              placeholder="Your email for confirmation"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
               required
             />
-          </div>
-
-          <button
-            className="v2-book-submit"
-            type="submit"
-            disabled={submitting || !date || !time || !email.trim()}
-          >
-            {submitting ? "Submitting..." : "Submit Booking Request"}
-          </button>
-
-          <div className="v2-book-info">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-            We&apos;ll book on your behalf and confirm within a few hours
-          </div>
-        </form>
+            <button
+              className="v2-book-ot-submit"
+              type="submit"
+              disabled={submitting || !email.trim()}
+            >
+              {submitting ? "Submitting..." : "Complete reservation"}
+            </button>
+            <div className="v2-book-ot-note">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+              </svg>
+              We&apos;ll book on your behalf and confirm within a few hours
+            </div>
+          </form>
+        )}
       </div>
     </section>
   );

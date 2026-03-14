@@ -285,8 +285,7 @@ export default function JournalScreen({ onNavigate }: JournalScreenProps) {
         {/* Top visual */}
         <div className="v2-login-visual">
           <div className="v2-login-brand">
-            <span className="v2-login-brand-dot" />
-            <span className="v2-login-brand-name">HelloChina</span>
+            <img src="/images/chinapal_logo_white.png" alt="ChinaPal" className="v2-login-brand-logo" />
           </div>
           <div className="v2-login-headline">
             <h1 className="v2-login-h1">Your Journey.<br />Your Story.</h1>

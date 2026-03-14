@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import SaveSheet from '@/components/v2/SaveSheet';
 import { track } from '@/lib/analytics';
 
@@ -234,13 +235,37 @@ export default function RestaurantDetail({ data }: { data: any }) {
     router.prefetch('/navigate');
   }, [router, data.slug]);
 
+  // Check saved status from DB on mount
+  useEffect(() => {
+    if (!data?.slug) return;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const { data: rows } = await supabase
+        .from('saved_places')
+        .select('id')
+        .eq('place_slug', data.slug)
+        .eq('place_type', 'restaurant')
+        .limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [data?.slug]);
+
   async function handleFav() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
       setSaveSheet({ open: true, name: data.name_en, onConfirm: () => setSaved((prev) => !prev) });
       return;
     }
+    const wasSaved = saved;
     setSaved((prev) => !prev);
+    const name = data.name_en || '';
+    if (wasSaved) {
+      unsavePlace(supabase, 'restaurant', data.slug);
+    } else {
+      savePlace(supabase, { place_type: 'restaurant', place_slug: data.slug, place_name: name });
+    }
+    track('place_save', { slug: data.slug, type: 'restaurant', action: wasSaved ? 'unsave' : 'save' });
   }
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -424,8 +449,8 @@ export default function RestaurantDetail({ data }: { data: any }) {
   const handleNav = () => {
     track('place_go', { slug: data.slug, type: 'restaurant' });
     const params = new URLSearchParams();
-    params.set('name', nameCn || nameEn);
-    if (nameCn) params.set('nameCn', nameCn);
+    params.set('name', nameEn);
+    params.set('nameCn', nameCn || nameEn);
     if (addressCn) params.set('addr', addressCn);
     params.set('from', `/restaurants/${data.slug}`);
     router.push(`/navigate?${params.toString()}`);
@@ -543,10 +568,11 @@ export default function RestaurantDetail({ data }: { data: any }) {
         .section-divider{height:1px;background:var(--gray-200);margin:28px 0}
 
         .verdict{font-size:18px;color:var(--gray-800);line-height:1.6;font-style:italic;padding:4px 0}
-        .verdict-attr{display:flex;align-items:center;gap:8px;margin-top:12px}
-        .verdict-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e8553d,#d97706);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff}
-        .verdict-label{font-size:13px;font-weight:600;color:var(--gray-700)}
-        .verdict-sub{font-size:12px;color:var(--gray-500)}
+        .verdict-attr{display:flex;align-items:center;gap:6px;margin-top:14px}
+        .verdict-attr img{height:60px;width:auto;object-fit:contain}
+        .verdict-attr .cp-guide-text{font-size:15px;font-weight:700;color:#1a1a1a;letter-spacing:-0.01em}
+        .verdict-attr .cp-dot{width:3px;height:3px;border-radius:50%;background:#bbb;flex-shrink:0}
+        .verdict-attr .cp-sub{font-size:12px;font-weight:500;color:#999;letter-spacing:0.01em}
 
         .s-title{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 16px}
 
@@ -769,11 +795,9 @@ export default function RestaurantDetail({ data }: { data: any }) {
           <>
             <div className="verdict">&ldquo;{verdict}&rdquo;</div>
             <div className="verdict-attr">
-              <div className="verdict-avatar">HC</div>
-              <div>
-                <div className="verdict-label">HelloChina AI Guide</div>
-                <div className="verdict-sub">Local knowledge</div>
-              </div>
+              <img src="/images/chinapal_guide.png" alt="ChinaPal Guide" />
+              <span className="cp-dot" />
+              <span className="cp-sub">Local knowledge · Updated Mar 2026</span>
             </div>
           </>
         ) : null}

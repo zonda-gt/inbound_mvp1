@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { savePlace, unsavePlace } from '@/lib/saved-places';
 import SaveSheet from '@/components/v2/SaveSheet';
 import { track } from '@/lib/analytics';
 
@@ -508,13 +509,37 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
     router.prefetch('/navigate');
   }, [router, data.slug]);
 
+  // Check saved status from DB on mount
+  useEffect(() => {
+    if (!data?.slug) return;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const { data: rows } = await supabase
+        .from('saved_places')
+        .select('id')
+        .eq('place_slug', data.slug)
+        .eq('place_type', 'attraction')
+        .limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [data?.slug]);
+
   async function handleFav() {
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
       setSaveSheet({ open: true, name: data.card_name || data.attraction_name_en, onConfirm: () => setSaved((prev) => !prev) });
       return;
     }
+    const wasSaved = saved;
     setSaved((prev) => !prev);
+    const name = data.card_name || data.attraction_name_en || '';
+    if (wasSaved) {
+      unsavePlace(supabase, 'attraction', data.slug);
+    } else {
+      savePlace(supabase, { place_type: 'attraction', place_slug: data.slug, place_name: name });
+    }
+    track('place_save', { slug: data.slug, type: 'attraction', action: wasSaved ? 'unsave' : 'save' });
   }
   const [galleryMode, setGalleryMode] = useState<'closed' | 'viewer' | 'grid'>('closed');
   const [viewerIndex, setViewerIndex] = useState(0);
@@ -606,8 +631,8 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
     track('place_go', { slug: data.slug, type: 'attraction' });
     if (onNavigate) { onNavigate(); } else {
       const params = new URLSearchParams();
-      params.set('name', data.attraction_name_cn || data.attraction_name_en);
-      if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
+      params.set('name', data.card_name || data.attraction_name_en);
+      params.set('nameCn', data.attraction_name_cn || data.attraction_name_en);
       if (data.address_cn) params.set('addr', data.address_cn);
       params.set('from', `/attractions/${data.slug}`);
       router.push(`/navigate?${params.toString()}`);
@@ -800,9 +825,10 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
 
       {/* ═══ FRIEND'S TAKE (with bottom-line TLDR) ═══ */}
       {data.honest_description && (<><div style={{ padding: '0 20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #D0021B, #ff4757)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>HC</div>
-          <div><div style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>HelloChina AI Guide</div><div style={{ fontSize: 11, color: '#717171' }}>Local knowledge · Updated Mar 2026</div></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+          <img src="/images/chinapal_guide.png" alt="ChinaPal Guide" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+          <span style={{ width: 3, height: 3, borderRadius: '50%', background: '#bbb', flexShrink: 0 }} />
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#999' }}>Local knowledge · Updated Mar 2026</span>
         </div>
         {data.vibe && <div style={{ padding: '12px 14px', background: '#f7f7f7', borderRadius: 10, marginBottom: 12 }}><strong style={{ fontSize: 13, color: '#222' }}>Bottom line: </strong><span style={{ fontSize: 13, color: '#484848' }}>{data.vibe}</span></div>}
         <div style={{ fontSize: 15, color: '#484848', lineHeight: 1.65 }}><RM text={data.honest_description} lines={4} /></div>

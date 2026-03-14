@@ -421,8 +421,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
         <div className="v2-home-hero-glow" />
         <div className="v2-home-top">
           <div className="v2-home-logo">
-            <div className="v2-logo-mark">你</div>
-            <span className="v2-logo-text">Hello<em>China</em></span>
+            <img src="/images/chinapal_logo_white.png" alt="ChinaPal" className="v2-home-logo-img" />
           </div>
           <div className="v2-home-top-right">
             <button
@@ -430,7 +429,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               className="v2-share-btn v2-share-btn--primary"
               onClick={() => {
                 if (navigator.share) {
-                  navigator.share({ title: 'HelloChina', text: 'Your AI travel companion for China', url: window.location.origin });
+                  navigator.share({ title: 'ChinaPal', text: 'Your AI travel companion for China', url: window.location.origin });
                 } else {
                   navigator.clipboard.writeText(window.location.origin);
                 }
