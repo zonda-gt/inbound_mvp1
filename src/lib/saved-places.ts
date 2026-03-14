@@ -67,13 +67,13 @@ export async function fetchExtrasForSavedPlaces(
 
   const extraMap: Record<string, SavedPlaceExtra> = {};
 
-  const promises: Promise<void>[] = [];
+  const promises: PromiseLike<void>[] = [];
 
   if (restaurantSlugs.length > 0) {
     promises.push(
       supabase
         .from('restaurants_v2')
-        .select('slug, images, profile, latitude, longitude')
+        .select('slug, images, profile, foreigner_hook, latitude, longitude')
         .in('slug', restaurantSlugs)
         .then(({ data }) => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,7 +83,7 @@ export async function fetchExtrasForSavedPlaces(
             const priceCny = card.price?.price_per_person_cny;
             extraMap[`restaurant:${row.slug}`] = {
               images: imgs.slice(0, 5),
-              hook: card.hook || card.verdict || '',
+              hook: card.hook || row.foreigner_hook || card.verdict || '',
               price: priceCny ? `¥${priceCny}/pp` : null,
               neighborhood: card.identity?.neighborhood_en || null,
               lat: row.latitude ?? null,
