@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { COLLECTION_LIST } from '../data/collections-data';
@@ -190,6 +190,15 @@ function AttractionCard({ attraction }: { attraction: AttractionData }) {
   const photos = [...new Set(attraction.images ?? [])].slice(0, 6);
   const name = attraction.card_name || attraction.attraction_name_en;
 
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', attraction.slug).eq('place_type', 'attraction').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [attraction.slug]);
+
   async function handleFav(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();
     const { data } = await supabase.auth.getSession();
@@ -272,6 +281,15 @@ function ShaCardFromData({ attraction }: { attraction: AttractionData }) {
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const price = extractPrice(attraction.getting_in?.price_rmb);
   const name = attraction.card_name || attraction.attraction_name_en;
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', attraction.slug).eq('place_type', 'attraction').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [attraction.slug]);
 
   async function handleFav(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();

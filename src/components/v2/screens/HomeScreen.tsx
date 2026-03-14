@@ -3,7 +3,7 @@
 import { type TouchEvent, useRef, useState, useEffect, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
-import { savePlace, unsavePlace } from '@/lib/saved-places';
+import { savePlace, unsavePlace, getSavedPlaces } from '@/lib/saved-places';
 import { track } from '@/lib/analytics';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
@@ -270,6 +270,24 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const [savedAttrBySlug, setSavedAttrBySlug] = useState<Record<string, boolean>>({});
   const [savedOriginalBySlug, setSavedOriginalBySlug] = useState<Record<string, boolean>>({});
   const [saveSheet, setSaveSheet] = useState<{ open: boolean; name?: string; onConfirm?: () => void }>({ open: false });
+
+  // Sync saved status from Supabase on mount
+  useEffect(() => {
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const saved = await getSavedPlaces(supabase);
+      const restaurants: Record<string, boolean> = {};
+      const attractions: Record<string, boolean> = {};
+      for (const p of saved) {
+        if (p.place_type === 'restaurant') restaurants[p.place_slug] = true;
+        else attractions[p.place_slug] = true;
+      }
+      setSavedBySlug(restaurants);
+      setSavedAttrBySlug(attractions);
+      setSavedOriginalBySlug(attractions);
+    })();
+  }, []);
 
   type SaveMeta = { slug: string; type: 'restaurant' | 'attraction'; image?: string };
 

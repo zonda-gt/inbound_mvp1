@@ -262,6 +262,14 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
   const scroll = useScrollSafeClick();
   const img = attraction.images?.[0];
   const name = attraction.card_name || attraction.attraction_name_en;
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', attraction.slug).eq('place_type', 'attraction').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [attraction.slug]);
   async function handleFav(e: React.MouseEvent) {
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
@@ -319,6 +327,15 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
   const scroll = useScrollSafeClick();
+  useEffect(() => {
+    if (!bar.slug) return;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', bar.slug).eq('place_type', 'restaurant').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [bar.slug]);
   async function handleFav(e: React.MouseEvent) {
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();
@@ -379,6 +396,15 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const router = useRouter();
   const scroll = useScrollSafeClick();
+  useEffect(() => {
+    if (!slug) return;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', slug).eq('place_type', 'restaurant').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [slug]);
   async function handleFav(e: React.MouseEvent) {
     e.stopPropagation();
     const { data } = await supabase.auth.getSession();

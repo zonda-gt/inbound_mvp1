@@ -146,6 +146,16 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const images = r.images?.length ? r.images : r.image ? [r.image] : [];
 
+  useEffect(() => {
+    if (!r.slug) return;
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) return;
+      const { data: rows } = await supabase.from('saved_places').select('id').eq('place_slug', r.slug).eq('place_type', 'restaurant').limit(1);
+      if (rows && rows.length > 0) setSaved(true);
+    })();
+  }, [r.slug]);
+
   async function handleFav(e: React.MouseEvent) {
     e.preventDefault(); e.stopPropagation();
     const { data } = await supabase.auth.getSession();
