@@ -16,6 +16,7 @@ import FeedbackScreen from './screens/FeedbackScreen';
 import SearchOverlay from './SearchOverlay';
 import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
+import { track } from '@/lib/analytics';
 
 type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
@@ -113,6 +114,7 @@ export default function Shell() {
   const setActiveScreen = useCallback((screen: Screen) => {
     setActiveScreenRaw(screen);
     sessionStorage.setItem('v2-screen', screen);
+    track('screen_view', { screen });
   }, []);
 
   // Save scroll position of active screen (so it survives full-page navigation)
@@ -173,6 +175,7 @@ export default function Shell() {
   const handleOpenAttraction = useCallback((slug: string, heroImage: string) => {
     setSelectedAttraction({ slug, heroImage });
     setAttractionData(null);
+    track('place_view', { slug, type: 'attraction', source: 'overlay' });
     fetch(`/api/attractions?slug=${slug}`)
       .then(res => res.json())
       .then(json => setAttractionData(json.attraction))

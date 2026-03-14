@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AttributionCapture from "@/components/AttributionCapture";
+import PostHogProvider from "@/components/PostHogProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,8 +45,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${dmSans.variable} font-sans antialiased`}>
         <ErrorBoundary>
-          <AttributionCapture />
-          {children}
+          <PostHogProvider>
+            <AttributionCapture />
+            {children}
+          </PostHogProvider>
         </ErrorBoundary>
         <Analytics />
       </body>

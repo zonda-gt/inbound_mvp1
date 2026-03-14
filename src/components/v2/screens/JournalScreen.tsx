@@ -4,9 +4,46 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { getSavedPlaces, unsavePlace, fetchExtrasForSavedPlaces, type SavedPlace, type SavedPlaceExtra } from '@/lib/saved-places';
+import { ALL_EAT_RESTAURANTS } from '../data/eat-restaurants';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { track } from '@/lib/analytics';
+import posthog from 'posthog-js';
 
 const supabase = getSupabaseBrowserClient();
+
+const fallbackRestaurantExtraBySlug = new Map<string, SavedPlaceExtra>(
+  ALL_EAT_RESTAURANTS.map((restaurant) => [
+    restaurant.slug,
+    {
+      images: restaurant.images?.length
+        ? restaurant.images
+        : restaurant.image
+          ? [restaurant.image]
+          : [],
+      hook: restaurant.hook || restaurant.verdict || '',
+      price: restaurant.price_cny != null ? `¥${restaurant.price_cny}/pp` : null,
+      neighborhood: null,
+      lat: null,
+      lng: null,
+    },
+  ]),
+);
+
+function mergeExtra(
+  primary: SavedPlaceExtra | undefined,
+  fallback: SavedPlaceExtra | undefined,
+): SavedPlaceExtra | undefined {
+  if (!primary) return fallback;
+  if (!fallback) return primary;
+  return {
+    images: primary.images?.length ? primary.images : fallback.images,
+    hook: primary.hook || fallback.hook,
+    price: primary.price || fallback.price,
+    neighborhood: primary.neighborhood || fallback.neighborhood,
+    lat: primary.lat ?? fallback.lat,
+    lng: primary.lng ?? fallback.lng,
+  };
+}
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -125,7 +162,10 @@ function SavedPlacesList({ user, onNavigate }: { user: User; onNavigate: (screen
       <div className="v2-saved-grid">
         {places.map((place) => {
           const key = `${place.place_type}:${place.place_slug}`;
-          const extra = extraMap[key];
+          const fallbackExtra = place.place_type === 'restaurant'
+            ? fallbackRestaurantExtraBySlug.get(place.place_slug)
+            : undefined;
+          const extra = mergeExtra(extraMap[key], fallbackExtra);
           const images = extra?.images?.length ? extra.images : (place.place_image ? [place.place_image] : []);
           const hook = extra?.hook || '';
           const placeholder = place.place_type === 'restaurant' ? '🍜' : '🏛️';
@@ -176,16 +216,29 @@ export default function JournalScreen({ onNavigate }: JournalScreenProps) {
   const [loginError, setLoginError] = useState('');
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const prevUserRef = useRef<User | null | undefined>(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    supabase.auth.getSession().then(({ data }) => {
+      const u = data.session?.user ?? null;
+      setUser(u);
+      prevUserRef.current = u;
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      const prevUser = prevUserRef.current;
       setUser(session?.user ?? null);
+      if (!prevUser && session?.user) {
+        const provider = session.user.app_metadata?.provider || 'email';
+        track('auth_complete', { method: provider });
+        posthog.identify(session.user.id, { email: session.user.email });
+      }
+      prevUserRef.current = session?.user ?? null;
     });
     return () => subscription.unsubscribe();
   }, []);
 
   async function handleGoogleLogin() {
+    track('auth_start', { method: 'google' });
     setLoggingIn(true);
     setLoginError('');
     const { error } = await supabase.auth.signInWithOAuth({
@@ -198,6 +251,7 @@ export default function JournalScreen({ onNavigate }: JournalScreenProps) {
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
+    track('auth_start', { method: 'email' });
     setLoggingIn(true);
     setLoginError('');
     const { error } = await supabase.auth.signInWithOtp({
@@ -257,6 +311,7 @@ export default function JournalScreen({ onNavigate }: JournalScreenProps) {
             <>
               {/* Apple — must be first per Apple HIG */}
               <button className="v2-signin-btn v2-signin-apple" onClick={async () => {
+                track('auth_start', { method: 'apple' });
                 setLoggingIn(true); setLoginError('');
                 const { error } = await supabase.auth.signInWithOAuth({
                   provider: 'apple',

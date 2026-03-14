@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchIndex } from './hooks/useSearchIndex';
+import { track } from '@/lib/analytics';
 import type { SearchItem, SearchItemType } from './data/search-index';
 
 /* ─── Recent searches (localStorage) ─── */
@@ -71,6 +72,7 @@ export default function SearchOverlay({ open, onClose, onNavigate, onOpenAttract
   const [activeTab, setActiveTab] = useState<SearchTab>('experience');
   const [recents, setRecents] = useState<RecentSearch[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const searchTrackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load recents on open
   useEffect(() => {
@@ -98,6 +100,25 @@ export default function SearchOverlay({ open, onClose, onNavigate, onOpenAttract
     return raw.map((r) => r.item).filter(TAB_FILTER[activeTab]);
   }, [fuse, query, activeTab]);
 
+  // Debounced search tracking
+  useEffect(() => {
+    if (searchTrackTimeout.current) {
+      clearTimeout(searchTrackTimeout.current);
+      searchTrackTimeout.current = null;
+    }
+    if (query.trim().length >= 2) {
+      searchTrackTimeout.current = setTimeout(() => {
+        track('search', { query: query.trim(), result_count: results.length, tab: activeTab });
+      }, 800);
+    }
+    return () => {
+      if (searchTrackTimeout.current) {
+        clearTimeout(searchTrackTimeout.current);
+        searchTrackTimeout.current = null;
+      }
+    };
+  }, [query, results, activeTab]);
+
   const showResults = query.trim().length >= 2;
 
   // Group results by type
@@ -110,6 +131,7 @@ export default function SearchOverlay({ open, onClose, onNavigate, onOpenAttract
 
   const handleResultTap = useCallback(
     (item: SearchItem) => {
+      track('search_result_click', { slug: item.slug, type: item.type, query: query.trim() });
       saveRecent(item);
       onClose();
       switch (item.type) {
@@ -124,7 +146,7 @@ export default function SearchOverlay({ open, onClose, onNavigate, onOpenAttract
           break;
       }
     },
-    [onClose, onNavigate, onOpenAttraction, router],
+    [onClose, onNavigate, onOpenAttraction, router, query],
   );
 
   const handleRecentTap = useCallback(

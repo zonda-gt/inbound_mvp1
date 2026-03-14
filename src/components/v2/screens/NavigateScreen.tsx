@@ -5,6 +5,7 @@ import { useGeolocation } from "../hooks/useGeolocation";
 import { useNavigation } from "../hooks/useNavigation";
 import { useAMap } from "@/hooks/useAMap";
 import type { TransitSegment, TransitRoute, WalkingRoute, DrivingRoute } from "@/lib/amap";
+import { track } from '@/lib/analytics';
 
 export type NavigateDestination = {
   name: string;
@@ -61,10 +62,12 @@ export default function NavigateScreen({
   const handleSearch = useCallback(() => {
     const q = searchQuery.trim();
     if (!q) return;
+    track('navigate_search', { destination: q });
     setLocalDest(q);
   }, [searchQuery]);
 
   const handleSelectSuggestion = useCallback((name: string, cn?: string) => {
+    track('navigate_search', { destination: name });
     setSearchQuery(name);
     setLocalDest(cn || name);
   }, []);
@@ -223,7 +226,7 @@ export default function NavigateScreen({
         {transit && (
           <button
             className={`v2-mode-btn${activeMode === "metro" ? " active" : ""}`}
-            onClick={() => setActiveMode("metro")}
+            onClick={() => { track('navigate_mode_select', { mode: 'metro', destination: data?.destination?.name || '' }); setActiveMode("metro"); }}
           >
             <span className="v2-mode-icon">🚇</span>
             <span className="v2-mode-time">{transit.totalDuration} min</span>
@@ -235,7 +238,7 @@ export default function NavigateScreen({
         {driving && (
           <button
             className={`v2-mode-btn${activeMode === "taxi" ? " active" : ""}`}
-            onClick={() => setActiveMode("taxi")}
+            onClick={() => { track('navigate_mode_select', { mode: 'taxi', destination: data?.destination?.name || '' }); setActiveMode("taxi"); }}
           >
             <span className="v2-mode-icon">🚕</span>
             <span className="v2-mode-time">{driving.duration} min</span>
@@ -247,7 +250,7 @@ export default function NavigateScreen({
         {walking && (
           <button
             className={`v2-mode-btn${activeMode === "walk" ? " active" : ""}`}
-            onClick={() => setActiveMode("walk")}
+            onClick={() => { track('navigate_mode_select', { mode: 'walk', destination: data?.destination?.name || '' }); setActiveMode("walk"); }}
           >
             <span className="v2-mode-icon">🚶</span>
             <span className="v2-mode-time">{walking.duration} min</span>
@@ -416,6 +419,7 @@ export default function NavigateScreen({
           <button
             className="v2-nav-cta v2-nav-cta--primary"
             onClick={() => {
+              track('navigate_deeplink', { app: 'amap', destination: data.destination.name });
               const [lng, lat] = data.destination.location.split(",");
               const dest = encodeURIComponent(data.destination.name);
               const deepLink = `iosamap://path?dlat=${lat}&dlon=${lng}&dname=${dest}&dev=0&t=0`;
@@ -436,6 +440,7 @@ export default function NavigateScreen({
           <button
             className="v2-nav-cta v2-nav-cta--secondary"
             onClick={() => {
+              track('navigate_deeplink', { app: 'didi', destination: data.destination.name });
               const [lng, lat] = data.destination.location.split(",");
               const dest = encodeURIComponent(data.destination.name);
               const deepLink = `didapinche://app?dlat=${lat}&dlng=${lng}&dname=${dest}`;
@@ -473,6 +478,19 @@ function BookingCard({ destinationName }: { destinationName: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
 
+  // Ref to track current state for cleanup (booking_abandoned)
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  // Track booking abandonment on unmount
+  useEffect(() => {
+    return () => {
+      if (stateRef.current === 'form') {
+        track('booking_abandoned', { destination: destinationName, step_reached: 'form' });
+      }
+    };
+  }, [destinationName]);
+
   // Default date to tomorrow
   useEffect(() => {
     if (!date) {
@@ -502,6 +520,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
       if (res.ok) {
         const data = await res.json();
         setBookingId(data.id || null);
+        track('booking_submit', { destination: destinationName, guests });
       }
       setState("submitted");
     } catch {
@@ -527,7 +546,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
   if (state === "collapsed") {
     return (
       <section className="v2-book-section v2-fade-up v2-d1">
-        <div className="v2-book-card v2-book-collapsed" onClick={() => setState("form")}>
+        <div className="v2-book-card v2-book-collapsed" onClick={() => { track('booking_form_open', { destination: destinationName }); setState("form"); }}>
           <div className="v2-book-collapsed-left">
             <div className="v2-book-icon">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -8,6 +8,7 @@ import { useCollectionData } from '../hooks/useCollectionData';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
+import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 
@@ -82,6 +83,7 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
               type="button"
               className={`v2-sha-tab ${tab.id === 'experience' ? 'active' : ''}`}
               onClick={() => {
+                track('discover_tab_switched', { tab: tab.id as 'eat' | 'experience' | 'drink' });
                 if (tab.id === 'eat') onNavigate('eat');
                 if (tab.id === 'experience') onNavigate('shanghai-all');
                 if (tab.id === 'drink') onNavigate('drink');
@@ -266,11 +268,12 @@ function AttractionCoverCard({ attraction, screenActive = true }: { attraction: 
     if (!data.session) { setShowSaveSheet(true); return; }
     const wasSaved = saved;
     setSaved((s) => !s);
+    track('place_save', { slug: attraction.slug, type: 'attraction', action: wasSaved ? 'unsave' : 'save' });
     if (wasSaved) { unsavePlace(supabase, 'attraction', attraction.slug); }
     else { savePlace(supabase, { place_type: 'attraction', place_slug: attraction.slug, place_name: name, place_image: img }); }
   }
   return (
-    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; router.push(`/attractions/${attraction.slug}`); }}>
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; track('place_view', { slug: attraction.slug, type: 'attraction', source: 'discover_experiences' }); router.push(`/attractions/${attraction.slug}`); }}>
       <SaveSheet isOpen={showSaveSheet} placeName={name} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       {img ? (
         <ViewTransition name={screenActive ? `hero-attraction-${attraction.slug}` : undefined}>
@@ -322,11 +325,12 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
     if (!data.session) { setShowSaveSheet(true); return; }
     const wasSaved = saved;
     setSaved((s) => !s);
+    track('place_save', { slug: bar.slug || '', type: 'restaurant', action: wasSaved ? 'unsave' : 'save' });
     if (wasSaved) { unsavePlace(supabase, 'restaurant', bar.slug || ''); }
     else { savePlace(supabase, { place_type: 'restaurant', place_slug: bar.slug || '', place_name: bar.name_en, place_image: bar.image || undefined }); }
   }
   return (
-    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; bar.slug && router.push(`/restaurants/${bar.slug}`); }}>
+    <div className="v2-sh-cover-card" style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; if (bar.slug) { track('place_view', { slug: bar.slug, type: 'restaurant', source: 'discover_bars' }); router.push(`/restaurants/${bar.slug}`); } }}>
       <SaveSheet isOpen={showSaveSheet} placeName={bar.name_en} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
       {bar.image ? (
         <ViewTransition name={screenActive && bar.slug ? `hero-restaurant-${bar.slug}` : undefined}>
@@ -381,6 +385,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
     if (!data.session) { setShowSaveSheet(true); return; }
     const wasSaved = saved;
     setSaved((s) => !s);
+    track('place_save', { slug, type: 'restaurant', action: wasSaved ? 'unsave' : 'save' });
     if (wasSaved) { unsavePlace(supabase, 'restaurant', slug); }
     else { savePlace(supabase, { place_type: 'restaurant', place_slug: slug, place_name: name, place_image: image || undefined }); }
   }
@@ -418,7 +423,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
     </div>
   );
   if (!slug) return card;
-  return <div style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; router.push(`/restaurants/${slug}`); }}>{card}</div>;
+  return <div style={{ cursor: 'pointer' }} {...scroll.handlers} onClick={() => { if (scroll.wasScroll()) return; track('place_view', { slug, type: 'restaurant', source: 'discover_restaurants' }); router.push(`/restaurants/${slug}`); }}>{card}</div>;
 }
 
 function PlanCard({ bg, tag, title, stops }: { bg: string; tag: string; title: string; stops: string[]; }) {

@@ -4,6 +4,7 @@ import { type TouchEvent, useRef, useState, useEffect, useCallback, ViewTransiti
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
+import { track } from '@/lib/analytics';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 import SaveSheet from '../SaveSheet';
@@ -244,6 +245,7 @@ function PhraseCard({ phrase }: { phrase: PhraseData }) {
 
   const play = () => {
     if (playing) return;
+    track('phrase_played', { phrase: phrase.en });
     if (!audioRef.current) {
       audioRef.current = new Audio(phrase.audio);
       audioRef.current.addEventListener('ended', () => setPlaying(false));
@@ -273,6 +275,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
 
   async function handleFav(e: React.MouseEvent, name: string, isSaved: boolean, meta: SaveMeta, onConfirm: () => void) {
     e.stopPropagation(); e.preventDefault();
+    track('place_save', { slug: meta.slug, type: meta.type, action: isSaved ? 'unsave' : 'save' });
     const { data } = await supabase.auth.getSession();
     if (!data.session) { setSaveSheet({ open: true, name, onConfirm }); return; }
     onConfirm();
@@ -313,9 +316,11 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   }, [router]);
 
   const openTodayPick = (slug: string) => {
+    track('place_view', { slug, type: 'restaurant', source: 'todays_pick' });
     router.push(`/restaurants/${slug}`);
   };
   const openAttractionPick = (slug: string) => {
+    track('place_view', { slug, type: 'attraction', source: 'attraction_pick' });
     router.push(`/attractions/${slug}`);
   };
 
@@ -339,6 +344,9 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
     let next = pickIndex;
     if (dragOffsetPx <= -thresholdPx) next = Math.min(TODAY_PICKS.length - 1, pickIndex + 1);
     if (dragOffsetPx >= thresholdPx) next = Math.max(0, pickIndex - 1);
+    if (next !== pickIndex) {
+      track('carousel_swipe', { carousel: 'todays_pick', index: next, direction: dragOffsetPx < 0 ? 'left' : 'right' });
+    }
     setPickIndex(next);
     setDragOffsetPx(0);
     setIsSwipingPick(false);
@@ -378,6 +386,9 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
     let next = attrPickIndex;
     if (attrDragOffsetPx <= -thresholdPx) next = Math.min(ATTRACTION_PICKS.length - 1, attrPickIndex + 1);
     if (attrDragOffsetPx >= thresholdPx) next = Math.max(0, attrPickIndex - 1);
+    if (next !== attrPickIndex) {
+      track('carousel_swipe', { carousel: 'attraction_pick', index: next, direction: attrDragOffsetPx < 0 ? 'left' : 'right' });
+    }
     setAttrPickIndex(next);
     setAttrDragOffsetPx(0);
     setIsSwipingAttr(false);
@@ -539,7 +550,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             const title = found?.card_name || found?.attraction_name_en || item.title;
             const saved = !!savedOriginalBySlug[item.slug];
             return (
-              <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} {...origScroll.handlers} onClick={() => { if (origScroll.wasScroll()) return; router.push(`/attractions/${item.slug}`); }}>
+              <div key={item.slug} className="v2-orig-card" style={{ cursor: 'pointer' }} {...origScroll.handlers} onClick={() => { if (origScroll.wasScroll()) return; track('place_view', { slug: item.slug, type: 'attraction', source: 'originals' }); router.push(`/attractions/${item.slug}`); }}>
               <div className="v2-orig-image-wrap">
                   <SmoothImage key={`${item.slug}-${image}`} src={image} alt={title} className="v2-orig-image" lazy />
                   {(found?.card_type || found?.experience_type) && (
@@ -672,7 +683,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
           <span className="v2-sec-title">Neighbourhood Vibes</span>
         </div>
         <div className="v2-vibes-scroll">
-          <div className="v2-vibe-card">
+          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'French Concession' })}>
             <SmoothImage src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
@@ -680,7 +691,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               <div className="v2-vibe-mood">Coffee · Vintage · Brunch</div>
             </div>
           </div>
-          <div className="v2-vibe-card">
+          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'The Bund' })}>
             <SmoothImage src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
@@ -688,7 +699,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               <div className="v2-vibe-mood">Cocktails · Views · Rooftop</div>
             </div>
           </div>
-          <div className="v2-vibe-card">
+          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'Xintiandi' })}>
             <SmoothImage src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">
@@ -696,7 +707,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
               <div className="v2-vibe-mood">Upscale · History · Tapas</div>
             </div>
           </div>
-          <div className="v2-vibe-card">
+          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: "People's Square" })}>
             <SmoothImage src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" className="v2-vibe-bg-img" lazy />
             <div className="v2-vibe-overlay" />
             <div className="v2-vibe-body">

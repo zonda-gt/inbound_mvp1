@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAMap } from '@/hooks/useAMap';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import SaveSheet from '@/components/v2/SaveSheet';
+import { track } from '@/lib/analytics';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -597,15 +598,21 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
     }
     return parsed ? 'Closed' : '';
   })();
-  const handleAsk = onAsk || (() => { router.push(`/chat?attraction=${data.slug}`); });
-  const handleNav = onNavigate || (() => {
-    const params = new URLSearchParams();
-    params.set('name', data.attraction_name_cn || data.attraction_name_en);
-    if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
-    if (data.address_cn) params.set('addr', data.address_cn);
-    params.set('from', `/attractions/${data.slug}`);
-    router.push(`/navigate?${params.toString()}`);
-  });
+  const handleAsk = () => {
+    track('place_ask', { slug: data.slug, type: 'attraction' });
+    if (onAsk) { onAsk(); } else { router.push(`/chat?attraction=${data.slug}`); }
+  };
+  const handleNav = () => {
+    track('place_go', { slug: data.slug, type: 'attraction' });
+    if (onNavigate) { onNavigate(); } else {
+      const params = new URLSearchParams();
+      params.set('name', data.attraction_name_cn || data.attraction_name_en);
+      if (data.attraction_name_cn) params.set('nameCn', data.attraction_name_cn);
+      if (data.address_cn) params.set('addr', data.address_cn);
+      params.set('from', `/attractions/${data.slug}`);
+      router.push(`/navigate?${params.toString()}`);
+    }
+  };
 
   return (
     <div className="at-page" style={{ fontFamily: "var(--font-dm-sans-global), 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif", background: '#fff', color: '#222', lineHeight: 1.5, maxWidth: 430, margin: '0 auto', overflowX: 'hidden', paddingBottom: 80, WebkitFontSmoothing: 'antialiased' }}>
@@ -635,7 +642,7 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
         <button onClick={onBack || (() => window.history.back())} style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>←</button>
         <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', fontSize: 14, fontWeight: 600, color: '#222', opacity: navScrolled ? 1 : 0, transition: 'opacity .3s', whiteSpace: 'nowrap', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{data.card_name || data.attraction_name_en}</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => { if (navigator.share) { navigator.share({ url: window.location.href, title: data.card_name || data.attraction_name_en }); } else { navigator.clipboard.writeText(window.location.href).catch(() => {}); showToast('Link copied'); } }} aria-label="Share" style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
+          <button onClick={() => { if (navigator.share) { navigator.share({ url: window.location.href, title: data.card_name || data.attraction_name_en }).then(() => track('place_share', { slug: data.slug, type: 'attraction', format: 'native' })).catch(() => {}); } else { navigator.clipboard.writeText(window.location.href).then(() => { track('place_share', { slug: data.slug, type: 'attraction', format: 'clipboard' }); showToast('Link copied'); }).catch(() => {}); } }} aria-label="Share" style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: '#222', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></button>
           <button onClick={handleFav} style={{ width: 40, height: 40, borderRadius: '50%', background: navScrolled ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.85)', backdropFilter: 'blur(8px)', border: 'none', color: saved ? '#D0021B' : '#222', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: navScrolled ? 'none' : '0 1px 4px rgba(0,0,0,.12)' }}>{saved ? '♥' : '♡'}</button>
         </div>
       </nav>

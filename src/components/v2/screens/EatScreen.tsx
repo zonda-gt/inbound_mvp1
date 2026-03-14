@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
+import { track } from '@/lib/analytics';
 
 /* ─── Constants ─── */
 
@@ -124,7 +125,7 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
             <button
               key={chip.id}
               className={`v2-eat-mood-chip ${activeFilter === chip.id ? 'active' : ''}`}
-              onClick={() => setActiveFilter(chip.id)}
+              onClick={() => { track('filter_tapped', { filter: chip.id, tab: 'eat' }); setActiveFilter(chip.id); }}
             >
               <span className="v2-eat-mood-emoji">{chip.emoji}</span>
               {chip.label}

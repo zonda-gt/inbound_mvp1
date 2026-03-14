@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
+import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
 import type { AttractionData } from '@/types/attraction';
 
@@ -75,7 +76,7 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
           <div className="v2-eat-moods-scroll">
             <button
               className={`v2-eat-mood-chip ${activeVibe === null ? 'active' : ''}`}
-              onClick={() => setActiveVibe(null)}
+              onClick={() => { track('filter_tapped', { filter: 'all', tab: 'experience' }); setActiveVibe(null); }}
             >
               <span className="v2-eat-mood-emoji">✨</span>
               All
@@ -84,7 +85,7 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
               <button
                 key={v.id}
                 className={`v2-eat-mood-chip ${activeVibe === v.id ? 'active' : ''}`}
-                onClick={() => setActiveVibe(v.id)}
+                onClick={() => { track('filter_tapped', { filter: v.id, tab: 'experience' }); setActiveVibe(v.id); }}
               >
                 <span className="v2-eat-mood-emoji">{v.emoji}</span>
                 {v.label}

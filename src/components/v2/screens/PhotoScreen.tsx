@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { track } from "@/lib/analytics";
 
 interface PhotoScreenProps {
   onNavigate: (screen: string) => void;
@@ -120,6 +121,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
     setCapturedImage(base64);
     setImagePreview(dataUrl);
     stopCamera();
+    track("lens_capture", { method: "capture" });
   }, [cameraReady, stopCamera]);
 
   // Handle file upload (gallery)
@@ -158,6 +160,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
       setCapturedImage(base64);
       setImagePreview(`data:image/jpeg;base64,${base64}`);
       stopCamera();
+      track("lens_capture", { method: "upload" });
     } catch {
       setError("Failed to process image.");
     }
@@ -168,6 +171,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
     setLoading(true);
     setResponse("");
     setError("");
+    let receivedText = false;
     try {
       const res = await fetch("/api/scan", {
         method: "POST",
@@ -199,7 +203,10 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
             try {
               const parsed = JSON.parse(data);
               if (parsed.error) { setError(parsed.error); break; }
-              if (parsed.text) setResponse((prev) => prev + parsed.text);
+              if (parsed.text) {
+                receivedText = true;
+                setResponse((prev) => prev + parsed.text);
+              }
             } catch { /* skip */ }
           }
         }
@@ -208,6 +215,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
+      track("lens_scan_complete", { mode: activeMode, has_response: receivedText });
     }
   }, [capturedImage, userMessage, activeMode]);
 
@@ -435,6 +443,7 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
               {!loading && response && (
                 <button
                   onClick={() => {
+                    track('lens_followup', { question_text: 'continue_in_chat', scan_mode: activeMode });
                     sessionStorage.setItem('photo-chat-context', JSON.stringify({
                       imageUrl: imagePreview,
                       aiResponse: response,

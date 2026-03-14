@@ -5,6 +5,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
+import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
 
 const supabase = getSupabaseBrowserClient();
@@ -115,7 +116,7 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
                 <button
                   key={tab.id}
                   className={`v2-eat-tab ${activeTab === tab.id ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => { track('filter_tapped', { filter: tab.id, tab: 'eat' }); setActiveTab(tab.id); }}
                 >
                   {tab.label}
                   <span className="v2-eat-tab-count">{counts[tab.id] || 0}</span>

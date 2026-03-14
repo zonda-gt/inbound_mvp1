@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, ViewTransition } from 'react'
 import { useRouter } from 'next/navigation';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import SaveSheet from '@/components/v2/SaveSheet';
+import { track } from '@/lib/analytics';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -403,9 +404,11 @@ export default function RestaurantDetail({ data }: { data: any }) {
   const handleShare = async () => {
     try {
       await navigator.share({ url: window.location.href, title: nameEn });
+      track('place_share', { slug: data.slug, type: 'restaurant', format: 'native' });
     } catch {
       try {
         await navigator.clipboard.writeText(window.location.href);
+        track('place_share', { slug: data.slug, type: 'restaurant', format: 'clipboard' });
         showToast('Link copied');
       } catch {
         showToast('Share unavailable');
@@ -414,10 +417,12 @@ export default function RestaurantDetail({ data }: { data: any }) {
   };
 
   const handleAsk = () => {
+    track('place_ask', { slug: data.slug, type: 'restaurant' });
     router.push(`/chat?restaurant=${data.slug}`);
   };
 
   const handleNav = () => {
+    track('place_go', { slug: data.slug, type: 'restaurant' });
     const params = new URLSearchParams();
     params.set('name', nameCn || nameEn);
     if (nameCn) params.set('nameCn', nameCn);
