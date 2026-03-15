@@ -25,12 +25,12 @@ export default function BlogStickyHeader({
               Blog
             </Link>
           ) : null}
-          <Link
-            href="/"
+          <a
+            href="https://app.hellochina.chat"
             className="inline-flex items-center rounded-lg bg-[#2563EB] px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1d4ed8] sm:px-4"
           >
             Try HelloChina
-          </Link>
+          </a>
         </div>
       </div>
     </header>

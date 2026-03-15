@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-
 type NavLink = { label: string; href: string };
 
 const DEFAULT_NAV_LINKS: NavLink[] = [
@@ -96,13 +94,13 @@ export default function PayNavbar({
                 {link.label}
               </a>
             ))}
-            <Link
-              href="/chat"
+            <a
+              href="https://app.hellochina.chat"
               className={`${hasLinks ? "ml-2" : ""} inline-flex items-center gap-1.5 bg-[#FFD700] text-[#1A1A1A] font-semibold text-xs px-3 py-1.5 rounded-md hover:bg-[#FFD700]/90 transition-colors`}
             >
               <MessageCircle className="w-3 h-3" />
               AI Local Friend
-            </Link>
+            </a>
           </div>
 
           {/* Mobile: show CTA inline when no nav links, otherwise show hamburger */}
@@ -117,13 +115,13 @@ export default function PayNavbar({
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           ) : (
-            <Link
-              href="/chat"
+            <a
+              href="https://app.hellochina.chat"
               className="md:hidden inline-flex items-center gap-1.5 bg-[#FFD700] text-[#1A1A1A] font-semibold text-xs px-3 py-1.5 rounded-md hover:bg-[#FFD700]/90 transition-colors"
             >
               <MessageCircle className="w-3 h-3" />
               AI Local Friend
-            </Link>
+            </a>
           )}
         </div>
       </div>

@@ -19,7 +19,7 @@ export default function InlineCTA({
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-40px" });
 
-  const href = prompt ? `/chat?prompt=${encodeURIComponent(prompt)}` : "/chat";
+  const href = prompt ? `https://app.hellochina.chat?prompt=${encodeURIComponent(prompt)}` : "https://app.hellochina.chat";
 
   return (
     <motion.div

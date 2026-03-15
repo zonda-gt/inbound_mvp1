@@ -44,10 +44,10 @@ export const metadata: Metadata = {
     title,
     description,
     type: "article",
-    url: "https://hellochina.chat/blog/china-internet-guide",
+    url: "https://app.hellochina.chat/blog/china-internet-guide",
     images: [
       {
-        url: "https://hellochina.chat/images/guides/esim/hero_banner.jpg",
+        url: "https://app.hellochina.chat/images/guides/esim/hero_banner.jpg",
         width: 1200,
         height: 630,
         alt: "Internet in China — eSIM & VPN Guide",
@@ -58,10 +58,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["https://hellochina.chat/images/guides/esim/hero_banner.jpg"],
+    images: ["https://app.hellochina.chat/images/guides/esim/hero_banner.jpg"],
   },
   alternates: {
-    canonical: "https://hellochina.chat/blog/china-internet-guide",
+    canonical: "https://app.hellochina.chat/blog/china-internet-guide",
   },
 };
 

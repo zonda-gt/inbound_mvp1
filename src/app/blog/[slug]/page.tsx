@@ -141,13 +141,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               <p className="text-sm sm:text-base text-white/50 max-w-lg leading-relaxed mb-5">
                 Get personalized answers about payments, navigation, apps, and daily life in China — free, no sign-up required.
               </p>
-              <Link
-                href="/chat"
+              <a
+                href="https://app.hellochina.chat"
                 className="inline-flex items-center gap-2 bg-[#FFD700] text-[#1A1A1A] font-semibold px-5 py-2.5 rounded-lg hover:bg-[#FFD700]/90 transition-colors text-sm active:scale-95"
               >
                 Ask Your AI Local Friend
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </a>
             </div>
           </div>
         </section>

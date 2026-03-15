@@ -51,7 +51,7 @@ export default function StickyBanner({
               </div>
 
               <Link
-                href="/chat"
+                href="https://app.hellochina.chat"
                 className="flex-shrink-0 bg-[#FFD700] text-[#1A1A1A] font-semibold text-xs px-3.5 py-2 rounded-lg hover:bg-[#FFD700]/90 transition-colors active:scale-95"
               >
                 Chat Now

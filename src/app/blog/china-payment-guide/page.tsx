@@ -44,10 +44,10 @@ export const metadata: Metadata = {
     title,
     description,
     type: "article",
-    url: "https://hellochina.chat/blog/china-payment-guide",
+    url: "https://app.hellochina.chat/blog/china-payment-guide",
     images: [
       {
-        url: "https://hellochina.chat/images/guides/hero.webp",
+        url: "https://app.hellochina.chat/images/guides/hero.webp",
         width: 1200,
         height: 630,
         alt: "The Ultimate Guide to Paying in China",
@@ -58,10 +58,10 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title,
     description,
-    images: ["https://hellochina.chat/images/guides/hero.webp"],
+    images: ["https://app.hellochina.chat/images/guides/hero.webp"],
   },
   alternates: {
-    canonical: "https://hellochina.chat/blog/china-payment-guide",
+    canonical: "https://app.hellochina.chat/blog/china-payment-guide",
   },
 };
 
