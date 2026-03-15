@@ -17,7 +17,8 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
 
     initialized.current = true;
     posthog.init(key, {
-      api_host: host || 'https://us.i.posthog.com',
+      api_host: '/ingest',
+      ui_host: 'https://us.i.posthog.com',
       capture_pageview: true,
       capture_pageleave: true,
       autocapture: true,
