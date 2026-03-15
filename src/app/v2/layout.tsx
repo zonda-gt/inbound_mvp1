@@ -17,6 +17,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function V2Layout({ children }: { children: React.ReactNode }) {
@@ -26,6 +27,7 @@ export default function V2Layout({ children }: { children: React.ReactNode }) {
       style={{
         background: '#0A0A0F',
         minHeight: '100vh',
+        height: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

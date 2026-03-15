@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CuratedRestaurant } from "@/lib/curated-restaurants";
+import { distanceMeters, formatDistanceCompact } from "@/lib/geo";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -33,18 +34,6 @@ function comfortLabel(level: number): string {
   if (level >= 3) return "Mildly adventurous";
   if (level >= 2) return "Adventurous";
   return "Very adventurous";
-}
-
-function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDistance(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
 export default function CuratedRestaurantCard({
@@ -109,9 +98,12 @@ export default function CuratedRestaurantCard({
 
   const location = `${restaurant.longitude},${restaurant.latitude}`;
   const address = asStr(restaurant.address_cn || restaurant.address);
-  const distanceKm =
+  const distanceMetersFromUser =
     userLocation && restaurant.latitude != null && restaurant.longitude != null
-      ? haversineDistance(userLocation[1], userLocation[0], restaurant.latitude, restaurant.longitude)
+      ? distanceMeters(
+          { lat: userLocation[1], lng: userLocation[0] },
+          { lat: restaurant.latitude, lng: restaurant.longitude },
+        )
       : null;
 
   const openLightbox = (idx: number) => {
@@ -230,13 +222,13 @@ export default function CuratedRestaurantCard({
             </>
           )}
           <span>{simplifyCuisine(cuisineType)}</span>
-          {distanceKm != null && (
+          {distanceMetersFromUser != null && (
             <>
               <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
-              <span>{formatDistance(distanceKm)}</span>
+              <span>{formatDistanceCompact(distanceMetersFromUser)}</span>
             </>
           )}
-          {!distanceKm && neighborhood && (
+          {distanceMetersFromUser == null && neighborhood && (
             <>
               <span style={{ margin: "0 6px", opacity: 0.4 }}>·</span>
               <span>{neighborhood}</span>

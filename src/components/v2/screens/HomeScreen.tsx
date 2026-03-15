@@ -9,6 +9,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { useCollectionData } from '../hooks/useCollectionData';
 import SaveSheet from '../SaveSheet';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
+import { getDistanceLabel } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -184,34 +185,9 @@ const ORIGINAL_ATTRACTIONS = [
 const ATTRACTION_PICK_SLUGS = ATTRACTION_PICKS.map((item) => item.slug);
 const ORIGINAL_ATTRACTION_SLUGS = ORIGINAL_ATTRACTIONS.map((item) => item.slug);
 
-function parseLocation(location: string): { lng: number; lat: number } | null {
-  const [lngText, latText] = location.split(',');
-  const lng = Number(lngText);
-  const lat = Number(latText);
-  if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
-  return { lng, lat };
-}
-
 function isShanghaiCity(city: string): boolean {
   const c = city.toLowerCase();
   return c.includes('shanghai') || city.includes('上海');
-}
-
-function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDistance(meters: number): string {
-  if (meters < 1000) return `${Math.max(50, Math.round(meters / 10) * 10)}m away`;
-  const km = meters / 1000;
-  if (km < 10) return `${km.toFixed(1)}km away`;
-  return `${Math.round(km)}km away`;
 }
 
 function SmoothImage({ src, alt, className, lazy = false }: { src: string; alt: string; className: string; lazy?: boolean }) {
@@ -313,10 +289,9 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
   const [isSwipingAttr, setIsSwipingAttr] = useState(false);
   const attrTouchStartX = useRef(0);
   const attrDidDrag = useRef(false);
-  const { location: userLocation, city, isDemo } = useGeolocation();
+  const { coords, city, isDemo } = useGeolocation();
   const { attractions: attrPicksData } = useCollectionData(ATTRACTION_PICK_SLUGS);
   const { attractions: originalAttractionsData } = useCollectionData(ORIGINAL_ATTRACTION_SLUGS);
-  const coords = parseLocation(userLocation);
   const canShowDistance = !isDemo && !!coords && isShanghaiCity(city);
   const { temp, icon: weatherIcon } = useWeather(coords?.lat ?? 31.2304, coords?.lng ?? 121.4737);
   const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date());
@@ -492,7 +467,7 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
             {TODAY_PICKS.map((pick) => {
               const saved = !!savedBySlug[pick.slug];
               const distanceLabel = canShowDistance && coords
-                ? formatDistance(haversineMeters(coords.lat, coords.lng, pick.lat, pick.lng))
+                ? getDistanceLabel(coords, pick, 'away')
                 : null;
               const pickMetaItems = [
                 pick.rating ? `★ ${pick.rating}` : null,

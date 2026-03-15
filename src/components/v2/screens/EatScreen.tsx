@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
-import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
+import { useState, useMemo, useCallback } from 'react';
+import { type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { track } from '@/lib/analytics';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useEatRestaurants } from '../hooks/useEatRestaurants';
+import { getDistanceLabel, sortByDistance, type Coordinates } from '@/lib/geo';
 
 /* ─── Constants ─── */
 
@@ -63,12 +65,9 @@ interface EatScreenProps {
 }
 
 export default function EatScreen({ onNavigate }: EatScreenProps) {
-  const [restaurants, setRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
   const [activeFilter, setActiveFilter] = useState<string>('all');
-
-  useEffect(() => {
-    enrichRestaurantsFromDb(ALL_EAT_RESTAURANTS).then(setRestaurants);
-  }, []);
+  const { coords: userCoords } = useGeolocation();
+  const { restaurants } = useEatRestaurants();
 
   const grouped = useMemo(() => {
     const isDietary = activeFilter === 'vegetarian' || activeFilter === 'halal';
@@ -84,8 +83,16 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
       arr.push(r);
       map.set(r.category, arr);
     }
+
+    // Sort each category by distance to user (nearest first)
+    if (userCoords) {
+      for (const [cat, items] of map) {
+        map.set(cat, sortByDistance(items, userCoords));
+      }
+    }
+
     return map;
-  }, [restaurants, activeFilter]);
+  }, [restaurants, activeFilter, userCoords]);
 
   return (
     <div className="v2-scroll-body">
@@ -150,7 +157,7 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
               </div>
               <div className="v2-eat-grid">
                 {items.map((r) => (
-                  <FoodCard key={r.name_cn} restaurant={r} />
+                  <FoodCard key={r.name_cn} restaurant={r} userCoords={userCoords} />
                 ))}
               </div>
             </div>
@@ -173,8 +180,9 @@ export default function EatScreen({ onNavigate }: EatScreenProps) {
 
 /* ─── Food Card (matching "What locals are eating" style) ─── */
 
-function FoodCard({ restaurant: r }: { restaurant: EatRestaurant }) {
+function FoodCard({ restaurant: r, userCoords }: { restaurant: EatRestaurant; userCoords: Coordinates | null }) {
   const [saved, setSaved] = useState(false);
+  const distance = getDistanceLabel(userCoords, r);
 
   const card = (
     <div className="v2-sh-food-card">
@@ -197,7 +205,7 @@ function FoodCard({ restaurant: r }: { restaurant: EatRestaurant }) {
       <div className="v2-sh-food-body">
         <div className="v2-sh-food-row">
           <div className="v2-sh-food-name">{r.name_en}</div>
-          {r.rating != null && <div className="v2-sh-food-rating">★ {r.rating}</div>}
+          {distance && <div className="v2-sh-food-rating">📍 {distance}</div>}
         </div>
         {r.hook && <div className="v2-sh-food-hook">{r.hook}</div>}
         <div className="v2-sh-food-meta">

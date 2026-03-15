@@ -6,10 +6,12 @@ interface DbRow {
   images: string[];
   profile: any;
   foreigner_hook: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 // ── localStorage persistence (survives page reloads) ──
-const LS_KEY = 'hc-restaurants-v2';
+const LS_KEY = 'hc-restaurants-v4';
 const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 function lsRead(): EatRestaurant[] | null {
@@ -27,16 +29,26 @@ function lsWrite(data: EatRestaurant[]): void {
   catch { /* ignore quota errors */ }
 }
 
+function hasCoordinateData(restaurants: EatRestaurant[]): boolean {
+  return restaurants.some((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng));
+}
+
 // ── In-memory cache (instant within same session) ──
 let memCache: EatRestaurant[] | null = null;
 let inFlight: Promise<EatRestaurant[]> | null = null;
+
+function fetchFresh(restaurants: EatRestaurant[]): Promise<EatRestaurant[]> {
+  if (inFlight) return inFlight;
+  inFlight = fetchFromSupabase(restaurants).finally(() => { inFlight = null; });
+  return inFlight;
+}
 
 async function fetchFromSupabase(restaurants: EatRestaurant[]): Promise<EatRestaurant[]> {
   try {
     const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase
       .from('restaurants_v2')
-      .select('slug, images, profile, foreigner_hook');
+      .select('slug, images, profile, foreigner_hook, latitude, longitude');
 
     if (error || !data) return restaurants;
 
@@ -56,6 +68,8 @@ async function fetchFromSupabase(restaurants: EatRestaurant[]): Promise<EatResta
         images: imgs.length > 0 ? imgs.slice(0, 8) : r.images,
         verdict: (card.verdict || '').slice(0, 100) || r.verdict,
         best_for: tags.best_for?.length ? tags.best_for : r.best_for,
+        lat: match.latitude ?? null,
+        lng: match.longitude ?? null,
       };
     });
 
@@ -73,6 +87,7 @@ export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Pro
 
   // 1. Memory cache — instant
   if (memCache) {
+    if (!hasCoordinateData(memCache)) return fetchFresh(restaurants);
     // Silently revalidate in background (stale-while-revalidate)
     fetchFromSupabase(restaurants).catch(() => {});
     return memCache;
@@ -81,6 +96,11 @@ export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Pro
   // 2. localStorage cache — fast (no network)
   const stored = lsRead();
   if (stored) {
+    if (!hasCoordinateData(stored)) {
+      try { localStorage.removeItem(LS_KEY); }
+      catch { /* ignore storage errors */ }
+      return fetchFresh(restaurants);
+    }
     memCache = stored;
     // Revalidate in background without blocking
     fetchFromSupabase(restaurants).catch(() => {});
@@ -88,7 +108,5 @@ export async function enrichRestaurantsFromDb(restaurants: EatRestaurant[]): Pro
   }
 
   // 3. First-ever load — fetch from Supabase (slow, but only happens once)
-  if (inFlight) return inFlight;
-  inFlight = fetchFromSupabase(restaurants).finally(() => { inFlight = null; });
-  return inFlight;
+  return fetchFresh(restaurants);
 }

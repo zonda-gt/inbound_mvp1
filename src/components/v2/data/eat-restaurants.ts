@@ -13,6 +13,8 @@ export interface EatRestaurant {
   hook?: string;
   verdict?: string;
   best_for?: string[];
+  lat?: number | null;
+  lng?: number | null;
 }
 
 /* ─── Chinese (23) ─── */

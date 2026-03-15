@@ -22,7 +22,7 @@ export default function CollectionDetailScreen({ onNavigate, collectionId, onOpe
   const rest = attractions.slice(1);
 
   return (
-    <div className="v2-scroll-body" style={{ background: def.bgColor, paddingBottom: 100 }}>
+    <div className="v2-scroll-body" style={{ background: def.bgColor, paddingBottom: 'calc(var(--v2-bottom-nav-total-height) + 16px)' }}>
       {/* HERO */}
       <div className={`v2-fg-hero ${def.isDark ? 'v2-fg-hero-dark' : ''}`}>
         <div className="v2-fg-hero-img" style={{ background: def.heroBg }}>

@@ -65,7 +65,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("restaurants_v2")
-      .select("slug, name_en, name_cn, cuisine, foreigner_hook, images, profile")
+      .select("slug, name_en, name_cn, images, profile, latitude, longitude")
       .not("profile", "is", null);
 
     if (error) {
@@ -92,19 +92,21 @@ export async function GET() {
         name_cn: r.name_cn || identity.name_cn || "",
         cuisine_type: cuisineType,
         cuisine_subtype: cuisineSubtype,
-        cuisine_label: cuisineSubtype || cuisineType || r.cuisine || "",
+        cuisine_label: cuisineSubtype || cuisineType || "",
         venue_type: venueType,
         price_cny: price.price_per_person_cny || null,
         price_tier: price.price_tier || "",
         rating: tags.rating_adjusted || tags.rating || null,
         verdict: (card.verdict || "").slice(0, 100),
-        hook: (card.hook || r.foreigner_hook || "").slice(0, 120),
+        hook: (card.hook || card.verdict || "").slice(0, 120),
         image: imgs[0] || null,
         images: imgs,
         best_for: bestFor,
         vibe_tags: vibe.captions || vibe.tags || [],
         solo_friendly: tags.solo_friendly || false,
-        category: assignCategory(cuisineType, venueType, r.cuisine || ""),
+        category: assignCategory(cuisineType, venueType, cuisineSubtype || cuisineType || ""),
+        lat: r.latitude ?? null,
+        lng: r.longitude ?? null,
       };
     });
 

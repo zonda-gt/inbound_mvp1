@@ -3,10 +3,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
-import { ALL_EAT_RESTAURANTS, type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
-import { enrichRestaurantsFromDb } from '../data/fetch-restaurant-images';
+import { type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useEatRestaurants } from '../hooks/useEatRestaurants';
+import { getDistanceLabel, sortByDistance, type Coordinates } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -51,19 +53,16 @@ interface EatCategoryScreenProps {
 
 export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'eat', onSearchOpen }: EatCategoryScreenProps) {
   const [activeTab, setActiveTab] = useState<EatCategory>(categoryId);
-  const [allRestaurants, setAllRestaurants] = useState<EatRestaurant[]>(ALL_EAT_RESTAURANTS);
   const [compact, setCompact] = useState(false);
-
-  // Enrich with Supabase data (images, slugs, verdicts)
-  useEffect(() => {
-    enrichRestaurantsFromDb(ALL_EAT_RESTAURANTS).then(setAllRestaurants);
-  }, []);
+  const { coords: userCoords } = useGeolocation();
+  const { restaurants: allRestaurants } = useEatRestaurants();
 
   // Filter by active tab
-  const filtered = useMemo(
-    () => allRestaurants.filter((r) => r.category === activeTab),
-    [allRestaurants, activeTab]
-  );
+  const filtered = useMemo(() => {
+    const items = allRestaurants.filter((r) => r.category === activeTab);
+    if (!userCoords) return items;
+    return sortByDistance(items, userCoords);
+  }, [allRestaurants, activeTab, userCoords]);
 
   // Counts per tab
   const counts = useMemo(() => {
@@ -130,7 +129,7 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
       {/* Restaurant Rows */}
       <div className="v2-eatcat-list">
         {filtered.map((r) => (
-          <RestaurantRow key={r.name_cn} restaurant={r} />
+          <RestaurantRow key={r.name_cn} restaurant={r} userCoords={userCoords} />
         ))}
       </div>
 
@@ -141,10 +140,11 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
 
 /* ─── Restaurant Row ─── */
 
-function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
+function RestaurantRow({ restaurant: r, userCoords }: { restaurant: EatRestaurant; userCoords: Coordinates | null }) {
   const [saved, setSaved] = useState(false);
   const [showSaveSheet, setShowSaveSheet] = useState(false);
   const images = r.images?.length ? r.images : r.image ? [r.image] : [];
+  const distance = getDistanceLabel(userCoords, r);
 
   useEffect(() => {
     if (!r.slug) return;
@@ -194,7 +194,7 @@ function RestaurantRow({ restaurant: r }: { restaurant: EatRestaurant }) {
         <div className="v2-eatcat-name-row">
           <div className="v2-eatcat-name">{r.name_en}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {r.rating != null && <div className="v2-eatcat-rating">★ {r.rating}</div>}
+            {distance && <div className="v2-eatcat-rating">📍 {distance}</div>}
             <button
               className="v2-eatcat-fav"
               onClick={handleFav}

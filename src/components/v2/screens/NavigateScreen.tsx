@@ -9,6 +9,7 @@ import { track } from '@/lib/analytics';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import SaveSheet from '../SaveSheet';
+import { formatDistanceCompact as formatDistance } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -1026,13 +1027,6 @@ function RouteMap({ originLocation, destLocation, destName, isDemo, polylines }:
   );
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
-
-/* ─── Utilities ─── */
-
-function formatDistance(meters: number): string {
-  if (meters >= 1000) return `${(meters / 1000).toFixed(1)}km`;
-  return `${Math.round(meters)}m`;
-}
 
 // Shanghai Metro official line colors
 const LINE_COLORS: Record<string, string> = {

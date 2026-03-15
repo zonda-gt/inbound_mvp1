@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { parseCoordinates } from '@/lib/geo';
 
 const DEFAULT_LOCATION = '121.4737,31.2304'; // People's Square, Shanghai
 const DEFAULT_CITY = '上海';
@@ -15,6 +16,7 @@ export function useGeolocation() {
   const [isDemo, setIsDemo] = useState(true);
   const [ready, setReady] = useState(false);
   const resolved = useRef(false);
+  const coords = useMemo(() => parseCoordinates(location), [location]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -66,5 +68,5 @@ export function useGeolocation() {
     return () => clearTimeout(timeout);
   }, []);
 
-  return { location, city, isDemo, ready };
+  return { location, coords, city, isDemo, ready };
 }

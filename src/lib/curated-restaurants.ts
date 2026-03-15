@@ -1,3 +1,4 @@
+import { distanceMeters } from "@/lib/geo";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 // Lightweight summary sent to Claude for decision-making (~5KB for 8 restaurants)
@@ -52,25 +53,6 @@ export type CuratedRestaurantHybridResult = {
   similarity: number;
   [key: string]: any; // allow extra columns from old table
 };
-
-function haversineDistance(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
-): number {
-  const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
 
 const CITY_NAME_MAP: Record<string, string> = {
   上海: "shanghai",
@@ -171,18 +153,17 @@ export async function searchCuratedRestaurants(filters: {
 
   // Proximity filter + sort if coordinates provided
   if (filters.near_lat != null && filters.near_lng != null) {
-    const maxDistanceKm = filters.max_distance_km ?? 5;
+    const maxDistanceMeters = (filters.max_distance_km ?? 5) * 1000;
     results = results
       .map((r) => ({
         restaurant: r,
-        distance: haversineDistance(
-          filters.near_lat!,
-          filters.near_lng!,
-          r.latitude,
-          r.longitude,
-        ),
+        distance:
+          distanceMeters(
+            { lat: filters.near_lat!, lng: filters.near_lng! },
+            { lat: r.latitude, lng: r.longitude },
+          ) ?? Infinity,
       }))
-      .filter((r) => r.distance <= maxDistanceKm)
+      .filter((r) => r.distance <= maxDistanceMeters)
       .sort((a, b) => a.distance - b.distance)
       .map((r) => r.restaurant);
   }
@@ -322,7 +303,7 @@ export async function getFeaturedRestaurants(limit = 8): Promise<any[]> {
 
   const { data, error } = await supabase
     .from("restaurants_v2")
-    .select("slug, name_en, name_cn, images, profile")
+    .select("slug, name_en, name_cn, latitude, longitude, images, profile")
     .not("profile", "is", null)
     .limit(limit);
 
@@ -343,6 +324,8 @@ export async function getFeaturedRestaurants(limit = 8): Promise<any[]> {
       rating: tags.rating_adjusted || tags.rating || null,
       verdict: (card.verdict || "").slice(0, 80),
       image: imgs[0] || null,
+      lat: r.latitude || null,
+      lng: r.longitude || null,
     };
   });
 }

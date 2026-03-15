@@ -8,6 +8,7 @@ import { ALL_EAT_RESTAURANTS } from '../data/eat-restaurants';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { track } from '@/lib/analytics';
 import posthog from 'posthog-js';
+import { getDistanceLabel } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -43,18 +44,6 @@ function mergeExtra(
     lat: primary.lat ?? fallback.lat,
     lng: primary.lng ?? fallback.lng,
   };
-}
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function formatDist(km: number): string {
-  return km < 1 ? `${Math.round(km * 1000)}m` : `${km.toFixed(1)}km`;
 }
 
 /* ── Carousel with snap-scroll + dots ── */
@@ -103,8 +92,7 @@ function SavedPlacesList({ user, onNavigate }: { user: User; onNavigate: (screen
   const [places, setPlaces] = useState<SavedPlace[]>([]);
   const [extraMap, setExtraMap] = useState<Record<string, SavedPlaceExtra>>({});
   const [loading, setLoading] = useState(true);
-  const { location: userLoc } = useGeolocation();
-  const userCoords = userLoc ? (() => { const [lng, lat] = userLoc.split(',').map(Number); return (lat && lng) ? { lat, lng } : null; })() : null;
+  const { coords: userCoords } = useGeolocation();
 
   const load = useCallback(async () => {
     const data = await getSavedPlaces(supabase);
@@ -169,9 +157,7 @@ function SavedPlacesList({ user, onNavigate }: { user: User; onNavigate: (screen
           const images = extra?.images?.length ? extra.images : (place.place_image ? [place.place_image] : []);
           const hook = extra?.hook || '';
           const placeholder = place.place_type === 'restaurant' ? '🍜' : '🏛️';
-          const dist = (userCoords && extra?.lat && extra?.lng)
-            ? formatDist(haversineKm(userCoords.lat, userCoords.lng, extra.lat, extra.lng))
-            : null;
+          const dist = getDistanceLabel(userCoords, extra);
           const meta = [extra?.price, extra?.neighborhood, dist].filter(Boolean);
 
           return (

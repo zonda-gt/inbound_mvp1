@@ -11,6 +11,8 @@ import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { getDistanceLabel } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -49,6 +51,8 @@ const barsList = ALL_EAT_RESTAURANTS.filter((r) => r.category === 'bars');
 export default function DiscoverScreen({ onNavigate, isActive: screenActive = true, onSearchOpen }: DiscoverScreenProps) {
   const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
   const [compact, setCompact] = useState(false);
+  const { coords, isDemo } = useGeolocation();
+  const userCoords = useMemo(() => (isDemo ? null : coords), [coords, isDemo]);
 
   // Fetch featured restaurants from restaurants_v2
   const [featuredRestaurants, setFeaturedRestaurants] = useState<any[]>([]);
@@ -144,11 +148,11 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
         </div>
         <div className="v2-sh-hscroll">
           {featuredRestaurants.length > 0 ? featuredRestaurants.map((r: any) => (
-            <FoodCard key={r.slug} slug={r.slug} image={r.image} name={r.name_en} hook={r.verdict} price={r.price_cny ? `¥${r.price_cny}/pp` : ''} rating={r.rating ? String(r.rating) : ''} cuisine={r.cuisine} screenActive={screenActive} />
+            <FoodCard key={r.slug} slug={r.slug} image={r.image} name={r.name_en} hook={r.verdict} price={r.price_cny ? `¥${r.price_cny}/pp` : ''} distance={getDistanceLabel(userCoords, r)} cuisine={r.cuisine} screenActive={screenActive} />
           )) : (
             <>
-              <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
-              <FoodCard slug="" image={null} name="Loading..." hook="" price="" rating="" cuisine="" />
+              <FoodCard slug="" image={null} name="Loading..." hook="" price="" distance={null} cuisine="" />
+              <FoodCard slug="" image={null} name="Loading..." hook="" price="" distance={null} cuisine="" />
             </>
           )}
         </div>
@@ -389,8 +393,8 @@ function NeighbourhoodCard({ bg, name, desc, count }: { bg: string; name: string
   );
 }
 
-function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = true }: {
-  slug: string; image: string | null; name: string; hook: string; price: string; rating: string; cuisine: string; screenActive?: boolean;
+function FoodCard({ slug, image, name, price, distance, cuisine, screenActive = true }: {
+  slug: string; image: string | null; name: string; hook: string; price: string; distance: string | null; cuisine: string; screenActive?: boolean;
 }) {
   const [saved, setSaved] = useState(false);
   const [showSaveSheet, setShowSaveSheet] = useState(false);
@@ -439,7 +443,7 @@ function FoodCard({ slug, image, name, price, rating, cuisine, screenActive = tr
       <div className="v2-sh-food-body">
         <div className="v2-sh-food-row">
           <div className="v2-sh-food-name">{name}</div>
-          {rating && <div className="v2-sh-food-rating">★ {rating}</div>}
+          {distance && <div className="v2-sh-food-rating">📍 {distance}</div>}
         </div>
         <div className="v2-sh-food-meta">
           {price && <span className="v2-sh-food-price">{price}</span>}
@@ -486,4 +490,3 @@ function GemCard({ emoji, tag, name, desc, pills }: { emoji: string; tag: string
     </div>
   );
 }
-
