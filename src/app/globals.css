@@ -231,3 +231,40 @@ body {
     animation: none !important;
   }
 }
+
+/* ─── Portrait lock: show overlay in landscape on mobile ─── */
+.landscape-block {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #0A0A0F;
+  color: #fff;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: var(--font-dm-sans-global, 'DM Sans', sans-serif);
+  text-align: center;
+  padding: 24px;
+}
+.landscape-block-icon {
+  font-size: 48px;
+  animation: rotate-phone 1.5s ease-in-out infinite;
+}
+.landscape-block-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+.landscape-block-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,.6);
+}
+@keyframes rotate-phone {
+  0%, 100% { transform: rotate(90deg); }
+  50% { transform: rotate(0deg); }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-block { display: flex; }
+}

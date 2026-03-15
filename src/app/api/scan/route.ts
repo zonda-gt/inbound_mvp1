@@ -4,6 +4,11 @@ import {
   CAMERA_SCAN_SYSTEM_PROMPT,
   buildDynamicContext,
 } from "@/lib/prompts/cameraScan";
+import {
+  createChatSession,
+  logChatMessage,
+  uploadLensPhoto,
+} from "@/lib/logging";
 
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -25,6 +30,8 @@ export async function POST(request: NextRequest) {
       city,
       lat,
       lng,
+      anonymousUserId,
+      deviceType,
     }: {
       image: string; // base64 data (no prefix)
       message?: string;
@@ -32,6 +39,8 @@ export async function POST(request: NextRequest) {
       city?: string;
       lat?: number;
       lng?: number;
+      anonymousUserId?: string;
+      deviceType?: "mobile" | "desktop";
     } = body;
 
     if (!image) {
@@ -46,7 +55,43 @@ export async function POST(request: NextRequest) {
       "\n\n" +
       buildDynamicContext({ city, lat, lng, mode });
 
-    // TODO: Inject curated restaurant data here when user is at a known restaurant
+    const userText = message || "What am I looking at?";
+    const startTime = Date.now();
+
+    // Create lens chat session + upload image (non-blocking)
+    let sessionId: string | null = null;
+    let imageUrl: string | null = null;
+
+    if (anonymousUserId) {
+      sessionId = await createChatSession({
+        anonymous_user_id: anonymousUserId,
+        device_type: deviceType || "mobile",
+        entry_page: `/lens?mode=${mode || "IDENTIFY"}`,
+        first_message: userText,
+        message_count: 1,
+        source: "lens",
+      });
+
+      if (sessionId) {
+        // Upload image and log user message in parallel
+        const [uploadResult] = await Promise.allSettled([
+          uploadLensPhoto(image, sessionId),
+        ]);
+
+        imageUrl = uploadResult.status === "fulfilled" ? uploadResult.value : null;
+
+        // Log the user message with image URL
+        logChatMessage({
+          session_id: sessionId,
+          role: "user",
+          content: `[${mode || "IDENTIFY"}] ${userText}`,
+          user_lat: lat,
+          user_lng: lng,
+          source: "lens",
+          image_url: imageUrl,
+        });
+      }
+    }
 
     const client = getClient();
 
@@ -68,7 +113,7 @@ export async function POST(request: NextRequest) {
             },
             {
               type: "text",
-              text: message || "What am I looking at?",
+              text: userText,
             },
           ],
         },
@@ -77,20 +122,41 @@ export async function POST(request: NextRequest) {
 
     // SSE stream matching the existing chat pattern
     const encoder = new TextEncoder();
+    let fullResponseText = "";
+
     const readable = new ReadableStream({
       async start(controller) {
         try {
+          // Send session ID to client so follow-up messages can reference it
+          if (sessionId) {
+            const sessionData = JSON.stringify({ sessionId });
+            controller.enqueue(encoder.encode(`data: ${sessionData}\n\n`));
+          }
+
           for await (const event of stream) {
             if (
               event.type === "content_block_delta" &&
               event.delta.type === "text_delta"
             ) {
+              fullResponseText += event.delta.text;
               const data = JSON.stringify({ text: event.delta.text });
               controller.enqueue(
                 encoder.encode(`data: ${data}\n\n`)
               );
             }
           }
+
+          // Log assistant response
+          if (sessionId) {
+            logChatMessage({
+              session_id: sessionId,
+              role: "assistant",
+              content: fullResponseText,
+              response_time_ms: Date.now() - startTime,
+              source: "lens",
+            });
+          }
+
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (err) {

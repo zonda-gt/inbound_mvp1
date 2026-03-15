@@ -8,10 +8,16 @@ export async function POST(request: NextRequest) {
       messages,
       image,
       mode,
+      sessionId,
+      anonymousUserId,
+      deviceType,
     }: {
       messages: Array<{ role: string; content: string }>;
       image: { base64: string; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp" };
       mode?: string;
+      sessionId?: string;
+      anonymousUserId?: string;
+      deviceType?: "mobile" | "desktop";
     } = body;
 
     if (!messages?.length || !image?.base64) {
@@ -21,7 +27,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const stream = await streamLensChatResponse(messages, image, mode);
+    const stream = await streamLensChatResponse(
+      messages,
+      image,
+      mode,
+      sessionId,
+      anonymousUserId,
+      deviceType,
+    );
 
     return new Response(stream, {
       headers: {

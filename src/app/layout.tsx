@@ -44,6 +44,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${dmSans.variable} font-sans antialiased`}>
+        <div className="landscape-block" aria-hidden="true">
+          <div className="landscape-block-icon">📱</div>
+          <div className="landscape-block-title">Please rotate your device</div>
+          <div className="landscape-block-sub">This app works best in portrait mode</div>
+        </div>
         <ErrorBoundary>
           <PostHogProvider>
             <AttributionCapture />

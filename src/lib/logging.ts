@@ -14,6 +14,9 @@ export type ChatSession = {
   message_count?: number;
   last_active_at?: string;
   is_demo_mode?: boolean;
+  source?: "chat" | "ask" | "lens";
+  entity_type?: "restaurant" | "attraction" | null;
+  entity_slug?: string | null;
 };
 
 export type ChatMessage = {
@@ -29,6 +32,8 @@ export type ChatMessage = {
   is_fallback?: boolean;
   response_time_ms?: number | null;
   user_language?: string | null;
+  source?: "chat" | "ask" | "lens";
+  image_url?: string | null;
 };
 
 export type UserAction = {
@@ -47,6 +52,46 @@ export type UserAction = {
   user_lat?: number | null;
   user_lng?: number | null;
 };
+
+/**
+ * Upload a lens photo to Supabase Storage and return the public URL.
+ * Images are stored as JPEG in the `lens-photos` bucket.
+ */
+export async function uploadLensPhoto(
+  base64Data: string,
+  sessionId: string,
+): Promise<string | null> {
+  try {
+    const supabase = getSupabaseServerClient();
+    if (!supabase) {
+      console.warn("[Supabase] No server client — uploadLensPhoto skipped");
+      return null;
+    }
+
+    const buffer = Buffer.from(base64Data, "base64");
+    const fileName = `${sessionId}/${Date.now()}.jpg`;
+
+    const { error } = await supabase.storage
+      .from("lens-photos")
+      .upload(fileName, buffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("[Supabase] Error uploading lens photo:", error.message);
+      return null;
+    }
+
+    // Store the path (not a public URL) — use Supabase dashboard or
+    // signed URLs to view: supabase.storage.from('lens-photos').createSignedUrl(path, 3600)
+    console.log("[Supabase] Lens photo uploaded:", fileName);
+    return `lens-photos/${fileName}`;
+  } catch (error) {
+    console.error("[Supabase] Exception uploading lens photo:", error);
+    return null;
+  }
+}
 
 /**
  * Create a new chat session (server-side)

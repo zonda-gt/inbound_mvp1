@@ -442,6 +442,9 @@ function ChatPageInner() {
               messages: apiMessages,
               image: lensImage,
               mode: lensMode,
+              sessionId: sessionId || undefined,
+              anonymousUserId: anonymousUserId || undefined,
+              deviceType: getDeviceType(),
             }
           : {
               messages: apiMessages,

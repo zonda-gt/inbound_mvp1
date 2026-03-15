@@ -237,8 +237,8 @@ export default function NavigateScreen({
       </nav>
       <SaveSheet isOpen={showSaveSheet} placeName={displayName} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
 
-      {/* 1. Book Your Seats */}
-      <BookingCard destinationName={displayName} />
+      {/* 1. Book Your Seats (restaurants only) */}
+      {placeType === 'restaurant' && <BookingCard destinationName={displayName} />}
 
       {/* 2. Header */}
       <section className="v2-nav-hdr v2-fade-up v2-d1">
@@ -540,7 +540,10 @@ function BookingCard({ destinationName }: { destinationName: string }) {
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const [date, setDate] = useState(todayStr);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
@@ -551,6 +554,16 @@ function BookingCard({ destinationName }: { destinationName: string }) {
   // Ref to track state for cleanup
   const selectedTimeRef = useRef(selectedTime);
   useEffect(() => { selectedTimeRef.current = selectedTime; }, [selectedTime]);
+
+  // Check if user is logged in and grab email
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user?.email) {
+        setUserEmail(data.session.user.email);
+        setEmail(data.session.user.email);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -590,7 +603,8 @@ function BookingCard({ destinationName }: { destinationName: string }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!date || !selectedTime || !email.trim()) return;
+    const finalEmail = userEmail || email.trim();
+    if (!date || !selectedTime || !guestName.trim() || !phone.trim() || !finalEmail) return;
 
     setSubmitting(true);
     try {
@@ -602,7 +616,9 @@ function BookingCard({ destinationName }: { destinationName: string }) {
           bookingDate: date,
           bookingTime: selectedTime,
           partySize: guests,
-          guestEmail: email.trim(),
+          guestName: guestName.trim(),
+          guestPhone: phone.trim(),
+          guestEmail: finalEmail,
         }),
       });
       if (res.ok) {
@@ -636,7 +652,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
             {destinationName} &middot; {formatDate(date)} &middot; {guests} guest{guests !== 1 ? "s" : ""}
           </div>
           <div className="v2-book-submitted-note">
-            We&apos;ll email you at <strong>{email}</strong> once your reservation is confirmed.
+            We&apos;ll email you at <strong>{userEmail || email}</strong> once your reservation is confirmed.
           </div>
           {bookingId && (
             <a className="v2-book-status-link" href={`/booking/${bookingId}`}>
@@ -730,7 +746,7 @@ function BookingCard({ destinationName }: { destinationName: string }) {
           ))}
         </div>
 
-        {/* Email + submit (appears after selecting a time) */}
+        {/* Guest details + submit (appears after selecting a time) */}
         {selectedTime && (
           <form className="v2-book-ot-confirm" onSubmit={handleSubmit}>
             <div className="v2-book-ot-confirm-summary">
@@ -738,17 +754,37 @@ function BookingCard({ destinationName }: { destinationName: string }) {
             </div>
             <input
               className="v2-book-ot-email"
-              type="email"
-              placeholder="Your email for confirmation"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
+              type="text"
+              placeholder="Name for reservation"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              autoComplete="name"
               required
             />
+            <input
+              className="v2-book-ot-email"
+              type="tel"
+              placeholder="Phone number"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+              required
+            />
+            {!userEmail && (
+              <input
+                className="v2-book-ot-email"
+                type="email"
+                placeholder="Email for confirmation"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                required
+              />
+            )}
             <button
               className="v2-book-ot-submit"
               type="submit"
-              disabled={submitting || !email.trim()}
+              disabled={submitting || !guestName.trim() || !phone.trim() || (!userEmail && !email.trim())}
             >
               {submitting ? "Submitting..." : "Complete reservation"}
             </button>

@@ -254,6 +254,9 @@ export function streamAskResponse(
             first_message: userMessage,
             message_count: 1,
             is_demo_mode: isDemoMode || false,
+            source: "ask",
+            entity_type: entityType,
+            entity_slug: entitySlug,
           });
 
           if (newSessionId) {
@@ -281,6 +284,7 @@ export function streamAskResponse(
               user_lat: userLat,
               user_lng: userLng,
               user_language: detectLanguage(userMessage),
+              source: "ask",
             }),
           );
         }
@@ -319,6 +323,7 @@ export function streamAskResponse(
             tool_success: undefined,
             is_fallback: false,
             response_time_ms: responseTime,
+            source: "ask",
           });
 
           if (assistantMsgId) {

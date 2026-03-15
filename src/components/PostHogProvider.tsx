@@ -4,6 +4,7 @@ import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useRef } from 'react';
 import { getAnonymousUserId, getDeviceType } from '@/lib/tracking';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
   const initialized = useRef(false);
@@ -30,6 +31,25 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
         const anonId = getAnonymousUserId();
         if (anonId) ph.identify(anonId);
         ph.register({ device_type: getDeviceType(), app_version: 'v2' });
+
+        // Link Supabase user ID + email so PostHog shows real identity
+        const supabase = getSupabaseBrowserClient();
+        supabase.auth.getSession().then(({ data }) => {
+          if (data.session?.user) {
+            ph.identify(data.session.user.id, {
+              email: data.session.user.email,
+              name: data.session.user.user_metadata?.full_name,
+            });
+          }
+        });
+        supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            ph.identify(session.user.id, {
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name,
+            });
+          }
+        });
       },
     });
   }, []);

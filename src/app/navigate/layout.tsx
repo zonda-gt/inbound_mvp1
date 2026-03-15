@@ -9,7 +9,7 @@ const dmSans = DM_Sans({
 
 export default function NavigateLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={dmSans.variable}>
+    <div className={`${dmSans.className} ${dmSans.variable}`}>
       {children}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { track } from "@/lib/analytics";
+import { getAnonymousUserId, getDeviceType } from "@/lib/tracking";
 
 interface PhotoScreenProps {
   onNavigate: (screen: string) => void;
@@ -180,6 +181,8 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
           image: capturedImage,
           message: userMessage || undefined,
           mode: activeMode,
+          anonymousUserId: getAnonymousUserId(),
+          deviceType: getDeviceType(),
         }),
       });
       if (!res.ok) {
@@ -387,11 +390,27 @@ export default function PhotoScreen({ onNavigate, isActive }: PhotoScreenProps) 
               <div style={{ flex: 1 }} />
               {imagePreview && (
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Convert data URL to Blob
+                    const res = await fetch(imagePreview);
+                    const blob = await res.blob();
+                    const file = new File([blob], `photo-ai-${Date.now()}.jpg`, { type: "image/jpeg" });
+
+                    // iOS: use share sheet (lets user save to Photos)
+                    if (navigator.share && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                      try {
+                        await navigator.share({ files: [file] });
+                        return;
+                      } catch { /* user cancelled or not supported */ }
+                    }
+
+                    // Fallback: blob URL download (works on Android/desktop)
+                    const url = URL.createObjectURL(blob);
                     const a = document.createElement("a");
-                    a.href = imagePreview;
-                    a.download = `photo-ai-${Date.now()}.jpg`;
+                    a.href = url;
+                    a.download = file.name;
                     a.click();
+                    URL.revokeObjectURL(url);
                   }}
                   style={{
                     width: 36, height: 36, borderRadius: 18,
