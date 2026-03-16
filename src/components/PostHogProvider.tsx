@@ -22,13 +22,17 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       capture_pageview: true,
       capture_pageleave: true,
       autocapture: true,
-      persistence: 'localStorage',
+      persistence: 'localStorage+cookie',
       disable_session_recording: false,
       session_recording: {
         maskAllInputs: false,
         maskInputOptions: { password: true, email: true },
       },
       loaded: (ph) => {
+        // Force-start session recording — don't rely on /decide auto-start
+        // which can fail/timeout in Instagram's in-app browser
+        ph.startSessionRecording();
+
         const anonId = getAnonymousUserId();
         if (anonId) ph.identify(anonId);
         ph.register({ device_type: getDeviceType(), app_version: 'v2' });
