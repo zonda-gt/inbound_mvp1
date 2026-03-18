@@ -24,6 +24,10 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       autocapture: true,
       persistence: 'localStorage+cookie',
       disable_session_recording: false,
+      capture_performance: {
+        web_vitals: true,
+        web_vitals_allowed_metrics: ['LCP', 'FCP', 'TTFB', 'CLS', 'INP'],
+      },
       session_recording: {
         maskAllInputs: false,
         maskInputOptions: { password: true, email: true },
@@ -35,7 +39,21 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
 
         const anonId = getAnonymousUserId();
         if (anonId) ph.identify(anonId);
-        ph.register({ device_type: getDeviceType(), app_version: 'v2' });
+        const isInAppBrowser = /FBAN|FBAV|Instagram/i.test(navigator.userAgent);
+        ph.register({ device_type: getDeviceType(), app_version: 'v2', is_in_app_browser: isInAppBrowser });
+
+        // Track real page load time, split by browser type
+        window.addEventListener('load', () => {
+          const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+          ph.capture('page_load_complete', {
+            load_time_ms: Math.round(nav?.loadEventEnd ?? performance.now()),
+            ttfb_ms: nav ? Math.round(nav.responseStart - nav.requestStart) : undefined,
+            dom_interactive_ms: nav ? Math.round(nav.domInteractive) : undefined,
+            referrer: document.referrer,
+            is_in_app_browser: isInAppBrowser,
+            connection: (navigator as any)?.connection?.effectiveType || 'unknown',
+          });
+        });
 
         // Link Supabase user ID + email so PostHog shows real identity
         const supabase = getSupabaseBrowserClient();
