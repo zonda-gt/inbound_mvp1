@@ -9,6 +9,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { track } from '@/lib/analytics';
 import posthog from 'posthog-js';
 import { getDistanceLabel } from '@/lib/geo';
+import { LOGIN_ENABLED } from '@/lib/feature-flags';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -196,7 +197,35 @@ interface JournalScreenProps {
   onNavigate: (screen: string) => void;
 }
 
-export default function JournalScreen({ onNavigate }: JournalScreenProps) {
+export default function JournalScreen(props: JournalScreenProps) {
+  if (!LOGIN_ENABLED) {
+    return (
+      <div
+        className="v2-scroll-body"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100%',
+          padding: 24,
+          textAlign: 'center',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 56, marginBottom: 16 }}>✨</div>
+          <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>Coming Soon</h2>
+          <p style={{ color: '#86868B', fontSize: 15, lineHeight: 1.5, maxWidth: 280, margin: '0 auto' }}>
+            Save places and build your trip journal. Available in a future update.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return <JournalScreenAuthenticated {...props} />;
+}
+
+function JournalScreenAuthenticated({ onNavigate }: JournalScreenProps) {
   const [user, setUser] = useState<User | null | undefined>(undefined); // undefined = loading
   const [loggingIn, setLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState('');

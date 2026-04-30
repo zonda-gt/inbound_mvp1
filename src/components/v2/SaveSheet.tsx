@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
+import { LOGIN_ENABLED } from '@/lib/feature-flags';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -61,6 +62,33 @@ export default function SaveSheet({ isOpen, placeName, onClose, onLoggedIn }: Sa
   }
 
   if (!isOpen || typeof document === 'undefined') return null;
+
+  if (!LOGIN_ENABLED) {
+    return createPortal(
+      <div className="v2-save-overlay" onClick={onClose}>
+        <div className="v2-save-sheet" onClick={(e) => e.stopPropagation()}>
+          <div className="v2-save-sheet-handle" />
+          <button className="v2-save-close" onClick={onClose} aria-label="Close">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="v2-save-header">
+            <div className="v2-save-icon">
+              <svg viewBox="0 0 32 32" width="44" height="44" fill="#FF385C" stroke="none">
+                <path d="M16 28c7-4.73 14-10 14-17a6.98 6.98 0 0 0-7-7c-1.8 0-3.58.68-4.95 2.05L16 8.1l-2.05-2.05A6.98 6.98 0 0 0 9 4a6.98 6.98 0 0 0-7 7c0 7 7 12.27 14 17z" />
+              </svg>
+            </div>
+            <h2 className="v2-save-title">Coming Soon</h2>
+            <p className="v2-save-sub">
+              {placeName ? `Saving ${placeName} to your wishlist will be available in a future update.` : 'Saving places will be available in a future update.'}
+            </p>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   return createPortal(
     <div className="v2-save-overlay" onClick={onClose}>

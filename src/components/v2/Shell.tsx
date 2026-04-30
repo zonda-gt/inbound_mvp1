@@ -17,6 +17,7 @@ import SearchOverlay from './SearchOverlay';
 import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
 import { track } from '@/lib/analytics';
+import { LOGIN_ENABLED } from '@/lib/feature-flags';
 
 type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
@@ -49,7 +50,7 @@ const navItems: { id: NavTab; label: string; badge?: number; isLens?: boolean }[
   { id: 'discover', label: 'Shanghai' },
   { id: 'photo', label: 'Lens', isLens: true },
   { id: 'navigate', label: 'Navigate' },
-  { id: 'journal', label: 'Journey', badge: 3 },
+  ...(LOGIN_ENABLED ? [{ id: 'journal' as NavTab, label: 'Journey', badge: 3 }] : []),
 ];
 
 function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
@@ -93,15 +94,28 @@ function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
 export default function Shell() {
   const [activeScreen, setActiveScreenRaw] = useState<Screen>('home');
 
-  // Restore saved screen + scroll position after hydration
+  // Restore saved screen + scroll position after hydration (URL ?tab= overrides)
   useEffect(() => {
-    const saved = sessionStorage.getItem('v2-screen');
-    if (saved && saved in screenToTab) setActiveScreenRaw(saved as Screen);
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    let restoredScreen: string | null = null;
+    if (tabParam && tabParam in screenToTab) {
+      setActiveScreenRaw(tabParam as Screen);
+      restoredScreen = tabParam;
+      // Clean the URL param without reload
+      window.history.replaceState({}, '', window.location.pathname);
+    } else {
+      const saved = sessionStorage.getItem('v2-screen');
+      if (saved && saved in screenToTab) {
+        setActiveScreenRaw(saved as Screen);
+        restoredScreen = saved;
+      }
+    }
 
     // Restore scroll after DOM updates with the correct active screen
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const screenId = saved || 'home';
+        const screenId = restoredScreen || 'home';
         const scrollTop = sessionStorage.getItem(`v2-scroll-${screenId}`);
         if (scrollTop) {
           const el = document.querySelector('.v2-screen.active .v2-scroll-body');

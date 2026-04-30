@@ -176,28 +176,6 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
         </div>
       </div>
 
-      <div className="v2-sh-divider" />
-
-      {/* SECTION 3: Explore by neighbourhood */}
-      <div className="v2-sh-section v2-fade-up v2-d2">
-        <div className="v2-sh-section-hdr">
-          <div>
-            <div className="v2-sh-section-title">Explore by neighbourhood</div>
-            <div className="v2-sh-section-sub">
-              Each area has its own personality
-            </div>
-          </div>
-          <div className="v2-sh-see-all">Map &rarr;</div>
-        </div>
-        <div className="v2-sh-hscroll">
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a0a,#2d2d1a)" name="French Concession" desc="Tree-lined lanes · Boutique cafes · Nightlife" count="14 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a0a0a,#2d1a1a)" name="Tianzifang" desc="Art alleyways · Craft shops · Street food" count="9 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#0a0a1a,#1a1a2d)" name="The Bund" desc="Art deco skyline · Rooftop bars · Iconic views" count="7 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#1a1a1a,#2d2d2d)" name="Xintiandi" desc="Shikumen heritage · Upscale dining · Galleries" count="11 places" />
-          <NeighbourhoodCard bg="linear-gradient(135deg,#0a1a0a,#1a2d1a)" name="Jing&apos;an" desc="Ancient temple · Luxury malls · Specialty coffee" count="8 places" />
-        </div>
-      </div>
-
       <div className="v2-sh-bottom-pad" />
 
     </div>
@@ -374,20 +352,6 @@ function BarCoverCard({ bar, screenActive = true }: { bar: EatRestaurant; screen
         <div className="v2-sh-cover-tag">{bar.cuisine_label}</div>
         <div className="v2-sh-cover-name">{bar.name_en}</div>
         <div className="v2-sh-cover-hook">{shortHook(bar.hook)}</div>
-      </div>
-    </div>
-  );
-}
-
-function NeighbourhoodCard({ bg, name, desc, count }: { bg: string; name: string; desc: string; count: string; }) {
-  return (
-    <div className="v2-sh-nbhd-card">
-      <div className="v2-sh-nbhd-img" style={{ background: bg, display: 'block' }} />
-      <div className="v2-sh-nbhd-overlay" />
-      <div className="v2-sh-nbhd-count">{count}</div>
-      <div className="v2-sh-nbhd-body">
-        <div className="v2-sh-nbhd-name">{name}</div>
-        <div className="v2-sh-nbhd-desc">{desc}</div>
       </div>
     </div>
   );

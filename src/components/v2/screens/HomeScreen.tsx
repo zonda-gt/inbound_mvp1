@@ -669,48 +669,6 @@ export default function HomeScreen({ onNavigate, isActive: screenActive = true }
         </button>
       </div>
 
-      {/* 9. Neighbourhood Vibes */}
-      <div className="v2-vibes-section v2-fade-up v2-d3">
-        <div className="v2-sec-hdr">
-          <span className="v2-sec-title">Neighbourhood Vibes</span>
-        </div>
-        <div className="v2-vibes-scroll">
-          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'French Concession' })}>
-            <SmoothImage src="https://images.unsplash.com/photo-1764777447302-93ce9ea10eed?w=400&h=280&fit=crop&auto=format" alt="French Concession" className="v2-vibe-bg-img" lazy />
-            <div className="v2-vibe-overlay" />
-            <div className="v2-vibe-body">
-              <div className="v2-vibe-name">French Concession</div>
-              <div className="v2-vibe-mood">Coffee · Vintage · Brunch</div>
-            </div>
-          </div>
-          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'The Bund' })}>
-            <SmoothImage src="https://images.unsplash.com/photo-1743036875127-98a431f97bf5?w=400&h=280&fit=crop&auto=format" alt="The Bund" className="v2-vibe-bg-img" lazy />
-            <div className="v2-vibe-overlay" />
-            <div className="v2-vibe-body">
-              <div className="v2-vibe-name">The Bund</div>
-              <div className="v2-vibe-mood">Cocktails · Views · Rooftop</div>
-            </div>
-          </div>
-          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: 'Xintiandi' })}>
-            <SmoothImage src="https://images.unsplash.com/photo-1718750232545-6bd94f83fc29?w=400&h=280&fit=crop&auto=format" alt="Xintiandi" className="v2-vibe-bg-img" lazy />
-            <div className="v2-vibe-overlay" />
-            <div className="v2-vibe-body">
-              <div className="v2-vibe-name">Xintiandi</div>
-              <div className="v2-vibe-mood">Upscale · History · Tapas</div>
-            </div>
-          </div>
-          <div className="v2-vibe-card" onClick={() => track('neighbourhood_tapped', { neighbourhood: "People's Square" })}>
-            <SmoothImage src="https://images.unsplash.com/photo-1748078090604-5005ad27129e?w=400&h=280&fit=crop&auto=format" alt="People's Square" className="v2-vibe-bg-img" lazy />
-            <div className="v2-vibe-overlay" />
-            <div className="v2-vibe-body">
-              <div className="v2-vibe-name">People&apos;s Square</div>
-              <div className="v2-vibe-mood">Street Food · Metro Hub</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
       {/* 10. Survival Kit */}
       <div className="v2-survival-section v2-fade-up v2-d4">
         <div className="v2-sec-hdr">
