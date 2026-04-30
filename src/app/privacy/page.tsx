@@ -41,11 +41,6 @@ export default function PrivacyPolicyPage() {
         <h3 className="mt-4 font-semibold">Information you provide</h3>
         <ul className="mt-2 list-disc pl-6 space-y-1">
           <li>
-            <strong>Booking details</strong> — when you submit a reservation
-            through our booking form, we collect your name, email address,
-            phone number, party size, preferred time, and any special requests.
-          </li>
-          <li>
             <strong>Chat messages</strong> — text you send to the AI travel
             chat is processed to generate a response.
           </li>
@@ -93,8 +88,7 @@ export default function PrivacyPolicyPage() {
           2. How we use your information
         </h2>
         <ul className="mt-2 list-disc pl-6 space-y-1">
-          <li>To provide the core features of the app (chat, navigation, recommendations, bookings).</li>
-          <li>To process and confirm restaurant or activity reservations you submit.</li>
+          <li>To provide the core features of the app (chat, navigation, recommendations).</li>
           <li>To respond to your questions and feedback.</li>
           <li>To monitor app performance, debug issues, and improve the user experience.</li>
           <li>To detect and prevent abuse, fraud, and security incidents.</li>
@@ -136,25 +130,14 @@ export default function PrivacyPolicyPage() {
             <strong>Amap (Gaode)</strong> — maps, geocoding, and navigation
             routing for destinations within China.
           </li>
-          <li>
-            <strong>DingTalk</strong> — internal staff notifications when a
-            booking is submitted (so our team can confirm with the venue).
-          </li>
-          <li>
-            <strong>Resend</strong> — transactional email delivery (e.g.
-            booking confirmations).
-          </li>
         </ul>
 
         <h2 className="mt-8 text-xl font-semibold text-gray-900">
           4. Data sharing
         </h2>
         <p className="mt-2">
-          We share booking information (name, contact details, party size,
-          time, requests) with the venue you have requested a reservation at,
-          so that they can fulfill your booking. We do not share personal data
-          with any other third parties for their own marketing or commercial
-          purposes.
+          We do not share personal data with any third parties for their own
+          marketing or commercial purposes.
         </p>
         <p className="mt-3">
           We may disclose information if required by law or in response to a
@@ -165,7 +148,6 @@ export default function PrivacyPolicyPage() {
           5. Data retention
         </h2>
         <ul className="mt-2 list-disc pl-6 space-y-1">
-          <li>Booking data: retained for up to 24 months for operational and customer-service purposes.</li>
           <li>Chat history: retained for up to 12 months to improve the AI model and address abuse.</li>
           <li>Analytics and session recordings: retained for up to 12 months.</li>
           <li>Lens photos: not stored on our servers after the AI response is generated.</li>

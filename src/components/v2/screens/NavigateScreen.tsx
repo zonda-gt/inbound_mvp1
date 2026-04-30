@@ -10,6 +10,7 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import SaveSheet from '../SaveSheet';
 import { formatDistanceCompact as formatDistance } from '@/lib/geo';
+import { BOOKING_ENABLED } from '@/lib/feature-flags';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -239,7 +240,7 @@ export default function NavigateScreen({
       <SaveSheet isOpen={showSaveSheet} placeName={displayName} onClose={() => setShowSaveSheet(false)} onLoggedIn={() => { setShowSaveSheet(false); setSaved(true); }} />
 
       {/* 1. Book Your Seats (restaurants only) */}
-      {placeType === 'restaurant' && <BookingCard destinationName={displayName} />}
+      {BOOKING_ENABLED && placeType === 'restaurant' && <BookingCard destinationName={displayName} slug={placeSlug} />}
 
       {/* 2. Header */}
       <section className="v2-nav-hdr v2-fade-up v2-d1">
@@ -506,11 +507,38 @@ export default function NavigateScreen({
 
 /* ─── Booking Card (OpenTable-style) ─── */
 
-/** Generate 30-min time slots. For today: starts 2 hours from now.
- *  For future dates: full range 11:00–21:00. */
-function generateTimeSlots(isToday: boolean): string[] {
-  const earliest = 11 * 60; // 11:00
-  const latest = 21 * 60;   // 21:00
+/** Parse "HH:MM-HH:MM" opening_time into {open, close} in minutes.
+ *  Handles split hours like "11:00-14:00, 17:00-22:00" → earliest open, latest close.
+ *  Handles overnight like "18:30-02:00" → close treated as next-day minutes (e.g. 26*60). */
+function parseOpeningTime(raw: string | null | undefined): { openMin: number; closeMin: number } | null {
+  if (!raw) return null;
+  const ranges = raw.split(',').map(s => s.trim()).filter(Boolean);
+  let earliestOpen = Infinity;
+  let latestClose = -Infinity;
+
+  for (const range of ranges) {
+    const match = range.match(/(\d{1,2}):(\d{2})\s*[-–]\s*(\d{1,2}):(\d{2})/);
+    if (!match) continue;
+    const openMin = parseInt(match[1]) * 60 + parseInt(match[2]);
+    let closeMin = parseInt(match[3]) * 60 + parseInt(match[4]);
+    // Overnight: if close <= open, it's next-day (add 24h)
+    if (closeMin <= openMin) closeMin += 24 * 60;
+    if (openMin < earliestOpen) earliestOpen = openMin;
+    if (closeMin > latestClose) latestClose = closeMin;
+  }
+
+  if (earliestOpen === Infinity) return null;
+  return { openMin: earliestOpen, closeMin: latestClose };
+}
+
+/** Generate 30-min time slots based on restaurant hours.
+ *  Last bookable slot = 1 hour before closing.
+ *  For today: starts 2 hours from now. Falls back to 11:00–21:00. */
+function generateTimeSlots(isToday: boolean, openingTime?: string | null): string[] {
+  const parsed = parseOpeningTime(openingTime);
+  const earliest = parsed?.openMin ?? 11 * 60;
+  // Last booking = 1 hour before close
+  const latest = parsed ? parsed.closeMin - 60 : 21 * 60;
   let first = earliest;
 
   if (isToday) {
@@ -522,8 +550,10 @@ function generateTimeSlots(isToday: boolean): string[] {
 
   const slots: string[] = [];
   for (let m = first; m <= latest; m += 30) {
-    const hh = String(Math.floor(m / 60)).padStart(2, "0");
-    const mm = String(m % 60).padStart(2, "0");
+    // Normalize hours past midnight (e.g. 25:00 → 01:00)
+    const normalizedMin = m % (24 * 60);
+    const hh = String(Math.floor(normalizedMin / 60)).padStart(2, "0");
+    const mm = String(normalizedMin % 60).padStart(2, "0");
     slots.push(`${hh}:${mm}`);
   }
   return slots;
@@ -535,7 +565,7 @@ function formatTime12(t: string) {
   return `${hr > 12 ? hr - 12 : hr}:${m} ${hr >= 12 ? "PM" : "AM"}`;
 }
 
-function BookingCard({ destinationName }: { destinationName: string }) {
+function BookingCard({ destinationName, slug }: { destinationName: string; slug?: string }) {
   const [guests, setGuests] = useState(2);
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
@@ -549,8 +579,23 @@ function BookingCard({ destinationName }: { destinationName: string }) {
   const [submitted, setSubmitted] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const timeSlotsRef = useRef<HTMLDivElement>(null);
+  const [openingTime, setOpeningTime] = useState<string | null>(null);
   const isToday = date === todayStr;
-  const timeSlots = useMemo(() => generateTimeSlots(isToday), [isToday]);
+  const timeSlots = useMemo(() => generateTimeSlots(isToday, openingTime), [isToday, openingTime]);
+
+  // Fetch opening hours from restaurant profile
+  useEffect(() => {
+    if (!slug) return;
+    supabase
+      .from('restaurants_v2')
+      .select('profile')
+      .eq('slug', slug)
+      .single()
+      .then(({ data }) => {
+        const hours = data?.profile?.layer2_detail?.practical?.opening_time;
+        if (hours) setOpeningTime(hours);
+      });
+  }, [slug]);
 
   // Ref to track state for cleanup
   const selectedTimeRef = useRef(selectedTime);

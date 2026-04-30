@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { CuratedRestaurant } from "@/lib/curated-restaurants";
 import { distanceMeters, formatDistanceCompact } from "@/lib/geo";
+import { BOOKING_ENABLED } from "@/lib/feature-flags";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -247,16 +248,18 @@ export default function CuratedRestaurantCard({
         <div style={{ display: "flex", gap: 8, padding: "0 16px 12px" }}>
           <button
             onClick={(e) => { e.stopPropagation(); onNavigate(restaurant.name_cn, location, address); }}
-            style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#D0021B", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "opacity 150ms" }}
+            style={{ flex: BOOKING_ENABLED ? 1 : "1 1 100%", padding: "10px 0", borderRadius: 10, border: "none", background: "#D0021B", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "opacity 150ms" }}
           >Navigate →</button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowBooking(!showBooking); }}
-            style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#F5F5F5", color: "#666", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 150ms" }}
-          >Book for me</button>
+          {BOOKING_ENABLED && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowBooking(!showBooking); }}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", background: "#F5F5F5", color: "#666", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "background 150ms" }}
+            >Book for me</button>
+          )}
         </div>
 
         {/* ── Booking toast ── */}
-        {showBooking && (
+        {BOOKING_ENABLED && showBooking && (
           <div style={{ margin: "0 16px 12px", padding: "10px 14px", borderRadius: 10, background: "#FFF7ED", color: "#9A3412", fontSize: 13, lineHeight: 1.55 }}>
             Booking service coming soon! Tell us the restaurant, date, time, and group size in chat — we&apos;ll help you reserve.
           </div>
