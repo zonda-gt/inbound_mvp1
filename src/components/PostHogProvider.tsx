@@ -26,7 +26,7 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       disable_session_recording: false,
       capture_performance: {
         web_vitals: true,
-        web_vitals_allowed_metrics: ['LCP', 'FCP', 'TTFB', 'CLS', 'INP'],
+        web_vitals_allowed_metrics: ['LCP', 'FCP', 'CLS', 'INP'],
       },
       session_recording: {
         maskAllInputs: false,
