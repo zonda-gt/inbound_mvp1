@@ -39,3 +39,17 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code workspace
+.claude/
+
+# supabase cli cache
+supabase/.temp/
+
+# legacy / vendored reference projects (kept locally, not shipped)
+attraction-template/
+hellochina-v2/
+manus-source-esim/
+
+# binary archives in content
+content/blog/*.zip
