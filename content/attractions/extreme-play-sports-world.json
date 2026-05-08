@@ -1,0 +1,231 @@
+{
+  "attraction_name_cn": "极限PLAY运动娱乐新世界",
+  "attraction_name_en": "Extreme PLAY Sports & Entertainment World",
+  "address_cn": "上海市宝山区长江西路855号博绣荟文化园B区",
+  "experience_type": "activity",
+
+  "hook": "A four-story indoor playground for adults — 20-meter bungee drops, drift go-karts, roller skating, archery, and 30+ activities all on one ticket, and it's the kind of place that makes you feel like you're on a Chinese game show.",
+
+  "honest_description": "Think of it as a massive indoor adventure park crammed into a converted industrial building in Shanghai's Baoshan district. The first floor is where the adrenaline lives — bungee-style free falls, giant swings that launch you into the void, obstacle courses, trampolines, rock climbing, and archery. The third floor has go-karts and bumper cars, the fourth floor is a roller skating rink. It's loud, colorful, and genuinely fun as an adult — but be warned it skews heavily toward families with kids, especially on weekends and holidays. Best for groups of friends or couples looking for a high-energy rainy day activity; solo visitors might feel a bit out of place.",
+
+  "foreigner_top_question": "Is this fun for adults or mainly for kids?",
+  "foreigner_top_answer": "Both, but with a caveat. The extreme activities on the first floor — bungee drops, giant swings, high-rope obstacle courses — are genuinely thrilling for adults and many reviewers in their 20s-30s rave about them. However, the venue is very popular with families, so on weekends you'll be sharing the space with lots of children. Weekday visits or evening sessions give a much more adult-friendly vibe. The go-karts are underwhelming for adults — slow, repetitive loops on a small track.",
+
+  "experience_format_note": "All-inclusive ticket: one price covers all activities across all four floors, and you can replay anything. You'll need to buy or bring grip socks (防滑袜) — available on-site for ¥10/pair. Lockers are coin-operated (¥2 deposit). Drinks cannot be brought onto activity floors but there's a designated storage area for your beverages. Before entering, you must scan a QR code to sign an electronic waiver/insurance form — this will be in Chinese and may require a Chinese phone number, so arrive prepared to ask staff for help. There's a mandatory warm-up stretch at the entrance before you're allowed onto the floor. Each activity station has a staff member managing safety equipment and queues. Some extreme activities (bungee, high swings) have age restrictions — must be 18+ for certain high-altitude drops.",
+
+  "vibe": "A neon-lit sensory overload of screaming kids and adults discovering they're afraid of heights — chaotic, sweaty, and genuinely exhilarating.",
+
+  "time_needed": {
+    "quick_visit": "2 hours — enough to hit the main adrenaline activities on the first floor",
+    "recommended": "4 hours — the most common ticket duration, lets you cover most activities across all floors",
+    "deep_dive": "Full day (6+ hours) — if you want to try everything including skating, go-karts, and repeat your favorites"
+  },
+
+  "best_time": {
+    "best_time_of_day": "Arrive at opening (9:30 AM) or go for the evening session (6 PM onward) — both have significantly fewer crowds than afternoon",
+    "worst_time": "Weekend afternoons and any time during school holidays (summer July-Aug, National Day week in early October, Children's Day June 1) — queues for go-karts become painful",
+    "seasonal_notes": "The 4th floor roller skating rink has no air conditioning and gets unbearably hot in summer. Winter is actually the better season for a full-day visit.",
+    "pro_tip": "Weekday mornings are basically a private playground — multiple reviewers report zero queues and near-empty facilities"
+  },
+
+  "getting_in": {
+    "price_rmb": "~¥179/person for a standard ticket. Night session (6 PM - 9:30 PM) around ¥98. Student tickets available. Dual-person packages exist on Dianping/Meituan.",
+    "price_usd": "~$25 standard, ~$14 night session",
+    "booking_required": "Not strictly required — walk-ins accepted. But buying online in advance on Dianping/Meituan is cheaper.",
+    "booking_method": "Primarily through Dianping (大众点评) or Meituan apps — both require Chinese payment (Alipay/WeChat Pay). Walk-up ticket purchase at the venue is possible but may be pricier. Phone booking may work: 15301917817.",
+    "passport_accepted": "No reports of ID restrictions for entry — this is a commercial entertainment venue, not a government-regulated attraction. Passport should be fine.",
+    "what_to_bring": "Passport (general good practice). Comfortable athletic clothing. Grip socks or be prepared to buy them (¥10). Cash or Chinese mobile payment for lockers and drinks.",
+    "queue_situation": "Most activities have minimal waits on weekdays. Go-karts have the longest queue (15-30 min on busy days). Weekend afternoons see moderate queues across the board.",
+    "language_barrier_rating": "some-chinese-helps — All safety briefings are in Chinese only, but activities are physical and self-explanatory. Staff are young and friendly but unlikely to speak English. The electronic waiver form at entry is in Chinese. Once you're past entry, you can figure everything out by watching others."
+  },
+
+  "experience_highlights": [
+    {
+      "name": "20-Meter Free-Fall Bungee",
+      "description": "A ropeless bungee drop from 20 meters onto a giant airbag below. You climb up, get harnessed, and drop — the moment of release is pure terror followed by relief. Multiple reviewers call it the single most thrilling moment.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "No language needed — staff harness you up and the activity is self-explanatory. The fear is universal.",
+      "tip": "Go early — this gets the longest queue as the day goes on. Adults actually find it scarier than kids do."
+    },
+    {
+      "name": "Extreme Rope Swing (极限荡绳/销魂秋千)",
+      "description": "A giant pendulum swing from height — you're hoisted up and released for a massive arc through the air. Can be done as a couple. The initial drop is the scariest part; after that it's pure fun.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "The name '销魂秋千' literally means 'soul-snatching swing' — lives up to it.",
+      "tip": "Do the couples version if you're with someone — adds to the shared-terror bonding experience."
+    },
+    {
+      "name": "Obstacle Course / Game Show Gauntlet",
+      "description": "A multi-stage obstacle course modeled after Chinese TV game shows (like 'Running Man'). Balance beams, rope bridges, climbing walls — think Ninja Warrior lite. Staff cheer you on.",
+      "foreigner_appeal": "🔴 UNIQUELY CHINESE",
+      "foreigner_note": "This venue was actually featured on the Chinese reality show '心动的信号' and screens play clips of TV shows that filmed here. You're essentially running the same course celebrities ran on national TV.",
+      "tip": "The courses are designed for entertainment, not elite athletes — anyone reasonably fit can do them."
+    },
+    {
+      "name": "Trampoline Zone",
+      "description": "A large interconnected trampoline area with foam pits, wall-running sections, and dodgeball courts. The biggest single zone in the facility.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Standard trampoline park fare but well-maintained and spacious.",
+      "tip": "Grip socks are mandatory here. Bring your own to save ¥10 and ensure they're clean."
+    },
+    {
+      "name": "Drift Go-Karts",
+      "description": "Small electric karts on an indoor track, 3rd floor. Run in heats of 4 people, about 5 minutes per session.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Honestly underwhelming for adults — slow speeds, tiny track, repetitive loops. Several reviewers specifically said the karts were disappointing.",
+      "tip": "Skip if the queue is more than 10 minutes — the bumper cars next door are actually more fun and have shorter waits."
+    },
+    {
+      "name": "Roller Skating Rink (4th Floor)",
+      "description": "A full-sized indoor skating rink with both inline and quad skate rentals. Also has an ice curling setup.",
+      "foreigner_appeal": "🟢 UNIVERSAL APPEAL",
+      "foreigner_note": "Shared rental equipment (skates, knee pads) can be sweaty and not the cleanest. Bring your own socks.",
+      "tip": "Avoid in summer — the 4th floor has poor air conditioning and gets very hot. Winter visits are much more comfortable."
+    }
+  ],
+
+  "what_visitors_miss": [
+    {
+      "what": "The 3rd floor observation platform",
+      "why": "Overlooks the entire first floor from above — great for watching the bungee drops and swings from a bird's eye view. Most people rush past it to get to go-karts."
+    },
+    {
+      "what": "Bumper cars over go-karts",
+      "why": "Everyone queues for the go-karts, but multiple reviewers say the bumper cars are actually more fun, have longer session times, and much shorter queues."
+    },
+    {
+      "what": "The small cinema on the 2nd floor",
+      "why": "A tiny screening room playing movies — perfect for a 20-minute rest when your legs give out. Most visitors don't even know it exists."
+    }
+  ],
+
+  "strategy": {
+    "smart_route": "Start on Floor 1 with the extreme activities (bungee drop, rope swing, obstacle courses) while your energy and courage are highest and queues are shortest. Then trampolines and archery. Take a break on Floor 2 (rest area, drinks, cinema). Then Floor 3 for bumper cars (skip go-karts unless queue is under 10 min). End on Floor 4 for skating if you still have energy.",
+    "what_to_skip": "The go-karts are the most overhyped element — slow, short track, long queue, and the shared helmets smell bad. The bowling alley shoes also get complaints about hygiene. Skip both unless queues are empty.",
+    "pro_tips": [
+      "You can order food delivery (外卖) into the venue — there's a designated area for delivered food and drinks. This is a huge money-saver vs the limited on-site cafe.",
+      "Buy a 4-hour ticket, not a full-day — reviewers consistently say 4 hours is enough to hit everything worth doing.",
+      "The venue updates and adds new activities periodically (recent additions include an electronic robot dog and high-altitude jump net), so repeat visitors find new things."
+    ]
+  },
+
+  "heads_up": [
+    {
+      "warning": "The venue is in Baoshan district — far from central Shanghai",
+      "advice": "It's about 10 minutes by bike from the nearest metro station. Plan your transport in advance. Free parking is available if you have a car."
+    },
+    {
+      "warning": "Shared equipment hygiene is inconsistent",
+      "advice": "Bowling shoes, skating gear, go-kart helmets, and knee pads are shared and reviewers note they can smell. Bring your own grip socks and consider bringing thin liner socks for skate rentals."
+    },
+    {
+      "warning": "Some staff are indifferent or robotic",
+      "advice": "Service quality varies by station. The safety staff on extreme activities are praised as professional and careful, but staff elsewhere can be cold. Don't take it personally."
+    },
+    {
+      "warning": "The 2nd floor rest area gets warm and has very few charging outlets",
+      "advice": "Bring a portable battery. The seating area fills up on busy days — claim a spot early if you need a base camp."
+    },
+    {
+      "warning": "You will be absolutely drenched in sweat",
+      "advice": "Bring a change of clothes and a small towel, especially in summer. The venue is air-conditioned on floors 1-3 but it's still an intense physical workout."
+    }
+  ],
+
+  "preparation": {
+    "what_to_wear": "Athletic clothing you don't mind sweating through. Shorts and a t-shirt ideal. No jeans or restrictive clothing — you'll be climbing, jumping, and falling. Shoes will be removed for most activities (grip socks required).",
+    "what_to_bring": "Grip socks (or buy on-site ¥10), portable charger, water bottle (store in designated area), change of clothes, small towel. ¥2 coins for lockers.",
+    "what_not_to_bring": "No outside drinks allowed on activity floors (storage area provided). Leave valuables in the locker — you'll be upside down at some point."
+  },
+
+  "physical_accessibility": {
+    "physical_intensity": "high",
+    "physical_details": "Expect constant physical activity — climbing, jumping, running, balancing. Multiple reviewers report being sore for days afterward. The extreme activities involve heights of 20+ meters. Even the 'mild' activities like trampolines and skating are physically demanding over hours.",
+    "age_notes": "Some extreme activities (bungee drop, certain high swings) require age 18+. Children under ~8 need close parental supervision. Best suited for ages 10+ and fit adults.",
+    "health_warnings": "Extreme heights on first floor activities (20m bungee, high swings) — real acrophobia trigger. High physical exertion in a warm environment — stay hydrated. The roller skating rink has caused minor injuries (scrapes, bruises) per reviews. Sign the electronic waiver carefully."
+  },
+
+  "concierge_opportunities": [
+    {
+      "action": "Buy discounted tickets in advance",
+      "platform": "Dianping (大众点评) or Meituan app — requires Chinese mobile payment",
+      "value_to_user": "Saves 15-30% vs walk-in pricing. Night session tickets (¥98) are great value."
+    },
+    {
+      "action": "Complete the electronic waiver/insurance form at entry",
+      "platform": "QR code scan on-site — Chinese language form, may require Chinese phone number",
+      "value_to_user": "Required for entry — cannot skip. A Chinese-speaking companion or hotel concierge calling ahead would help."
+    },
+    {
+      "action": "Order food delivery to the venue",
+      "platform": "Meituan or Ele.me delivery apps — requires Chinese payment and phone number",
+      "value_to_user": "Huge cost savings and better food selection than the limited on-site cafe. Delivery is allowed and there's a designated food area."
+    }
+  ],
+
+  "useful_chinese": [
+    {
+      "pinyin": "wǒ yào mǎi piào",
+      "chinese": "我要买票",
+      "english": "I want to buy a ticket"
+    },
+    {
+      "pinyin": "fáng huá wà mài ma?",
+      "chinese": "防滑袜卖吗？",
+      "english": "Do you sell grip socks?"
+    },
+    {
+      "pinyin": "zhè ge xiàng mù zěn me wán?",
+      "chinese": "这个项目怎么玩？",
+      "english": "How do I do this activity?"
+    },
+    {
+      "pinyin": "pái duì yào duō jiǔ?",
+      "chinese": "排队要多久？",
+      "english": "How long is the queue?"
+    },
+    {
+      "pinyin": "cún bāo guì zài nǎ lǐ?",
+      "chinese": "存包柜在哪里？",
+      "english": "Where are the lockers?"
+    },
+    {
+      "pinyin": "xiū xī qū zài nǎ lǐ?",
+      "chinese": "休息区在哪里？",
+      "english": "Where is the rest area?"
+    },
+    {
+      "pinyin": "wǒ kě yǐ diǎn wài mài ma?",
+      "chinese": "我可以点外卖吗？",
+      "english": "Can I order food delivery here?"
+    },
+    {
+      "pinyin": "zhè ge yǒu nián líng xiàn zhì ma?",
+      "chinese": "这个有年龄限制吗？",
+      "english": "Is there an age restriction for this?"
+    }
+  ],
+
+  "pair_with": [
+    {
+      "suggestion": "Grab noodles or dumplings at a nearby local restaurant after",
+      "why": "After 4 hours of intense physical activity you'll be ravenous. The on-site food options are limited and overpriced — the surrounding Baoshan neighborhood has cheap, hearty local food.",
+      "travel_time": "5-10 min walk"
+    },
+    {
+      "suggestion": "Combine with a visit to Wusong Paotai Bay Wetland Forest Park (吴淞炮台湾湿地森林公园)",
+      "why": "If you're already making the trek to Baoshan, this waterfront park along the Yangtze is a peaceful counterbalance to the indoor chaos — and it's free.",
+      "travel_time": "15 min by taxi"
+    }
+  ],
+
+  "cultural_context": "Indoor mega-entertainment complexes like this are booming in Chinese cities — they're the go-to weekend activity for young families, friend groups, and couples. Several Chinese reality TV shows (like 'Keep Running') have filmed obstacle course segments at this venue, which drives much of its popularity. The concept of an all-inclusive 'play all day' ticket at a massive indoor facility is far more common in China than in Western countries, where you'd typically pay per activity.",
+
+  "best_for": [
+    "groups-of-friends",
+    "rainy-day-option",
+    "adrenaline-seekers",
+    "good-for-dates",
+    "unique-to-China"
+  ]
+}
