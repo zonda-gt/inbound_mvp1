@@ -49,3 +49,4 @@ export async function sendBookingEmail(booking: BookingNotificationData) {
     throw new Error(`Resend error: ${error.message}`);
   }
 }
+
