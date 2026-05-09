@@ -12,6 +12,14 @@ export default async function AdminDashboard() {
 
       <div className="grid grid-cols-2 gap-4">
         <Link
+          href="/admin/chat"
+          className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-6 hover:border-gray-400 hover:shadow-sm transition-all"
+        >
+          <span className="text-3xl">💬</span>
+          <span className="font-semibold text-gray-900">Chat</span>
+          <span className="text-sm text-gray-500">Reply to user messages</span>
+        </Link>
+        <Link
           href="/admin/restaurants"
           className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white p-6 hover:border-gray-400 hover:shadow-sm transition-all"
         >

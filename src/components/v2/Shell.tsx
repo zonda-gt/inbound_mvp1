@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import AttractionPage from '../guides/attractions/AttractionDetail';
 import HomeScreen from './screens/HomeScreen';
@@ -8,6 +8,8 @@ import DiscoverScreen from './screens/DiscoverScreen';
 import NavigateScreen, { type NavigateDestination } from './screens/NavigateScreen';
 import PhotoScreen from './screens/PhotoScreen';
 import JournalScreen from './screens/JournalScreen';
+import ConciergeScreen from './screens/ConciergeScreen';
+import { fetchThread, markRead } from '@/lib/concierge';
 import ShanghaiAllScreen from './screens/ShanghaiAllScreen';
 import EatScreen from './screens/EatScreen';
 import EatCategoryScreen from './screens/EatCategoryScreen';
@@ -19,7 +21,7 @@ import { COLLECTION_IDS } from './data/collections-data';
 import { track } from '@/lib/analytics';
 import { LOGIN_ENABLED } from '@/lib/feature-flags';
 
-type NavTab = 'home' | 'discover' | 'navigate' | 'photo' | 'journal';
+type NavTab = 'home' | 'discover' | 'navigate' | 'concierge' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
 type EatCategoryScreenId = 'eat-chinese' | 'eat-asian' | 'eat-middle_eastern' | 'eat-western' | 'eat-bars';
 type Screen = NavTab | 'shanghai-all' | 'eat' | 'drink' | 'feedback' | EatCategoryScreenId | CollectionScreen;
@@ -30,7 +32,10 @@ COLLECTION_IDS.forEach((id) => { collectionScreenToTab[id] = 'discover'; });
 const screenToTab: Record<string, NavTab> = {
   home: 'home',
   discover: 'discover',
-  navigate: 'navigate',
+  // Navigate is reachable from POI cards but no longer has its own tab — map it
+  // to a neutral tab so the bar doesn't try to highlight a removed entry.
+  navigate: 'home',
+  concierge: 'concierge',
   photo: 'photo',
   journal: 'journal',
   'shanghai-all': 'discover',
@@ -45,11 +50,13 @@ const screenToTab: Record<string, NavTab> = {
   ...collectionScreenToTab,
 };
 
-const navItems: { id: NavTab; label: string; badge?: number; isLens?: boolean }[] = [
+type NavItem = { id: NavTab; label: string; badge?: number; isLens?: boolean };
+
+const baseNavItems: NavItem[] = [
   { id: 'home', label: 'Home' },
   { id: 'discover', label: 'Shanghai' },
   { id: 'photo', label: 'Lens', isLens: true },
-  { id: 'navigate', label: 'Navigate' },
+  { id: 'concierge', label: 'Chat' },
   ...(LOGIN_ENABLED ? [{ id: 'journal' as NavTab, label: 'Journey', badge: 3 }] : []),
 ];
 
@@ -79,6 +86,14 @@ function NavGlyph({ tab, active }: { tab: NavTab; active: boolean }) {
       <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
         <circle cx="12" cy="12" r="8.5" strokeWidth={strokeWidth} />
         <path d="m10.3 10.3 5.9-2.2-2.2 5.9-5.9 2.2z" strokeWidth={strokeWidth} />
+      </svg>
+    );
+  }
+
+  if (tab === 'concierge') {
+    return (
+      <svg viewBox="0 0 24 24" className={cls} aria-hidden="true">
+        <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v8A2.5 2.5 0 0 1 17.5 17H10l-4 3.5V17H6.5A2.5 2.5 0 0 1 4 14.5z" strokeWidth={strokeWidth} strokeLinejoin="round" />
       </svg>
     );
   }
@@ -213,6 +228,45 @@ export default function Shell() {
   const handleSearchOpen = useCallback(() => setSearchOpen(true), []);
   const handleSearchClose = useCallback(() => setSearchOpen(false), []);
 
+  // Concierge unread badge — polled, refreshed when leaving the concierge tab.
+  const [conciergeUnread, setConciergeUnread] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () => {
+      fetchThread()
+        .then((res) => {
+          if (cancelled) return;
+          setConciergeUnread(res.thread?.user_unread_count ?? 0);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const t = setInterval(refresh, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+
+  // When user opens the concierge tab, optimistically clear the badge and tell
+  // the server (the chat UI also marks read once it loads — this is a faster UX).
+  useEffect(() => {
+    if (activeScreen === 'concierge' && conciergeUnread > 0) {
+      setConciergeUnread(0);
+      markRead().catch(() => {});
+    }
+  }, [activeScreen, conciergeUnread]);
+
+  const navItems: NavItem[] = useMemo(
+    () =>
+      baseNavItems.map((item) =>
+        item.id === 'concierge' && conciergeUnread > 0
+          ? { ...item, badge: conciergeUnread }
+          : item,
+      ),
+    [conciergeUnread],
+  );
+
   const isActive = (screen: Screen) => activeScreen === screen;
   const isCollectionScreen = COLLECTION_IDS.includes(activeScreen);
 
@@ -228,9 +282,14 @@ export default function Shell() {
         <DiscoverScreen onNavigate={handleNavigate} isActive={isActive('discover')} onSearchOpen={handleSearchOpen} />
       </div>
 
-      {/* Navigate */}
+      {/* Navigate (no longer in tab bar; reachable from POI cards via setActiveScreen('navigate')) */}
       <div className={`v2-screen v2-navigate ${isActive('navigate') ? 'active' : ''}`}>
         {isActive('navigate') && <NavigateScreen onNavigate={handleNavigate} destination={navigateDestination} onClearDestination={() => setNavigateDestination(null)} referrer={navReferrer} />}
+      </div>
+
+      {/* Concierge */}
+      <div className={`v2-screen v2-concierge ${isActive('concierge') ? 'active' : ''}`}>
+        {isActive('concierge') && <ConciergeScreen />}
       </div>
 
       {/* Photo AI */}
