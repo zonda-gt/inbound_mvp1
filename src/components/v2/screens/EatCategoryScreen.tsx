@@ -8,6 +8,7 @@ import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useEatRestaurants } from '../hooks/useEatRestaurants';
+import { useActiveCity } from '../hooks/useActiveCity';
 import { getDistanceLabel, sortByDistance, type Coordinates } from '@/lib/geo';
 
 const supabase = getSupabaseBrowserClient();
@@ -55,7 +56,8 @@ export default function EatCategoryScreen({ categoryId, onNavigate, topTab = 'ea
   const [activeTab, setActiveTab] = useState<EatCategory>(categoryId);
   const [compact, setCompact] = useState(false);
   const { coords: userCoords } = useGeolocation();
-  const { restaurants: allRestaurants } = useEatRestaurants();
+  const [city] = useActiveCity();
+  const { restaurants: allRestaurants } = useEatRestaurants(city);
 
   // Filter by active tab
   const filtered = useMemo(() => {

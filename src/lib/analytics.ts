@@ -33,6 +33,7 @@ type EventMap = {
   // BROWSE
   carousel_swipe: { carousel: string; index: number; direction: 'left' | 'right' };
   discover_tab_switched: { tab: 'eat' | 'experience' | 'drink' };
+  city_switched: { from: string; to: string };
   filter_tapped: { filter: string; tab: string };
   neighbourhood_tapped: { neighbourhood: string };
   phrase_played: { phrase: string };

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
+import { apiUrl } from '@/lib/api-client';
+import type { CityKey } from './useActiveCity';
 
-let cachedRestaurants: EatRestaurant[] | null = null;
-let inFlight: Promise<EatRestaurant[]> | null = null;
+const cacheByCity = new Map<CityKey, EatRestaurant[]>();
+const inFlightByCity = new Map<CityKey, Promise<EatRestaurant[]>>();
 
 function mergeWithFallback(serverRestaurants: EatRestaurant[]): EatRestaurant[] {
   const fallbackBySlug = new Map(ALL_EAT_RESTAURANTS.map((restaurant) => [restaurant.slug, restaurant]));
@@ -23,10 +25,6 @@ function mergeWithFallback(serverRestaurants: EatRestaurant[]): EatRestaurant[] 
     });
   }
 
-  for (const restaurant of ALL_EAT_RESTAURANTS) {
-    if (!mergedBySlug.has(restaurant.slug)) mergedBySlug.set(restaurant.slug, restaurant);
-  }
-
   const fallbackOrder = new Map(ALL_EAT_RESTAURANTS.map((restaurant, index) => [restaurant.slug, index]));
 
   return Array.from(mergedBySlug.values()).sort((a, b) => {
@@ -39,48 +37,53 @@ function mergeWithFallback(serverRestaurants: EatRestaurant[]): EatRestaurant[] 
   });
 }
 
-async function fetchEatRestaurants(): Promise<EatRestaurant[]> {
-  const res = await fetch('/api/restaurants-all');
+async function fetchEatRestaurants(city: CityKey): Promise<EatRestaurant[]> {
+  const res = await fetch(apiUrl(`/api/restaurants-all?city=${encodeURIComponent(city)}`));
   if (!res.ok) throw new Error(`Failed to load restaurants: ${res.status}`);
   const json = await res.json();
   if (!Array.isArray(json.restaurants)) throw new Error('Invalid restaurants payload');
-  return mergeWithFallback(json.restaurants as EatRestaurant[]);
+  const merged = city === 'shanghai'
+    ? mergeWithFallback(json.restaurants as EatRestaurant[])
+    : (json.restaurants as EatRestaurant[]);
+  return merged;
 }
 
-function loadEatRestaurants(): Promise<EatRestaurant[]> {
-  if (cachedRestaurants) return Promise.resolve(cachedRestaurants);
+function loadEatRestaurants(city: CityKey): Promise<EatRestaurant[]> {
+  const cached = cacheByCity.get(city);
+  if (cached) return Promise.resolve(cached);
+  const inFlight = inFlightByCity.get(city);
   if (inFlight) return inFlight;
 
-  inFlight = fetchEatRestaurants()
+  const p = fetchEatRestaurants(city)
     .then((restaurants) => {
-      cachedRestaurants = restaurants;
+      cacheByCity.set(city, restaurants);
       return restaurants;
     })
-    .catch(() => ALL_EAT_RESTAURANTS)
-    .finally(() => {
-      inFlight = null;
-    });
+    .catch(() => (city === 'shanghai' ? ALL_EAT_RESTAURANTS : []))
+    .finally(() => { inFlightByCity.delete(city); });
 
-  return inFlight;
+  inFlightByCity.set(city, p);
+  return p;
 }
 
-export function useEatRestaurants() {
-  const [restaurants, setRestaurants] = useState<EatRestaurant[]>(cachedRestaurants || ALL_EAT_RESTAURANTS);
-  const [loading, setLoading] = useState(!cachedRestaurants);
+export function useEatRestaurants(city: CityKey) {
+  const initial = cacheByCity.get(city) ?? (city === 'shanghai' ? ALL_EAT_RESTAURANTS : []);
+  const [restaurants, setRestaurants] = useState<EatRestaurant[]>(initial);
+  const [loading, setLoading] = useState(!cacheByCity.has(city));
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(!cacheByCity.has(city));
+    setRestaurants(cacheByCity.get(city) ?? (city === 'shanghai' ? ALL_EAT_RESTAURANTS : []));
 
-    loadEatRestaurants().then((nextRestaurants) => {
+    loadEatRestaurants(city).then((nextRestaurants) => {
       if (cancelled) return;
       setRestaurants(nextRestaurants);
       setLoading(false);
     });
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    return () => { cancelled = true; };
+  }, [city]);
 
   return { restaurants, loading };
 }

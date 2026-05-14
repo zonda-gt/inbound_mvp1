@@ -586,6 +586,9 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
   const prep = data.preparation || {};
   const pa = data.physical_accessibility || {};
   const strat = data.strategy || {};
+  const proTips: string[] = Array.isArray(strat.pro_tips)
+    ? strat.pro_tips
+    : (typeof strat.pro_tips === 'string' && strat.pro_tips ? [strat.pro_tips] : []);
   const highlights = data.highlights || data.experience_highlights || [];
   const headsUp = data.heads_up || [];
   const phrases = data.useful_chinese || [];
@@ -837,8 +840,8 @@ export default function AttractionPage({ data, onAsk, onNavigate, onBack, layout
       {/* ═══ ROUTE ═══ */}
       {strat.smart_route && (<><SH>Your best route</SH>
         <SmartRoute text={strat.smart_route} />
-        {strat.pro_tips?.length > 0 && (<><div style={{ padding: '16px 20px 8px' }}><span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>Pro tips</span></div>
-          {strat.pro_tips.map((t: string, i: number) => <Info key={i} icon={T_ICO[i % 5]} desc={t} />)}</>)}
+        {proTips.length > 0 && (<><div style={{ padding: '16px 20px 8px' }}><span style={{ fontSize: 14, fontWeight: 600, color: '#222' }}>Pro tips</span></div>
+          {proTips.map((t: string, i: number) => <Info key={i} icon={T_ICO[i % 5]} desc={t} />)}</>)}
         {strat.what_to_skip && <Coll title="What to skip"><div style={{ padding: '0 20px 16px', fontSize: 13, color: '#484848', lineHeight: 1.65 }}>{strat.what_to_skip}</div></Coll>}
       <Divider /></>)}
 

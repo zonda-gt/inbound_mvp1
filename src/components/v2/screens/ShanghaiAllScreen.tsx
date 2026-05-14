@@ -5,8 +5,10 @@ import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { COLLECTION_LIST } from '../data/collections-data';
 import { useCollectionData } from '../hooks/useCollectionData';
+import { useActiveCity, CITY_OPTIONS } from '../hooks/useActiveCity';
 import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
+import { apiUrl } from '@/lib/api-client';
 import type { AttractionData } from '@/types/attraction';
 
 const supabase = getSupabaseBrowserClient();
@@ -35,6 +37,9 @@ const VIBE_FILTERS: { id: string; emoji: string; label: string }[] = [
 export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: ShanghaiAllScreenProps) {
   const [activeVibe, setActiveVibe] = useState<string | null>(null);
   const [compact, setCompact] = useState(false);
+  const [city] = useActiveCity();
+  const isShanghai = city === 'shanghai';
+  const cityLabel = CITY_OPTIONS.find((c) => c.key === city)?.label || 'Shanghai';
 
   function handleTopTabClick(id: string) {
     if (id === 'eat') onNavigate('eat');
@@ -71,32 +76,34 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
           ))}
         </div>
 
-        {/* Vibe filter chips — inside sticky bar so they always sit right below tabs */}
-        <div className={`v2-eat-moods${activeVibe ? ' v2-eat-moods--light' : ''}`} style={{ position: 'static' }}>
-          <div className="v2-eat-moods-scroll">
-            <button
-              className={`v2-eat-mood-chip ${activeVibe === null ? 'active' : ''}`}
-              onClick={() => { track('filter_tapped', { filter: 'all', tab: 'experience' }); setActiveVibe(null); }}
-            >
-              <span className="v2-eat-mood-emoji">✨</span>
-              All
-            </button>
-            {VIBE_FILTERS.map((v) => (
+        {/* Vibe filter chips — Shanghai only (collections are Shanghai-curated) */}
+        {isShanghai && (
+          <div className={`v2-eat-moods${activeVibe ? ' v2-eat-moods--light' : ''}`} style={{ position: 'static' }}>
+            <div className="v2-eat-moods-scroll">
               <button
-                key={v.id}
-                className={`v2-eat-mood-chip ${activeVibe === v.id ? 'active' : ''}`}
-                onClick={() => { track('filter_tapped', { filter: v.id, tab: 'experience' }); setActiveVibe(v.id); }}
+                className={`v2-eat-mood-chip ${activeVibe === null ? 'active' : ''}`}
+                onClick={() => { track('filter_tapped', { filter: 'all', tab: 'experience' }); setActiveVibe(null); }}
               >
-                <span className="v2-eat-mood-emoji">{v.emoji}</span>
-                {v.label}
+                <span className="v2-eat-mood-emoji">✨</span>
+                All
               </button>
-            ))}
+              {VIBE_FILTERS.map((v) => (
+                <button
+                  key={v.id}
+                  className={`v2-eat-mood-chip ${activeVibe === v.id ? 'active' : ''}`}
+                  onClick={() => { track('filter_tapped', { filter: v.id, tab: 'experience' }); setActiveVibe(v.id); }}
+                >
+                  <span className="v2-eat-mood-emoji">{v.emoji}</span>
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* All view: horizontal scroll clusters */}
-      {activeVibe === null && (
+      {/* Shanghai: collection clusters / vibe-filtered list */}
+      {isShanghai && activeVibe === null && (
         <>
           {visibleCollections.map((col) => (
             <div key={col.id} id={`sha-section-${col.id}`}>
@@ -106,11 +113,51 @@ export default function ShanghaiAllScreen({ onNavigate, onSearchOpen }: Shanghai
           <div style={{ height: 20 }} />
         </>
       )}
-
-      {/* Filtered view: list rows */}
-      {activeVibe !== null && (
+      {isShanghai && activeVibe !== null && (
         <CollectionListView collectionId={activeVibe} />
       )}
+
+      {/* Non-Shanghai: flat list of attractions in the active city */}
+      {!isShanghai && (
+        <CityAttractionsList city={city} cityLabel={cityLabel} />
+      )}
+    </div>
+  );
+}
+
+/* ─── Flat city attractions list (non-Shanghai cities) ─── */
+
+function CityAttractionsList({ city, cityLabel }: { city: string; cityLabel: string }) {
+  const [attractions, setAttractions] = useState<AttractionData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetch(apiUrl(`/api/attractions?city=${encodeURIComponent(city)}&limit=50`))
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        setAttractions(d.attractions || []);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [city]);
+
+  return (
+    <div>
+      <div className="v2-attr-list-hdr">
+        <span className="v2-attr-list-hdr-emoji">📍</span>
+        <span className="v2-attr-list-hdr-title">All experiences in {cityLabel}</span>
+        {!loading && <span className="v2-attr-list-hdr-count">{attractions.length} experiences</span>}
+      </div>
+      {loading ? (
+        <>{[0,1,2].map((i) => <AttractionRowSkeleton key={i} />)}</>
+      ) : (
+        attractions.map((a) => <AttractionCard key={a.slug} attraction={a} />)
+      )}
+      <div className="v2-sh-bottom-pad" />
     </div>
   );
 }

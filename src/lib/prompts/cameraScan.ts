@@ -124,7 +124,8 @@ export function buildDynamicContext(opts?: {
 - Past dislikes: none yet
 
 ## Current Context
-- City: ${opts?.city || 'Shanghai'}
+- City: ${opts?.city || 'unknown (somewhere in China)'}
+- Country: China
 - Neighborhood: ${opts?.neighborhood || 'unknown'}
 - Current location: ${opts?.lat && opts?.lng ? `${opts.lat}, ${opts.lng}` : 'not available'}${modeHint}`;
 }

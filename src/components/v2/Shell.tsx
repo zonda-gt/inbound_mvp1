@@ -20,6 +20,8 @@ import type { EatCategory } from './data/eat-restaurants';
 import { COLLECTION_IDS } from './data/collections-data';
 import { track } from '@/lib/analytics';
 import { LOGIN_ENABLED } from '@/lib/feature-flags';
+import { apiUrl } from '@/lib/api-client';
+import { useActiveCity, CITY_OPTIONS } from './hooks/useActiveCity';
 
 type NavTab = 'home' | 'discover' | 'navigate' | 'concierge' | 'photo' | 'journal';
 type CollectionScreen = 'blow-off-steam' | 'down-the-rabbit-hole' | 'the-long-afternoon' | 'blow-your-mind' | 'make-something' | 'melt-into-it' | 'after-dark';
@@ -54,7 +56,7 @@ type NavItem = { id: NavTab; label: string; badge?: number; isLens?: boolean };
 
 const baseNavItems: NavItem[] = [
   { id: 'home', label: 'Home' },
-  { id: 'discover', label: 'Shanghai' },
+  { id: 'discover', label: 'Shanghai' }, // label overridden at runtime with the active city
   { id: 'photo', label: 'Lens', isLens: true },
   { id: 'concierge', label: 'Chat' },
   ...(LOGIN_ENABLED ? [{ id: 'journal' as NavTab, label: 'Journey', badge: 3 }] : []),
@@ -205,7 +207,7 @@ export default function Shell() {
     setSelectedAttraction({ slug, heroImage });
     setAttractionData(null);
     track('place_view', { slug, type: 'attraction', source: 'overlay' });
-    fetch(`/api/attractions?slug=${slug}`)
+    fetch(apiUrl(`/api/attractions?slug=${slug}`))
       .then(res => res.json())
       .then(json => setAttractionData(json.attraction))
       .catch(() => {});
@@ -257,14 +259,20 @@ export default function Shell() {
     }
   }, [activeScreen, conciergeUnread]);
 
+  const [activeCity] = useActiveCity();
+  const activeCityLabel = useMemo(
+    () => CITY_OPTIONS.find((c) => c.key === activeCity)?.label || 'Shanghai',
+    [activeCity],
+  );
+
   const navItems: NavItem[] = useMemo(
     () =>
-      baseNavItems.map((item) =>
-        item.id === 'concierge' && conciergeUnread > 0
-          ? { ...item, badge: conciergeUnread }
-          : item,
-      ),
-    [conciergeUnread],
+      baseNavItems.map((item) => {
+        if (item.id === 'discover') return { ...item, label: activeCityLabel };
+        if (item.id === 'concierge' && conciergeUnread > 0) return { ...item, badge: conciergeUnread };
+        return item;
+      }),
+    [conciergeUnread, activeCityLabel],
   );
 
   const isActive = (screen: Screen) => activeScreen === screen;

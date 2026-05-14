@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
-import { getAttractionBySlug, getAllAttractions, getAttractionsBySlugs } from "@/lib/attractions";
+import { getAttractionBySlug, getAllAttractions, getAttractionsBySlugs, getAttractionsByCity } from "@/lib/attractions";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
     const slugs = searchParams.get("slugs");
+    const city = searchParams.get("city");
+    const limitParam = searchParams.get("limit");
 
     // Batch fetch by slugs (comma-separated)
     if (slugs) {
@@ -27,6 +29,13 @@ export async function GET(request: Request) {
         );
       }
       return NextResponse.json({ attraction });
+    }
+
+    // Fetch by city (featured list for Discover)
+    if (city) {
+      const limit = limitParam ? Math.max(1, Math.min(50, parseInt(limitParam, 10) || 12)) : 12;
+      const attractions = await getAttractionsByCity(city, limit);
+      return NextResponse.json({ attractions });
     }
 
     // List all attractions (for browse)

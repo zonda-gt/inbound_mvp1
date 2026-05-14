@@ -3180,6 +3180,31 @@
   box-shadow:0 2px 12px rgba(0,0,0,0.06);
 }
 
+/* City selector — pill row above the search bar */
+.v2-city-selector{
+  display:flex;gap:6px;justify-content:center;
+  margin:0 -20px 10px;padding:0 20px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.v2-city-selector::-webkit-scrollbar{display:none;}
+.v2-city-chip{
+  border:1px solid #DDDDDD;background:white;
+  border-radius:999px;
+  padding:6px 14px;
+  font-size:13px;font-weight:500;
+  color:var(--text-2);
+  cursor:pointer;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:background 0.15s ease,color 0.15s ease,border-color 0.15s ease;
+}
+.v2-city-chip:active{opacity:0.7;}
+.v2-city-chip.active{
+  background:var(--text-1);color:white;border-color:var(--text-1);
+  font-weight:600;
+}
+.v2-sha-sticky-bar--compact .v2-city-selector{margin-bottom:6px;}
+.v2-sha-sticky-bar--compact .v2-city-chip{padding:4px 12px;font-size:12px;}
+
 /* Search pill */
 .v2-sha-pill{
   display:flex;align-items:center;justify-content:center;

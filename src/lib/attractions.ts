@@ -96,6 +96,31 @@ export async function getAllAttractions(): Promise<
   }));
 }
 
+export async function getAttractionsByCity(
+  city: string,
+  limit = 12,
+): Promise<AttractionData[]> {
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("attractions")
+    .select("slug, profile, images")
+    .eq("city", city)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return [];
+
+  const out: AttractionData[] = [];
+  for (const row of data) {
+    const profile = row.profile as Omit<AttractionData, "slug" | "images">;
+    if (!profile?.attraction_name_en || !profile?.attraction_name_cn) continue;
+    out.push({ ...profile, slug: row.slug, images: row.images || [] });
+  }
+  return out;
+}
+
 export async function getAttractionsBySlugs(
   slugs: string[],
 ): Promise<AttractionData[]> {

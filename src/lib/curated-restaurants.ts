@@ -1,4 +1,3 @@
-import { distanceMeters } from "@/lib/geo";
 import { getSupabaseServerClient } from "@/lib/supabase";
 
 // Lightweight summary sent to Claude for decision-making (~5KB for 8 restaurants)
@@ -78,97 +77,6 @@ function normalizeCityKey(city: string): string {
     if (eng === lower) return eng;
   }
   return lower;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function searchCuratedRestaurants(filters: {
-  cuisine?: string;
-  max_price?: number;
-  best_for?: string;
-  near_lat?: number;
-  near_lng?: number;
-  max_distance_km?: number;
-  query?: string;
-  city?: string;
-}): Promise<any[]> {
-  const supabase = getSupabaseServerClient();
-  if (!supabase) {
-    console.warn("[CuratedRestaurants] Supabase not configured");
-    return [];
-  }
-
-  let q = supabase.from("restaurants").select("*");
-
-  if (filters.cuisine) {
-    q = q.ilike("cuisine", `%${filters.cuisine}%`);
-  }
-
-  if (filters.max_price) {
-    q = q.lte("price_per_person", filters.max_price);
-  }
-
-  if (filters.best_for) {
-    q = q.contains("best_for", [filters.best_for]);
-  }
-
-  if (filters.city) {
-    const normalizedCity = normalizeCityKey(filters.city);
-    q = q.eq("city", normalizedCity);
-  }
-
-  if (filters.query) {
-    const normalized = filters.query.trim().replace(/\s+/g, "%");
-    const term = `%${normalized}%`;
-    const clauses = [
-      `name_en.ilike.${term}`,
-      `name_cn.ilike.${term}`,
-      `cuisine.ilike.${term}`,
-      `foreigner_hook.ilike.${term}`,
-      `english_description.ilike.${term}`,
-    ];
-
-    // Chinese queries often omit middle characters; allow loose matching like 卿庭%火锅
-    if (/[\u4e00-\u9fff]/.test(filters.query)) {
-      const compact = filters.query.replace(/\s+/g, "");
-      if (compact.length >= 2) {
-        const fuzzyCjk = `%${compact.split("").join("%")}%`;
-        clauses.push(`name_cn.ilike.${fuzzyCjk}`);
-      }
-    }
-
-    q = q.or(clauses.join(","));
-  }
-
-  // Default sort by rating
-  q = q.order("rating", { ascending: false });
-
-  const { data, error } = await q;
-
-  if (error) {
-    console.error("[CuratedRestaurants] Query error:", error);
-    return [];
-  }
-
-  let results = (data || []) as any[];
-
-  // Proximity filter + sort if coordinates provided
-  if (filters.near_lat != null && filters.near_lng != null) {
-    const maxDistanceMeters = (filters.max_distance_km ?? 5) * 1000;
-    results = results
-      .map((r) => ({
-        restaurant: r,
-        distance:
-          distanceMeters(
-            { lat: filters.near_lat!, lng: filters.near_lng! },
-            { lat: r.latitude, lng: r.longitude },
-          ) ?? Infinity,
-      }))
-      .filter((r) => r.distance <= maxDistanceMeters)
-      .sort((a, b) => a.distance - b.distance)
-      .map((r) => r.restaurant);
-  }
-
-  return results;
 }
 
 function toVectorLiteral(values: number[]): string {
@@ -297,15 +205,20 @@ export async function getAllRestaurantSlugsWithProfile(): Promise<string[]> {
 
 /** Fetch featured restaurants from restaurants_v2 for discover screen cards */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getFeaturedRestaurants(limit = 8): Promise<any[]> {
+export async function getFeaturedRestaurants(limit = 8, city?: string): Promise<any[]> {
   const supabase = getSupabaseServerClient();
   if (!supabase) return [];
 
-  const { data, error } = await supabase
+  let q = supabase
     .from("restaurants_v2")
-    .select("slug, name_en, name_cn, latitude, longitude, images, profile")
-    .not("profile", "is", null)
-    .limit(limit);
+    .select("slug, name_en, name_cn, latitude, longitude, images, profile, city")
+    .not("profile", "is", null);
+
+  if (city) {
+    q = q.eq("city", normalizeCityKey(city));
+  }
+
+  const { data, error } = await q.limit(limit);
 
   if (error || !data) return [];
 

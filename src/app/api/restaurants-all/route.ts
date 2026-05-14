@@ -56,17 +56,24 @@ function assignCategory(cuisineType: string, venueType: string, cuisineRaw: stri
   return "chinese";
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = getSupabaseServerClient();
     if (!supabase) {
       return NextResponse.json({ error: "Database not configured" }, { status: 500 });
     }
 
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const city = searchParams.get("city");
+
+    let q = supabase
       .from("restaurants_v2")
       .select("slug, name_en, name_cn, images, profile, latitude, longitude")
       .not("profile", "is", null);
+
+    if (city) q = q.eq("city", city);
+
+    const { data, error } = await q;
 
     if (error) {
       console.error("[Restaurants All] Query error:", error);

@@ -2,17 +2,18 @@
 
 import { useState, useEffect, useMemo, useCallback, ViewTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTimeAwareMessage } from '../data/discover-data';
-import { COLLECTION_LIST } from '../data/collections-data';
-import { useCollectionData } from '../hooks/useCollectionData';
 import { ALL_EAT_RESTAURANTS, type EatRestaurant } from '../data/eat-restaurants';
 import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { savePlace, unsavePlace } from '@/lib/saved-places';
 import { track } from '@/lib/analytics';
 import SaveSheet from '../SaveSheet';
+import CitySelector from '../CitySelector';
+import { useActiveCity } from '../hooks/useActiveCity';
 import { useScrollSafeClick } from '../hooks/useScrollSafeClick';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { getDistanceLabel } from '@/lib/geo';
+import { apiUrl } from '@/lib/api-client';
+import type { AttractionData } from '@/types/attraction';
 
 const supabase = getSupabaseBrowserClient();
 
@@ -21,9 +22,6 @@ interface DiscoverScreenProps {
   isActive?: boolean;
   onSearchOpen?: () => void;
 }
-
-// Grab a diverse mix of attraction slugs across collections for the "Only in Shanghai" scroll
-const featuredSlugs = COLLECTION_LIST.flatMap((col) => col.slugs.slice(0, 2)).slice(0, 12);
 
 function SmoothImage({ src, alt, className }: { src: string; alt: string; className: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -49,29 +47,50 @@ function SmoothImage({ src, alt, className }: { src: string; alt: string; classN
 const barsList = ALL_EAT_RESTAURANTS.filter((r) => r.category === 'bars');
 
 export default function DiscoverScreen({ onNavigate, isActive: screenActive = true, onSearchOpen }: DiscoverScreenProps) {
-  const { attractions: featuredAttractions, loading: featuredLoading } = useCollectionData(featuredSlugs);
+  const [city, setCity] = useActiveCity();
   const [compact, setCompact] = useState(false);
   const { coords, isDemo } = useGeolocation();
   const userCoords = useMemo(() => (isDemo ? null : coords), [coords, isDemo]);
 
-  // Fetch featured restaurants from restaurants_v2
+  // Featured attractions by active city
+  const [featuredAttractions, setFeaturedAttractions] = useState<AttractionData[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    setFeaturedLoading(true);
+    fetch(apiUrl(`/api/attractions?city=${encodeURIComponent(city)}&limit=12`))
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        setFeaturedAttractions(d.attractions || []);
+        setFeaturedLoading(false);
+      })
+      .catch(() => { if (!cancelled) setFeaturedLoading(false); });
+    return () => { cancelled = true; };
+  }, [city]);
+
+  // Featured restaurants by active city
   const [featuredRestaurants, setFeaturedRestaurants] = useState<any[]>([]);
   useEffect(() => {
-    fetch('/api/restaurants-v2')
-      .then(r => r.json())
-      .then(d => {
+    let cancelled = false;
+    fetch(apiUrl(`/api/restaurants-v2?city=${encodeURIComponent(city)}`))
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
         // Deduplicate by slug to prevent duplicate ViewTransition names
         const seen = new Set<string>();
         const unique = (d.restaurants || []).filter((r: any) => r.slug && !seen.has(r.slug) && seen.add(r.slug));
         setFeaturedRestaurants(unique);
       })
       .catch(() => {});
-  }, []);
+    return () => { cancelled = true; };
+  }, [city]);
 
   return (
     <div className="v2-scroll-body" onScroll={(e) => { const shouldCompact = e.currentTarget.scrollTop > 30; if (shouldCompact !== compact) setCompact(shouldCompact); }}>
-      {/* Sticky search + Eat / Experience / Drink tabs */}
+      {/* Sticky city selector + search + Eat / Experience / Drink tabs */}
       <div className={`v2-sha-sticky-bar${compact ? ' v2-sha-sticky-bar--compact' : ''}`}>
+        <CitySelector city={city} onChange={setCity} />
         <div className="v2-sha-pill" onClick={() => onSearchOpen?.()}>
           <span className="v2-sha-pill-icon">🔍</span>
           <span>Start your search</span>
@@ -158,23 +177,26 @@ export default function DiscoverScreen({ onNavigate, isActive: screenActive = tr
         </div>
       </div>
 
-      <div className="v2-sh-divider" />
-
-      {/* SECTION 2B: Bars & Cafes */}
-      <div className="v2-sh-section v2-fade-up v2-d2">
-        <div className="v2-sh-section-hdr">
-          <div>
-            <div className="v2-sh-section-title">Bars &amp; Cafes</div>
-            <div className="v2-sh-section-sub">Where to drink tonight</div>
+      {/* SECTION 2B: Bars & Cafes — Shanghai only for now */}
+      {city === 'shanghai' && (
+        <>
+          <div className="v2-sh-divider" />
+          <div className="v2-sh-section v2-fade-up v2-d2">
+            <div className="v2-sh-section-hdr">
+              <div>
+                <div className="v2-sh-section-title">Bars &amp; Cafes</div>
+                <div className="v2-sh-section-sub">Where to drink tonight</div>
+              </div>
+              <div className="v2-sh-see-all" onClick={() => onNavigate('drink')}>See all &rarr;</div>
+            </div>
+            <div className="v2-sh-hscroll">
+              {barsList.map((r) => (
+                <BarCoverCard key={r.slug} bar={r} screenActive={screenActive} />
+              ))}
+            </div>
           </div>
-          <div className="v2-sh-see-all" onClick={() => onNavigate('drink')}>See all &rarr;</div>
-        </div>
-        <div className="v2-sh-hscroll">
-          {barsList.map((r) => (
-            <BarCoverCard key={r.slug} bar={r} screenActive={screenActive} />
-          ))}
-        </div>
-      </div>
+        </>
+      )}
 
       <div className="v2-sh-bottom-pad" />
 

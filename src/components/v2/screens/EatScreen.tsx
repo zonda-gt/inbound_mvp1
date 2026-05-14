@@ -5,6 +5,7 @@ import { type EatRestaurant, type EatCategory } from '../data/eat-restaurants';
 import { track } from '@/lib/analytics';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { useEatRestaurants } from '../hooks/useEatRestaurants';
+import { useActiveCity } from '../hooks/useActiveCity';
 import { getDistanceLabel, sortByDistance, type Coordinates } from '@/lib/geo';
 
 /* ─── Constants ─── */
@@ -67,7 +68,8 @@ interface EatScreenProps {
 export default function EatScreen({ onNavigate }: EatScreenProps) {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const { coords: userCoords } = useGeolocation();
-  const { restaurants } = useEatRestaurants();
+  const [city] = useActiveCity();
+  const { restaurants } = useEatRestaurants(city);
 
   const grouped = useMemo(() => {
     const isDietary = activeFilter === 'vegetarian' || activeFilter === 'halal';

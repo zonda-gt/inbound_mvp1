@@ -357,14 +357,19 @@ function StrategySection({
         </div>
 
         {/* Pro tips */}
-        {strategy.pro_tips?.length > 0 && (
+        {(() => {
+          const proTips: string[] = Array.isArray(strategy.pro_tips)
+            ? strategy.pro_tips
+            : (typeof strategy.pro_tips === 'string' && strategy.pro_tips ? [strategy.pro_tips] : []);
+          if (proTips.length === 0) return null;
+          return (
           <div className="mb-6">
             <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
               <Lightbulb className="w-3.5 h-3.5 text-[#FFD700]" />
               Pro Tips
             </h3>
             <ul className="space-y-2">
-              {strategy.pro_tips.map((tip, i) => (
+              {proTips.map((tip, i) => (
                 <li
                   key={i}
                   className="flex items-start gap-2 text-sm text-foreground/80"
@@ -375,7 +380,8 @@ function StrategySection({
               ))}
             </ul>
           </div>
-        )}
+          );
+        })()}
 
         {/* What to skip */}
         <div className="mb-6">

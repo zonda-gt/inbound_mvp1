@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchIndex } from './hooks/useSearchIndex';
+import { useActiveCity } from './hooks/useActiveCity';
 import { track } from '@/lib/analytics';
 import type { SearchItem, SearchItemType } from './data/search-index';
 
@@ -66,7 +67,8 @@ interface SearchOverlayProps {
 
 export default function SearchOverlay({ open, onClose, onNavigate, onOpenAttraction }: SearchOverlayProps) {
   const router = useRouter();
-  const { fuse, loading } = useSearchIndex(open);
+  const [city] = useActiveCity();
+  const { fuse, loading } = useSearchIndex(open, city);
 
   const [query, setQuery] = useState('');
   const [activeTab, setActiveTab] = useState<SearchTab>('experience');
