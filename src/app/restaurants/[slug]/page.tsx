@@ -1,8 +1,18 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import RestaurantDetail from "@/components/guides/restaurants/RestaurantDetail";
 import { getRestaurantBySlug, getAllRestaurantSlugsWithProfile } from "@/lib/curated-restaurants";
 import { SITE_URL } from "@/lib/site";
+
+const CITY_PREFIXES = ["shanghai-", "chongqing-", "chengdu-"];
+
+/** Legacy slugs (pre-city-prefix era) default to Shanghai. Returns the prefixed slug if it exists. */
+async function resolveLegacySlug(slug: string): Promise<string | null> {
+  if (CITY_PREFIXES.some((p) => slug.startsWith(p))) return null;
+  const prefixed = `shanghai-${slug}`;
+  const data = await getRestaurantBySlug(prefixed);
+  return data ? prefixed : null;
+}
 
 export const revalidate = 3600; // ISR: revalidate every hour
 export const dynamicParams = true;
@@ -80,7 +90,11 @@ export default async function RestaurantPage({ params }: Props) {
   const { slug } = await params;
   const data = await getRestaurantBySlug(slug);
 
-  if (!data) notFound();
+  if (!data) {
+    const legacyTarget = await resolveLegacySlug(slug);
+    if (legacyTarget) permanentRedirect(`/restaurants/${legacyTarget}`);
+    notFound();
+  }
 
   return (
     <>

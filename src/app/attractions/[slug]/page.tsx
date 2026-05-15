@@ -1,9 +1,19 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import AttractionPageComponent from "@/components/guides/attractions/AttractionDetail";
 import { getAllAttractionSlugs, getAttractionBySlug } from "@/lib/attractions";
 import { SITE_URL } from "@/lib/site";
 import type { AttractionData } from "@/types/attraction";
+
+const CITY_PREFIXES = ["shanghai-", "chongqing-", "chengdu-"];
+
+/** Legacy slugs (pre-city-prefix era) default to Shanghai. Returns the prefixed slug if it exists. */
+async function resolveLegacySlug(slug: string): Promise<string | null> {
+  if (CITY_PREFIXES.some((p) => slug.startsWith(p))) return null;
+  const prefixed = `shanghai-${slug}`;
+  const data = await getAttractionBySlug(prefixed);
+  return data ? prefixed : null;
+}
 
 export const revalidate = 3600; // ISR: revalidate every hour
 export const dynamicParams = true; // allow slugs not in generateStaticParams
@@ -70,7 +80,11 @@ export default async function AttractionPage({ params }: Props) {
   const { slug } = await params;
   const data = await getAttractionBySlug(slug);
 
-  if (!data) notFound();
+  if (!data) {
+    const legacyTarget = await resolveLegacySlug(slug);
+    if (legacyTarget) permanentRedirect(`/attractions/${legacyTarget}`);
+    notFound();
+  }
 
   return (
     <>
